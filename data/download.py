@@ -27,8 +27,10 @@ Downloaded Data:
    - License: Public Domain
 
 4. EPI Family Budget Calculator:
-   - Download: https://www.epi.org/resources/datazone_fambud_xls_index/
-   - Note: Data appears to be from 2007/2008 - may need more recent source
+    - Location: data/cost-of-living/
+    - Contains: Cost of living data by metro area and family type
+    - Source: https://files.epi.org/uploads/fbc_data_2026.xlsx
+    - License: Used with permission from Economic Policy Institute
 """
 
 import os
@@ -64,6 +66,8 @@ IPEDS_KEY_FILES = [
     "GR2023",
     "SFA2223",
 ]
+
+EPI_COST_OF_LIVING_URL = "https://files.epi.org/uploads/fbc_data_2026.xlsx"
 
 
 def download_file(url, dest_path, retries=3):
@@ -161,6 +165,37 @@ def download_ipeds_data(base_path):
     return True
 
 
+def download_cost_of_living_data(base_path):
+    """Download EPI Family Budget Calculator cost of living data."""
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    col_path = os.path.join(repo_root, "data/cost-of-living")
+    
+    os.makedirs(col_path, exist_ok=True)
+    
+    filename = "fbc_data_2026.xlsx"
+    dest_path = os.path.join(col_path, filename)
+    
+    print(f"Downloading EPI cost of living data to {col_path}\n")
+    
+    if os.path.exists(dest_path):
+        print(f"  {filename}: already exists, skipping")
+    else:
+        print(f"  Downloading {filename}...", end=" ", flush=True)
+        
+        if download_file(EPI_COST_OF_LIVING_URL, dest_path):
+            size = os.path.getsize(dest_path)
+            print(f"OK ({size:,} bytes)")
+        else:
+            print(f"FAILED")
+            if os.path.exists(dest_path):
+                os.remove(dest_path)
+            return False
+    
+    print("\nCost of living data download complete!")
+    return True
+
+
 def download_data(base_path):
     """Download O*NET database files."""
     script_dir = os.path.dirname(os.path.abspath(base_path))
@@ -229,6 +264,12 @@ def get_downloaded_data_info():
             "files": [],
             "source": "https://nces.ed.gov/ipeds/datacenter/",
             "description": "IPEDS education data (institutional characteristics, admissions, completions, etc.)"
+        },
+        "cost_of_living": {
+            "location": "data/cost-of-living/",
+            "files": [],
+            "source": "https://files.epi.org/uploads/fbc_data_2026.xlsx",
+            "description": "EPI Family Budget Calculator cost of living data"
         }
     }
     
@@ -243,6 +284,10 @@ def get_downloaded_data_info():
     ipeds_path = os.path.join(repo_root, "data/education")
     if os.path.exists(ipeds_path):
         info["ipeds"]["files"] = os.listdir(ipeds_path)
+    
+    col_path = os.path.join(repo_root, "data/cost-of-living")
+    if os.path.exists(col_path):
+        info["cost_of_living"]["files"] = os.listdir(col_path)
     
     return info
 
@@ -302,6 +347,7 @@ if __name__ == "__main__":
     parser.add_argument("--download-onet", action="store_true", help="Download O*NET data from onetcenter.org")
     parser.add_argument("--download-bls", action="store_true", help="Download BLS OEWS data from download.bls.gov")
     parser.add_argument("--download-ipeds", action="store_true", help="Download IPEDS education data from nces.ed.gov")
+    parser.add_argument("--download-epi", action="store_true", help="Download EPI cost of living data from files.epi.org")
     parser.add_argument("--download-all", action="store_true", help="Download all available data sources")
     args = parser.parse_args()
     
@@ -319,6 +365,12 @@ if __name__ == "__main__":
         print("IPEDS Education Data")
         print("="*50)
         download_ipeds_data(__file__)
+        print("\n" + "="*50)
+        print("EPI Cost of Living Data")
+        print("="*50)
+        download_cost_of_living_data(__file__)
+    elif args.download_epi:
+        download_cost_of_living_data(__file__)
     elif args.download_ipeds:
         download_ipeds_data(__file__)
     elif args.download_bls:
