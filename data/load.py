@@ -271,6 +271,82 @@ def load_cost_of_living():
         cursor.close()
         conn.close()
 
+def parse_series_id(series_id):
+    if not series_id or len(series_id) < 23:
+        return None, None, None, None, None
+    
+    try:
+        area = series_id[5:12]
+        industry = series_id[12:18]
+        datatype = series_id[18:20]
+        occupation = series_id[20:26]
+        sector = series_id[26:28]
+        return area, industry, datatype, occupation, sector
+    except:
+        return None, None, None, None, None
+
+def load_salary_data():
+    print("Loading main salary data (6M+ rows - this takes a while)...")
+    
+    data_file = os.path.join(DATA_DIR, 'salary', 'oe.data.0.Current')
+    if not os.path.exists(data_file):
+        print("  Salary data file not found")
+        return
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    chunk_size = 50000
+    total_loaded = 0
+    
+    try:
+        for chunk in pd.read_csv(data_file, sep='\t', chunksize=chunk_size, low_memory=False):
+            chunk.columns = chunk.columns.str.strip()
+            
+            values = []
+            for _, row in chunk.iterrows():
+                series_id = row.get('series_id')
+                area_code, industry_code, datatype_code, occupation_code, sector_code = parse_series_id(series_id)
+                
+                val = row.get('value')
+                if pd.isna(val):
+                    val = None
+                
+                values.append((
+                    series_id,
+                    row.get('year'),
+                    row.get('period'),
+                    val,
+                    row.get('footnote_codes'),
+                    occupation_code,
+                    area_code,
+                    industry_code,
+                    datatype_code,
+                    sector_code
+                ))
+            
+            query = '''
+                INSERT INTO salary_data 
+                (series_id, year, period, value, footnote_codes, occupation_code, area_code, industry_code, datatype_code, sector_code)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (series_id) DO NOTHING
+            '''
+            
+            from psycopg2.extras import execute_batch
+            execute_batch(cursor, query, values)
+            conn.commit()
+            
+            total_loaded += len(values)
+            print(f"    Loaded {total_loaded} rows...")
+            
+    except Exception as e:
+        print(f"  Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    print(f"  Total salary data loaded: {total_loaded} rows")
+
 def main():
     print("=" * 60)
     print("Loading data into PostgreSQL database: careerality")
@@ -282,6 +358,10 @@ def main():
     
     load_salary_reference_data()
     print()
+    
+    # Uncomment to load main salary data (6M+ rows - takes significant time)
+    # load_salary_data()
+    # print()
     
     load_onet_data()
     print()
@@ -302,6 +382,7 @@ def main():
         UNION ALL SELECT 'salary_industries', COUNT(*) FROM salary_industries
         UNION ALL SELECT 'salary_datatypes', COUNT(*) FROM salary_datatypes
         UNION ALL SELECT 'salary_sector', COUNT(*) FROM salary_sector
+        UNION ALL SELECT 'salary_data', COUNT(*) FROM salary_data
         UNION ALL SELECT 'cost_of_living', COUNT(*) FROM cost_of_living
         UNION ALL SELECT 'onet_data', COUNT(*) FROM onet_data
     """)
