@@ -28,7 +28,94 @@ Downloaded Data:
 """
 
 import os
-import json
+import sys
+import argparse
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+ONET_VERSION = "30.2"
+ONET_BASE_URL = f"https://www.onetcenter.org/dl/database/db_{ONET_VERSION.replace('.', '_')}_text/"
+FILES_TO_DOWNLOAD = [
+    "Abilities.txt",
+    "Abilities to Work Activities.txt",
+    "Abilities to Work Context.txt",
+    "Alternate Titles.txt",
+    "Basic Interests to RIASEC.txt",
+    "Content Model Reference.txt",
+    "DWA Reference.txt",
+    "Education, Training, and Experience Categories.txt",
+    "Education, Training, and Experience.txt",
+    "Emerging Tasks.txt",
+    "IWA Reference.txt",
+    "Interests Illustrative Activities.txt",
+    "Interests Illustrative Occupations.txt",
+    "Interests.txt",
+    "Job Zone Reference.txt",
+    "Job Zones.txt",
+    "Knowledge.txt",
+    "Occupation Data.txt",
+    "Occupation Level Metadata.txt",
+    "Sample of Reported Titles.txt",
+    "Skills.txt",
+    "Task Statements.txt",
+    "Task to Work Activity.txt",
+    "Task to Work Context.txt",
+    "Technology Skills.txt",
+    "Work Activities.txt",
+    "Work Context.txt",
+    "Work Styles.txt",
+    "Work Values.txt",
+]
+
+
+def download_file(url, dest_path, retries=3):
+    """Download a single file with retry logic."""
+    for attempt in range(retries):
+        try:
+            urllib.request.urlretrieve(url, dest_path)
+            return True
+        except Exception as e:
+            if attempt < retries - 1:
+                print(f"  Retry {attempt + 1}/{retries} for {url}: {e}")
+            else:
+                print(f"  Failed to download {url}: {e}")
+                return False
+    return False
+
+
+def download_data(base_path, workers=4):
+    """Download O*NET database files."""
+    repo_root = os.path.dirname(os.path.abspath(base_path))
+    onet_path = os.path.join(repo_root, f"data/careers/onetsql/db_{ONET_VERSION}_text")
+    
+    os.makedirs(onet_path, exist_ok=True)
+    
+    print(f"Downloading O*NET v{ONET_VERSION} to {onet_path}")
+    print(f"Using {workers} parallel workers\n")
+    
+    def download_one(filename):
+        url = ONET_BASE_URL + filename
+        dest = os.path.join(onet_path, filename)
+        if os.path.exists(dest):
+            print(f"  ✓ {filename} (already exists)")
+            return filename, True
+        print(f"  Downloading {filename}...", end=" ", flush=True)
+        success = download_file(url, dest)
+        if success:
+            print("done")
+        return filename, success
+    
+    results = []
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(download_one, f): f for f in FILES_TO_DOWNLOAD}
+        for future in as_completed(futures):
+            results.append(future.result())
+    
+    succeeded = sum(1 for _, ok in results if ok)
+    failed = len(results) - succeeded
+    
+    print(f"\nDownload complete: {succeeded} succeeded, {failed} failed")
+    return failed == 0
 
 def get_downloaded_data_info():
     """Return info about downloaded data files."""
@@ -81,4 +168,12 @@ def list_occupation_data():
             print(f"  ✗ {filename}: {desc}")
 
 if __name__ == "__main__":
-    list_occupation_data()
+    parser = argparse.ArgumentParser(description="O*NET Data Downloader for Careerality")
+    parser.add_argument("--download", action="store_true", help="Download O*NET data from onetcenter.org")
+    parser.add_argument("--workers", type=int, default=4, help="Number of parallel download workers")
+    args = parser.parse_args()
+    
+    if args.download:
+        download_data(__file__, workers=args.workers)
+    else:
+        list_occupation_data()
