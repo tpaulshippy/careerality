@@ -251,8 +251,7 @@ Careerality is open source under the MIT License. See [LICENSE](LICENSE) for det
 ## Stay Connected
 
 - **Website**: [careerality.app](https://careerality.app)
-- **Issues**: [github.com/careerality/careerality/issues](https://github.com/careerality/careerality/issues)
-- **Discord**: [Join our community](https://discord.gg/careerality)
+- **Issues**: [github.com/tpaulshippy/careerality/issues](https://github.com/tpaulshippy/careerality/issues)
 
 ---
 
