@@ -14,8 +14,10 @@ Downloaded Data:
    - License: Creative Commons Attribution 4.0
 
 2. BLS Occupational Employment and Wage Statistics (OEWS):
-    - Download flat files from https://www.bls.gov/oes/tables.htm
-    - Series IDs follow format: OE + U + areatype + area_code + industry + occupation + datatype
+   - Location: data/salary/
+   - Contains: Employment and wage data by occupation and area
+   - Source: https://download.bls.gov/pub/time.series/oe/
+   - License: Public Domain
 
 3. IPEDS Education Data:
    - See: https://nces.ed.gov/ipeds/datacenter/
@@ -31,16 +33,37 @@ import sys
 import argparse
 import urllib.request
 import zipfile
+from urllib.error import URLError, HTTPError
 
 ONET_VERSION = "30.2"
 ONET_ZIP_URL = f"https://www.onetcenter.org/dl_files/database/db_{ONET_VERSION.replace('.', '_')}_text.zip"
 
+BLS_OE_BASE_URL = "https://download.bls.gov/pub/time.series/oe/"
+BLS_OE_FILES = [
+    "oe.area",
+    "oe.areatype",
+    "oe.datatype",
+    "oe.footnote",
+    "oe.industry",
+    "oe.occupation",
+    "oe.sector",
+    "oe.seasonal",
+    "oe.data.0.Current",
+]
+
 
 def download_file(url, dest_path, retries=3):
     """Download a single file with retry logic."""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    
     for attempt in range(retries):
         try:
-            urllib.request.urlretrieve(url, dest_path)
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request) as response:
+                with open(dest_path, 'wb') as out_file:
+                    out_file.write(response.read())
             return True
         except Exception as e:
             if attempt < retries - 1:
@@ -49,6 +72,38 @@ def download_file(url, dest_path, retries=3):
                 print(f"  Failed to download {url}: {e}")
                 return False
     return False
+
+
+def download_bls_data(base_path):
+    """Download BLS Occupational Employment and Wage Statistics data."""
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    bls_path = os.path.join(repo_root, "data/salary")
+    
+    os.makedirs(bls_path, exist_ok=True)
+    
+    print(f"Downloading BLS OE data to {bls_path}\n")
+    
+    for filename in BLS_OE_FILES:
+        dest_path = os.path.join(bls_path, filename)
+        
+        if os.path.exists(dest_path):
+            print(f"  {filename}: already exists, skipping")
+            continue
+        
+        url = BLS_OE_BASE_URL + filename
+        print(f"  Downloading {filename}...", end=" ", flush=True)
+        
+        if download_file(url, dest_path):
+            size = os.path.getsize(dest_path)
+            print(f"OK ({size:,} bytes)")
+        else:
+            print(f"FAILED")
+            if os.path.exists(dest_path):
+                os.remove(dest_path)
+    
+    print("\nBLS OE data download complete!")
+    return True
 
 
 def download_data(base_path):
@@ -107,6 +162,12 @@ def get_downloaded_data_info():
             "source": "https://www.onetcenter.org/database.html",
             "version": "30.2",
             "description": "O*NET occupational database with skills, abilities, knowledge, tasks, etc."
+        },
+        "bls": {
+            "location": "data/salary/",
+            "files": [],
+            "source": "https://download.bls.gov/pub/time.series/oe/",
+            "description": "BLS Occupational Employment and Wage Statistics (OEWS)"
         }
     }
     
@@ -114,17 +175,22 @@ def get_downloaded_data_info():
     if os.path.exists(onet_path):
         info["onet"]["files"] = [f for f in os.listdir(onet_path) if f.endswith(".txt")]
     
+    bls_path = os.path.join(repo_root, "data/salary")
+    if os.path.exists(bls_path):
+        info["bls"]["files"] = os.listdir(bls_path)
+    
     return info
 
 def list_occupation_data():
-    """Show what's available in the downloaded O*NET data."""
+    """Show what's available in the downloaded O*NET and BLS data."""
     info = get_downloaded_data_info()
     
     print("=== Downloaded Data for Careerality ===\n")
-    print(f"O*NET Database v{info['onet']['version']}")
-    print(f"Source: {info['onet']['source']}")
-    print(f"Files: {len(info['onet']['files'])}")
-    print("\nKey files:")
+    
+    print("O*NET Database")
+    print(f"  Source: {info['onet']['source']}")
+    print(f"  Files: {len(info['onet']['files'])}")
+    print("\n  Key files:")
     
     key_files = [
         ("Occupation Data.txt", "Occupation titles, codes, descriptions"),
@@ -141,16 +207,51 @@ def list_occupation_data():
     
     for filename, desc in key_files:
         if filename in info['onet']['files']:
-            print(f"  ✓ {filename}: {desc}")
+            print(f"    ✓ {filename}: {desc}")
         else:
-            print(f"  ✗ {filename}: {desc}")
+            print(f"    ✗ {filename}: {desc}")
+    
+    print("\n" + "="*50)
+    print("\nBLS OEWS Data")
+    print(f"  Source: {info['bls']['source']}")
+    print(f"  Files: {len(info['bls']['files'])}")
+    print("\n  Key files:")
+    
+    bls_key_files = [
+        ("oe.occupation", "Occupation codes and titles"),
+        ("oe.area", "Area codes (national, state, metro)"),
+        ("oe.datatype", "Data types (employment, wages)"),
+        ("oe.industry", "Industry codes (NAICS)"),
+        ("oe.sector", "Industry sectors"),
+        ("oe.data.0.Current", "Current employment/wage data"),
+    ]
+    
+    for filename, desc in bls_key_files:
+        if filename in info['bls']['files']:
+            print(f"    ✓ {filename}: {desc}")
+        else:
+            print(f"    ✗ {filename}: {desc}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="O*NET Data Downloader for Careerality")
-    parser.add_argument("--download", action="store_true", help="Download O*NET data from onetcenter.org")
+    parser = argparse.ArgumentParser(description="Data Downloader for Careerality")
+    parser.add_argument("--download-onet", action="store_true", help="Download O*NET data from onetcenter.org")
+    parser.add_argument("--download-bls", action="store_true", help="Download BLS OEWS data from download.bls.gov")
+    parser.add_argument("--download-all", action="store_true", help="Download all available data sources")
     args = parser.parse_args()
     
-    if args.download:
+    if args.download_all:
+        print("Downloading all data sources...\n")
+        print("="*50)
+        print("O*NET Data")
+        print("="*50)
+        download_data(__file__)
+        print("\n" + "="*50)
+        print("BLS OEWS Data")
+        print("="*50)
+        download_bls_data(__file__)
+    elif args.download_bls:
+        download_bls_data(__file__)
+    elif args.download_onet:
         download_data(__file__)
     else:
         list_occupation_data()
