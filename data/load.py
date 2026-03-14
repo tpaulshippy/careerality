@@ -2,11 +2,16 @@
 
 import os
 import json
+import sys
 import pandas as pd
 import psycopg2
 import warnings
 
 warnings.filterwarnings('ignore')
+
+def log(msg):
+    print(msg)
+    sys.stdout.flush()
 
 DATA_DIR = os.path.dirname(__file__)
 
@@ -22,7 +27,7 @@ def get_connection():
 
 def load_csv_to_table(filepath, table_name):
     if not os.path.exists(filepath):
-        print(f"    File not found: {filepath}")
+        log(f"    File not found: {filepath}")
         return 0
     
     conn = get_connection()
@@ -286,7 +291,7 @@ def parse_series_id(series_id):
         return None, None, None, None, None
 
 def load_salary_data():
-    print("Loading main salary data (6M+ rows - this takes a while)...")
+    log("Loading main salary data (6M+ rows - this takes a while)...")
     
     data_file = os.path.join(DATA_DIR, 'salary', 'oe.data.0.Current')
     if not os.path.exists(data_file):
@@ -309,8 +314,13 @@ def load_salary_data():
                 area_code, industry_code, datatype_code, occupation_code, sector_code = parse_series_id(series_id)
                 
                 val = row.get('value')
-                if pd.isna(val):
+                if pd.isna(val) or (isinstance(val, str) and val.strip() in ('-', '')):
                     val = None
+                else:
+                    try:
+                        val = float(val)
+                    except:
+                        val = None
                 
                 values.append((
                     series_id,
@@ -337,41 +347,40 @@ def load_salary_data():
             conn.commit()
             
             total_loaded += len(values)
-            print(f"    Loaded {total_loaded} rows...")
+            log(f"    Loaded {total_loaded} rows...")
             
     except Exception as e:
-        print(f"  Error: {e}")
+        log(f"  Error: {e}")
     finally:
         cursor.close()
         conn.close()
     
-    print(f"  Total salary data loaded: {total_loaded} rows")
+    log(f"  Total salary data loaded: {total_loaded} rows")
 
 def main():
-    print("=" * 60)
-    print("Loading data into PostgreSQL database: careerality")
-    print("=" * 60)
-    print()
+    log("=" * 60)
+    log("Loading data into PostgreSQL database: careerality")
+    log("=" * 60)
+    log("")
     
     load_education_data()
-    print()
+    log("")
     
     load_salary_reference_data()
-    print()
+    log("")
     
-    # Uncomment to load main salary data (6M+ rows - takes significant time)
-    # load_salary_data()
-    # print()
+    load_salary_data()
+    log("")
     
     load_onet_data()
-    print()
+    log("")
     
     load_cost_of_living()
-    print()
+    log("")
     
-    print("=" * 60)
-    print("Data loading complete!")
-    print("=" * 60)
+    log("=" * 60)
+    log("Data loading complete!")
+    log("=" * 60)
     
     conn = get_connection()
     cursor = conn.cursor()
@@ -386,9 +395,9 @@ def main():
         UNION ALL SELECT 'cost_of_living', COUNT(*) FROM cost_of_living
         UNION ALL SELECT 'onet_data', COUNT(*) FROM onet_data
     """)
-    print("\nTable summary:")
+    log("\nTable summary:")
     for row in cursor.fetchall():
-        print(f"  {row[0]}: {row[1]} rows")
+        log(f"  {row[0]}: {row[1]} rows")
     cursor.close()
     conn.close()
 
