@@ -369,18 +369,28 @@ def transform_career_roi():
     log("  Loading education levels from O*NET...")
     education_cache = {}
     cursor.execute("""
-        SELECT DISTINCT ON (data->>'O*NET-SOC Code')
-            data->>'O*NET-SOC Code' as onet_code,
-            data->>'Category' as category
-        FROM onet_data
-        WHERE data_type = 'education_experience'
-          AND data->>'Element ID' = '2.D.1'
-          AND (data->>'Data Value')::NUMERIC > 0
-        ORDER BY data->>'O*NET-SOC Code', (data->>'Data Value')::NUMERIC DESC
+        SELECT onet_soc_code, data_value
+        FROM onet_education
+        WHERE category = 1
     """)
     for row in cursor.fetchall():
-        if row[0]:
-            education_cache[row[0]] = row[1]
+        if row[0] and row[1]:
+            education_cache[row[0]] = str(row[1])
+    
+    log("  Loading job zones from O*NET...")
+    job_zone_cache = {}
+    cursor.execute("""
+        SELECT DISTINCT ON (data->>'O*NET-SOC Code')
+            data->>'O*NET-SOC Code' as onet_code,
+            data->>'Job Zone' as job_zone
+        FROM onet_data
+        WHERE data_type = 'job_zones'
+          AND data->>'Job Zone' IS NOT NULL
+        ORDER BY data->>'O*NET-SOC Code', (data->>'Job Zone')::NUMERIC ASC
+    """)
+    for row in cursor.fetchall():
+        if row[0] and row[1]:
+            job_zone_cache[row[0]] = int(row[1])
     
     log("  Loading average tuition costs from IPEDS...")
     tuition_by_level = {}
@@ -426,41 +436,82 @@ def transform_career_roi():
             12: 'Post-doctoral training',
         }
         
-        job_zone = None
-        if occ_code and occ_code.startswith('15'):
-            job_zone = 4
-        elif occ_code and occ_code.startswith('17'):
-            job_zone = 4
-        elif occ_code and occ_code.startswith('19'):
-            job_zone = 5
-        elif occ_code and occ_code.startswith('29'):
-            job_zone = 5
-        elif occ_code and occ_code.startswith('23'):
-            job_zone = 5
-        elif occ_code and occ_code.startswith('25'):
-            job_zone = 3
-        elif occ_code and occ_code.startswith('33'):
-            job_zone = 2
-        elif occ_code and occ_code.startswith('35'):
-            job_zone = 2
-        elif occ_code and occ_code.startswith('47'):
-            job_zone = 2
-        elif occ_code and occ_code.startswith('49'):
-            job_zone = 2
-        elif occ_code and occ_code.startswith('51'):
-            job_zone = 2
+        job_zone = job_zone_cache.get(onet_code)
+        if not job_zone:
+            if occ_code and occ_code.startswith('15'):
+                job_zone = 4
+            elif occ_code and occ_code.startswith('17'):
+                job_zone = 4
+            elif occ_code and occ_code.startswith('19'):
+                job_zone = 5
+            elif occ_code and occ_code.startswith('29'):
+                job_zone = 5
+            elif occ_code and occ_code.startswith('23'):
+                job_zone = 5
+            elif occ_code and occ_code.startswith('25'):
+                job_zone = 3
+            elif occ_code and occ_code.startswith('33'):
+                job_zone = 2
+            elif occ_code and occ_code.startswith('35'):
+                job_zone = 2
+            elif occ_code and occ_code.startswith('47'):
+                job_zone = 2
+            elif occ_code and occ_code.startswith('49'):
+                job_zone = 2
+            elif occ_code and occ_code.startswith('51'):
+                job_zone = 2
         
         edu_cost = tuition_by_level.get(str(cat_int), default_tuition)
         education_level = years_map.get(cat_int, 'varies')
 
         annual_median_float = float(annual_median) if annual_median else 0
         
-        if annual_median_float > 0 and edu_cost > 0:
-            years_to_breakeven = int(edu_cost / annual_median_float)
-        else:
-            years_to_breakeven = 0
-
-        roi_pct = ((annual_median_float * 10 - edu_cost) / edu_cost * 100) if edu_cost > 0 else 0
+        education_years_map = {
+            1: 0,   # Less than high school
+            2: 0,   # High school diploma
+            3: 1,   # Postsecondary certificate
+            4: 2,   # Some college
+            5: 2,   # Associate's degree
+            6: 4,   # Bachelor's degree
+            7: 6,   # Master's degree
+            8: 8,   # Doctoral degree
+            9: 8,   # Professional degree
+            10: 8,  # First professional degree
+            11: 10, # Doctoral degree
+            12: 12, # Post-doctoral training
+        }
+        school_years = education_years_map.get(cat_int, 4)
+        
+        inflation_rate = 0.03
+        salary_growth_rate = 0.02
+        career_years = 35
+        
+        total_earnings = 0
+        total_cost = edu_cost
+        for year in range(career_years):
+            if year < school_years:
+                total_cost += annual_median_float * 0.3
+            else:
+                salary = annual_median_float * ((1 + salary_growth_rate) ** (year - school_years))
+                present_value = salary / ((1 + inflation_rate) ** year)
+                total_earnings += present_value
+        
+        net_roi = total_earnings - total_cost
+        roi_pct = (net_roi / total_cost * 100) if total_cost > 0 else 0
+        
+        cumulative_earnings = 0
+        cumulative_cost = edu_cost
+        breakeven_year = 0
+        for year in range(career_years):
+            if year < school_years:
+                cumulative_cost += annual_median_float * 0.3
+            else:
+                salary = annual_median_float * ((1 + salary_growth_rate) ** (year - school_years))
+                cumulative_earnings += salary
+                if cumulative_earnings >= cumulative_cost and breakeven_year == 0:
+                    breakeven_year = year - school_years + 1
+        
+        years_to_breakeven = breakeven_year if breakeven_year > 0 else career_years
 
         col_index = 100.0
         adjusted_salary = annual_median_float
@@ -537,8 +588,9 @@ def transform_education_cost_by_state_occupation():
                 if onet_code not in cip_onet_map:
                     cip_onet_map[onet_code] = []
                 cip_onet_map[onet_code].append(cip_code)
-    except:
-        log("    CIP-O*NET crosswalk table not available")
+    except Exception as e:
+        log(f"    CIP-O*NET crosswalk table not available: {e}")
+        conn.rollback()
     
     log("  Building CIP to institution lookup from completions...")
     cip_institution_map = {}
@@ -562,6 +614,7 @@ def transform_education_cost_by_state_occupation():
                 cip_institution_map[cip_prefix][state][iclevel].append(unitid)
     except Exception as e:
         log(f"    Could not build CIP-institution map: {e}")
+        conn.rollback()
     
     log("  Building tuition lookup by CIP prefix, state, and institution level...")
     tuition_by_cip_state_ilevel = {}
@@ -595,6 +648,7 @@ def transform_education_cost_by_state_occupation():
                 tuition_by_cip_state_ilevel[state][iclevel].append((unitid, total))
     except Exception as e:
         log(f"    Could not build tuition lookup: {e}")
+        conn.rollback()
     
     log("  Building institution tuition lookup by state...")
     cursor.execute("""
