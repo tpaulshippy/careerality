@@ -371,6 +371,7 @@ def transform_career_roi():
             s.year
         FROM salaries s
         WHERE s.area = '99'
+          AND s.i_group = 'cross-industry'
           AND s.a_median IS NOT NULL
           AND s.a_median < 500000
         ORDER BY s.occ_code, s.a_median DESC
