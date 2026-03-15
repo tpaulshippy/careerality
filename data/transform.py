@@ -35,19 +35,129 @@ def transform_career_profiles():
     """)
     occupations = cursor.fetchall()
 
+    log("  Loading job zones from O*NET...")
+    job_zone_cache = {}
+    cursor.execute("""
+        SELECT DISTINCT ON (data->>'O*NET-SOC Code')
+            data->>'O*NET-SOC Code' as onet_code,
+            data->>'Job Zone' as job_zone
+        FROM onet_data
+        WHERE data_type = 'job_zones'
+          AND data->>'Job Zone' IS NOT NULL
+        ORDER BY data->>'O*NET-SOC Code', (data->>'Job Zone')::NUMERIC ASC
+    """)
+    for row in cursor.fetchall():
+        if row[0] and row[1]:
+            job_zone_cache[row[0]] = int(row[1])
+    log(f"    Loaded {len(job_zone_cache)} job zones")
+
+    log("  Loading education levels from O*NET...")
+    education_cache = {}
+    cursor.execute("""
+        SELECT DISTINCT ON (onet_soc_code)
+            onet_soc_code,
+            data_value_label
+        FROM onet_education
+        WHERE category = 1
+        ORDER BY onet_soc_code, data_value DESC
+    """)
+    for row in cursor.fetchall():
+        if row[0] and row[1]:
+            education_cache[row[0]] = row[1]
+    log(f"    Loaded {len(education_cache)} education levels")
+
+    log("  Loading skills from O*NET...")
+    skills_cache = {}
+    cursor.execute("""
+        SELECT DISTINCT ON (data->>'O*NET-SOC Code')
+            data->>'O*NET-SOC Code' as onet_code,
+            data->>'Element Name' as skill_name,
+            (data->>'Data Value')::NUMERIC as skill_value
+        FROM onet_data
+        WHERE data_type = 'skills'
+          AND data->>'Element Name' IS NOT NULL
+        ORDER BY data->>'O*NET-SOC Code', (data->>'Data Value')::NUMERIC DESC
+    """)
+    for row in cursor.fetchall():
+        onet_code, skill_name, skill_value = row
+        if not onet_code or not skill_name:
+            continue
+        if onet_code not in skills_cache:
+            skills_cache[onet_code] = []
+        if len(skills_cache[onet_code]) < 15:
+            skills_cache[onet_code].append(skill_name)
+    log(f"    Loaded skills for {len(skills_cache)} occupations")
+
+    log("  Loading tasks from O*NET...")
+    tasks_cache = {}
+    cursor.execute("""
+        SELECT DISTINCT ON (data->>'O*NET-SOC Code')
+            data->>'O*NET-SOC Code' as onet_code,
+            data->>'Task' as task
+        FROM onet_data
+        WHERE data_type = 'tasks'
+          AND data->>'Task' IS NOT NULL
+        ORDER BY data->>'O*NET-SOC Code'
+        LIMIT 50000
+    """)
+    for row in cursor.fetchall():
+        onet_code, task = row
+        if not onet_code or not task:
+            continue
+        if onet_code not in tasks_cache:
+            tasks_cache[onet_code] = []
+        if len(tasks_cache[onet_code]) < 10:
+            tasks_cache[onet_code].append(task)
+    log(f"    Loaded tasks for {len(tasks_cache)} occupations")
+
+    log("  Loading work activities from O*NET...")
+    activities_cache = {}
+    cursor.execute("""
+        SELECT DISTINCT ON (data->>'O*NET-SOC Code')
+            data->>'O*NET-SOC Code' as onet_code,
+            data->>'Element Name' as activity_name,
+            (data->>'Data Value')::NUMERIC as activity_value
+        FROM onet_data
+        WHERE data_type = 'work_activities'
+          AND data->>'Element Name' IS NOT NULL
+        ORDER BY data->>'O*NET-SOC Code', (data->>'Data Value')::NUMERIC DESC
+    """)
+    for row in cursor.fetchall():
+        onet_code, activity_name, activity_value = row
+        if not onet_code or not activity_name:
+            continue
+        if onet_code not in activities_cache:
+            activities_cache[onet_code] = []
+        if len(activities_cache[onet_code]) < 10:
+            activities_cache[onet_code].append(activity_name)
+    log(f"    Loaded work activities for {len(activities_cache)} occupations")
+
     values = []
     for occ_code, occ_name, occ_desc in occupations:
+        if '.' in occ_code:
+            onet_code = occ_code
+        elif '-' in occ_code:
+            onet_code = f"{occ_code}.00"
+        else:
+            onet_code = f"{occ_code[:2]}-{occ_code[2:6]}.00"
+
+        job_zone = job_zone_cache.get(onet_code)
+        education_level = education_cache.get(onet_code)
+        skills = json.dumps(skills_cache.get(onet_code, []))
+        tasks = json.dumps(tasks_cache.get(onet_code, []))
+        work_activities = json.dumps(activities_cache.get(onet_code, []))
+
         values.append((
             occ_code,
             occ_name,
             occ_desc,
             None,
+            job_zone,
+            education_level,
             None,
-            None,
-            None,
-            "[]",
-            "[]",
-            "[]"
+            skills,
+            tasks,
+            work_activities
         ))
 
     query = """
@@ -73,6 +183,9 @@ def transform_career_salaries():
     conn.commit()
 
     national_area = "99"
+    
+    cursor.execute("SELECT MAX(year) FROM salaries WHERE area = %s", (national_area,))
+    max_year = cursor.fetchone()[0]
 
     cursor.execute("""
         SELECT 
@@ -97,14 +210,57 @@ def transform_career_salaries():
         WHERE s.occ_code IS NOT NULL 
           AND s.occ_code != '0'
           AND s.area = %s
-          AND s.year = (SELECT MAX(year) FROM salaries WHERE area = %s)
+          AND s.year = %s
           AND s.a_median IS NOT NULL
-    """, (national_area, national_area))
+    """, (national_area, max_year))
 
     rows = cursor.fetchall()
+    log(f"  Loading {len(rows)} national salary records")
 
     values = []
     for row in rows:
+        values.append((
+            row[0], row[1], row[2], row[3], row[4], row[5], row[6],
+            row[7], row[8], row[9], row[10], row[11], row[12], row[13],
+            row[14], row[15], row[16]
+        ))
+    
+    cursor.execute("""
+        SELECT MAX(year) FROM salaries WHERE area_type = 2
+    """)
+    max_state_year = cursor.fetchone()[0] or max_year
+    
+    cursor.execute("""
+        SELECT 
+            s.occ_code,
+            s.area,
+            s.year,
+            s.h_mean as hourly_mean_wage,
+            s.a_mean as annual_mean_wage,
+            s.h_median as hourly_median_wage,
+            s.a_median as annual_median_wage,
+            s.h_pct10 as hourly_10th,
+            s.h_pct25 as hourly_25th,
+            s.h_pct75 as hourly_75th,
+            s.h_pct90 as hourly_90th,
+            s.a_pct10 as annual_10th,
+            s.a_pct25 as annual_25th,
+            s.a_pct75 as annual_75th,
+            s.a_pct90 as annual_90th,
+            s.tot_emp as employment,
+            s.loc_quotient as location_quotient
+        FROM salaries s
+        WHERE s.occ_code IS NOT NULL 
+          AND s.occ_code != '0'
+          AND s.area_type = 2
+          AND s.year = %s
+          AND s.a_median IS NOT NULL
+    """, (max_state_year,))
+    
+    state_rows = cursor.fetchall()
+    log(f"  Loading {len(state_rows)} state salary records")
+
+    for row in state_rows:
         values.append((
             row[0], row[1], row[2], row[3], row[4], row[5], row[6],
             row[7], row[8], row[9], row[10], row[11], row[12], row[13],
@@ -392,6 +548,21 @@ def transform_career_roi():
         if row[0] and row[1]:
             job_zone_cache[row[0]] = int(row[1])
     
+    log("  Loading skills from career_profiles...")
+    skills_cache = {}
+    cursor.execute("""
+        SELECT occupation_code, skills FROM career_profiles WHERE skills != '[]'
+    """)
+    for row in cursor.fetchall():
+        if row[0] and row[1]:
+            raw_code = row[0]
+            if '-' in raw_code:
+                normalized = raw_code.replace('-', '')
+            else:
+                normalized = raw_code
+            skills_cache[raw_code] = row[1]
+            skills_cache[normalized] = row[1]
+    
     log("  Loading average tuition costs from IPEDS...")
     tuition_by_level = {}
     for cat in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
@@ -512,9 +683,24 @@ def transform_career_roi():
                     breakeven_year = year - school_years + 1
         
         years_to_breakeven = breakeven_year if breakeven_year > 0 else career_years
+        if years_to_breakeven < 2:
+            years_to_breakeven = 2
+        
+        if roi_pct > 5000:
+            roi_pct = 5000
 
         col_index = 100.0
         adjusted_salary = annual_median_float
+        
+        skills = skills_cache.get(occ_code)
+        if not skills:
+            if '-' in occ_code:
+                alt_code = occ_code.replace('-', '')
+                skills = skills_cache.get(alt_code)
+        if not skills:
+            if len(occ_code) == 6:
+                alt_code = f"{occ_code[:2]}-{occ_code[2:]}"
+                skills = skills_cache.get(alt_code)
 
         values.append((
             occ_code,
@@ -529,7 +715,7 @@ def transform_career_roi():
             float(roi_pct),
             job_zone,
             education_level,
-            None,
+            json.dumps(skills) if skills else None,
             float(col_index),
             float(adjusted_salary)
         ))

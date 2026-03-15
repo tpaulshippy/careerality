@@ -134,11 +134,24 @@ Current industry names show "3-digit", "sector", "cross-industry" instead of act
 ## Progress
 
 ### Completed
-(None yet - this is the new plan)
+- **Phase 1 (2026-03-15)**: Fixed career_profiles metadata
+  - job_zone: 749/1082 populated (previously 0)
+  - education_level: 710/1082 populated (previously 0)  
+  - skills: 725/1082 populated with JSON arrays (previously 0)
+  - tasks and work_activities also populated
+
+- **Phase 2 (2026-03-15)**: Populated career_roi.skills from career_profiles
+  - 198,670/243,175 records now have skills (previously 0)
+  - Fixed occupation code mapping between tables
+
+- **Phase 3 (2026-03-15)**: Expanded career_salaries with regional data
+  - Now includes state-level salary data (51 states)
+  - Total: 36,928 records (1,388 national + 35,540 state)
+  - Previously: only 1,388 national records
+
+- **Phase 4 (2026-03-15)**: Fixed ROI calculation
+  - Minimum breakeven now 2 years (previously 1)
+  - Maximum ROI capped at 5000% (previously 25,007%)
 
 ### To Do
-- Phase 1: Fix career_profiles metadata
-- Phase 2: Populate skills data
-- Phase 3: Expand career_salaries
-- Phase 4: Fix ROI calculation
-- Phase 5: Fix industry names
+- Phase 5: Fix industry names (data issue - industry codes are placeholder labels, not actual industry data)
