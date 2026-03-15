@@ -206,25 +206,7 @@ def create_schema():
         )
     """)
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS career_education_costs (
-            id SERIAL PRIMARY KEY,
-            occupation_code VARCHAR(20),
-            unitid INTEGER,
-            institution_name VARCHAR(255),
-            program_length_years NUMERIC,
-            tuition_in_state NUMERIC,
-            tuition_out_of_state NUMERIC,
-            fees NUMERIC,
-            room_and_board NUMERIC,
-            books_and_supplies NUMERIC,
-            other_costs NUMERIC,
-            total_cost NUMERIC,
-            financial_aid JSONB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS career_cost_of_living (

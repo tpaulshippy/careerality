@@ -169,65 +169,6 @@ def transform_cost_of_living():
     conn.close()
     log(f"  Transformed {len(values)} cost of living records")
 
-def transform_education_costs():
-    log("Transforming education costs...")
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("DELETE FROM career_education_costs")
-    conn.commit()
-
-    cursor.execute("""
-        SELECT id, unitid, data
-        FROM student_financial_aid
-        WHERE data->>'TUITIONFEE_IN' IS NOT NULL 
-           OR data->>'TUITIONFEE_OUT' IS NOT NULL
-        LIMIT 1000
-    """)
-    rows = cursor.fetchall()
-
-    values = []
-    for row_id, unitid, data in rows:
-        tuition_in = data.get('TUITIONFEE_IN')
-        tuition_out = data.get('TUITIONFEE_OUT')
-        fees = data.get('TUITIONFEE')
-        room = data.get('ROOMBOARD_OFFC') or data.get('ROOMBOARD_ON')
-        books = data.get('BOOKSUPPLY')
-        
-        institution_name = data.get('INSTNM', 'Unknown Institution')
-        total_cost = data.get('COSTT4')
-
-        values.append((
-            None,
-            unitid,
-            institution_name,
-            4,
-            tuition_in,
-            tuition_out,
-            fees,
-            room,
-            books,
-            None,
-            total_cost,
-            json.dumps(data)
-        ))
-
-    query = """
-        INSERT INTO career_education_costs 
-        (occupation_code, unitid, institution_name, program_length_years,
-         tuition_in_state, tuition_out_of_state, fees, room_and_board, 
-         books_and_supplies, other_costs, total_cost, financial_aid)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
-
-    if values:
-        execute_batch(cursor, query, values)
-        conn.commit()
-
-    cursor.close()
-    conn.close()
-    log(f"  Transformed {len(values)} education cost records")
-
 def get_occupation_education_level(occ_code):
     onet_code = occ_code if '.' in occ_code else f"{occ_code[:2]}.{occ_code[2:]}"
     
@@ -478,9 +419,6 @@ def main():
     transform_cost_of_living()
     log("")
 
-    transform_education_costs()
-    log("")
-
     transform_career_roi()
     log("")
 
@@ -493,7 +431,6 @@ def main():
     cursor.execute("""
         SELECT 'career_profiles' as table_name, COUNT(*) FROM career_profiles
         UNION ALL SELECT 'career_salaries', COUNT(*) FROM career_salaries
-        UNION ALL SELECT 'career_education_costs', COUNT(*) FROM career_education_costs
         UNION ALL SELECT 'career_cost_of_living', COUNT(*) FROM career_cost_of_living
         UNION ALL SELECT 'career_roi', COUNT(*) FROM career_roi
     """)
