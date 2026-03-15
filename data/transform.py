@@ -361,7 +361,7 @@ def transform_career_roi():
     conn.commit()
 
     cursor.execute("""
-        SELECT 
+        SELECT DISTINCT ON (s.occ_code)
             s.occ_code as occ_code,
             s.occ_title as occ_title,
             s.a_median as annual_median_wage,
@@ -373,8 +373,7 @@ def transform_career_roi():
         WHERE s.area = '99'
           AND s.a_median IS NOT NULL
           AND s.a_median < 500000
-        ORDER BY s.a_median DESC
-        LIMIT 500
+        ORDER BY s.occ_code, s.a_median DESC
     """)
 
     rows = cursor.fetchall()
