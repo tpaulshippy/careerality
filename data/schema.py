@@ -315,6 +315,15 @@ def create_schema():
     """)
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cip_onet_crosswalk (
+            id SERIAL PRIMARY KEY,
+            onet_soc_code VARCHAR(20),
+            cip_code VARCHAR(10),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS ipeds_completions (
             id SERIAL PRIMARY KEY,
             unitid INTEGER,

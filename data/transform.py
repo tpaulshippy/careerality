@@ -465,6 +465,62 @@ def transform_education_cost_by_state_occupation():
     except:
         log("    CIP-O*NET crosswalk table not available")
     
+    log("  Building CIP to institution lookup from completions...")
+    cip_institution_map = {}
+    try:
+        cursor.execute("""
+            SELECT ic.cipcode, i.unitid, i.state, i.iclevel, i.institution_name
+            FROM ipeds_completions ic
+            JOIN institutions i ON ic.unitid = i.unitid
+            WHERE ic.ctotalt > 0
+        """)
+        for row in cursor.fetchall():
+            cipcode, unitid, state, iclevel, inst_name = row
+            if cipcode and unitid:
+                cip_prefix = cipcode[:2]
+                if cip_prefix not in cip_institution_map:
+                    cip_institution_map[cip_prefix] = {}
+                if state not in cip_institution_map[cip_prefix]:
+                    cip_institution_map[cip_prefix][state] = {}
+                if iclevel not in cip_institution_map[cip_prefix][state]:
+                    cip_institution_map[cip_prefix][state][iclevel] = []
+                cip_institution_map[cip_prefix][state][iclevel].append(unitid)
+    except Exception as e:
+        log(f"    Could not build CIP-institution map: {e}")
+    
+    log("  Building tuition lookup by CIP prefix, state, and institution level...")
+    tuition_by_cip_state_ilevel = {}
+    try:
+        cursor.execute("""
+            SELECT 
+                i.unitid,
+                i.state,
+                i.iclevel,
+                c.data->>'TUITION2' as tuition_in_state,
+                c.data->>'FEE2' as fees_in_state
+            FROM institutions i
+            LEFT JOIN ipeds_cost c ON i.unitid = c.unitid
+            WHERE i.state IS NOT NULL
+        """)
+        
+        for row in cursor.fetchall():
+            unitid, state, iclevel, tuition_in, fees_in = row
+            if not state:
+                continue
+                
+            tuition = clean_numeric(tuition_in) or 0
+            fees = clean_numeric(fees_in) or 0
+            total = tuition + fees
+            
+            if total > 0:
+                if state not in tuition_by_cip_state_ilevel:
+                    tuition_by_cip_state_ilevel[state] = {}
+                if iclevel not in tuition_by_cip_state_ilevel[state]:
+                    tuition_by_cip_state_ilevel[state][iclevel] = []
+                tuition_by_cip_state_ilevel[state][iclevel].append((unitid, total))
+    except Exception as e:
+        log(f"    Could not build tuition lookup: {e}")
+    
     log("  Building institution tuition lookup by state...")
     cursor.execute("""
         SELECT 
@@ -591,7 +647,26 @@ def transform_education_cost_by_state_occupation():
         else:
             target_ilevel = 1
         
-        avg_tuition = avg_tuition_by_state_ilevel.get((state, target_ilevel))
+        cip_code = cip_onet_map.get(occ_code, [None])[0] if cip_onet_map.get(occ_code) else None
+        cip_prefix = cip_code[:2] if cip_code else None
+        
+        avg_tuition = None
+        
+        if cip_prefix and cip_prefix in cip_institution_map and state in cip_institution_map[cip_prefix]:
+            cip_units = cip_institution_map[cip_prefix][state].get(target_ilevel, [])
+            if not cip_units and target_ilevel in cip_institution_map[cip_prefix][state]:
+                cip_units = cip_institution_map[cip_prefix][state][target_ilevel]
+            
+            if cip_units and state in tuition_by_cip_state_ilevel:
+                cip_tuitions = []
+                for unitid, tuition in tuition_by_cip_state_ilevel[state].get(target_ilevel, []):
+                    if unitid in cip_units:
+                        cip_tuitions.append(tuition)
+                if cip_tuitions:
+                    avg_tuition = sum(cip_tuitions) / len(cip_tuitions)
+        
+        if avg_tuition is None:
+            avg_tuition = avg_tuition_by_state_ilevel.get((state, target_ilevel))
         
         if avg_tuition is None:
             if target_ilevel == 2:
@@ -607,7 +682,18 @@ def transform_education_cost_by_state_occupation():
                 avg_tuition = sum(all_tuitions) / len(all_tuitions)
         
         if avg_tuition is not None:
-            cip_code = cip_onet_map.get(occ_code, [None])[0] if cip_onet_map.get(occ_code) else None
+            cip_title = None
+            if cip_code:
+                try:
+                    cursor.execute("""
+                        SELECT cip_title FROM cip_soc_crosswalk 
+                        WHERE cip_code = %s LIMIT 1
+                    """, (cip_code,))
+                    result = cursor.fetchone()
+                    if result:
+                        cip_title = result[0]
+                except:
+                    pass
             
             values.append((
                 state,
@@ -617,7 +703,7 @@ def transform_education_cost_by_state_occupation():
                 edu_label,
                 edu_data_value,
                 cip_code,
-                None,
+                cip_title,
                 avg_tuition,
                 None,
                 2024
