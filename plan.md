@@ -66,7 +66,7 @@ The code that calculates ROI appears to be:
 |------|----------|---------|--------|
 | `cost_of_living_index` varies by region | Yes | Yes (86-141) | ✅ |
 | `adjusted_salary != annual_median_salary` | Yes | Yes (229K/243K) | ✅ |
-| `skills` populated | 100% | 82% | ⚠️ |
+| `skills` populated | 100% | 94% (229K/243K) | ⚠️ |
 | `years_to_breakeven >= 2` | Yes | Yes | ✅ |
 | `roi_percentage <= 5000` | Yes | Yes | ✅ |
 
@@ -130,5 +130,17 @@ FROM career_roi;
 - Alabama: COL index 86.91 (expected ~87) ✅
 - 229,244/243,175 records now have `adjusted_salary != annual_median_salary` ✅
 
-### Phase 2: Populate remaining skills data  
+### Phase 2: ✅ COMPLETE (2026-03-15)
+
+**Fix applied**: Enhanced skills lookup in `data/transform.py`:
+1. Added prefix matching fallback when exact code match fails
+2. Now finds skills for similar occupation codes in same family
+
+**Verification results**:
+- Before: 198,670/243,175 (82%)
+- After: 229,307/243,175 (94%)
+- Remaining ~14K missing are aggregate "XXXX-0000" codes that don't exist in source data (career_profiles)
+
+**Data source limitation**: The career_profiles table has 725 occupations with skills. Aggregate codes like "11-0000" (Management Occupations) don't exist in the source data.
+
 ### Phase 3: Verify all success criteria pass
