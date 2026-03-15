@@ -196,35 +196,33 @@ def transform_career_salaries():
     cursor.execute("DELETE FROM career_salaries")
     conn.commit()
 
-    national_area = "0000000"
+    national_area = "99"
 
     cursor.execute("""
         SELECT 
-            sd.occupation_code,
-            sd.area_code,
-            sd.year,
-            MAX(CASE WHEN sd.datatype_code = '3' THEN sd.value END) as hourly_mean_wage,
-            MAX(CASE WHEN sd.datatype_code = '4' THEN sd.value END) as annual_mean_wage,
-            MAX(CASE WHEN sd.datatype_code = '8' THEN sd.value END) as hourly_median_wage,
-            MAX(CASE WHEN sd.datatype_code = '13' THEN sd.value END) as annual_median_wage,
-            MAX(CASE WHEN sd.datatype_code = '6' THEN sd.value END) as hourly_10th,
-            MAX(CASE WHEN sd.datatype_code = '7' THEN sd.value END) as hourly_25th,
-            MAX(CASE WHEN sd.datatype_code = '9' THEN sd.value END) as hourly_75th,
-            MAX(CASE WHEN sd.datatype_code = '10' THEN sd.value END) as hourly_90th,
-            MAX(CASE WHEN sd.datatype_code = '11' THEN sd.value END) as annual_10th,
-            MAX(CASE WHEN sd.datatype_code = '12' THEN sd.value END) as annual_25th,
-            MAX(CASE WHEN sd.datatype_code = '14' THEN sd.value END) as annual_75th,
-            MAX(CASE WHEN sd.datatype_code = '15' THEN sd.value END) as annual_90th,
-            MAX(CASE WHEN sd.datatype_code = '1' THEN sd.value END) as employment,
-            MAX(CASE WHEN sd.datatype_code = '17' THEN sd.value END) as location_quotient
-        FROM salary_data sd
-        WHERE sd.occupation_code IS NOT NULL 
-          AND sd.occupation_code != '0'
-          AND sd.area_code = %s
-          AND sd.year = (SELECT MAX(year) FROM salary_data WHERE area_code = %s)
-          AND sd.datatype_code IN ('1', '3', '4', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '17')
-        GROUP BY sd.occupation_code, sd.area_code, sd.year
-        HAVING MAX(CASE WHEN sd.datatype_code = '13' THEN sd.value END) IS NOT NULL
+            s.occ_code,
+            s.area,
+            s.year,
+            s.h_mean as hourly_mean_wage,
+            s.a_mean as annual_mean_wage,
+            s.h_median as hourly_median_wage,
+            s.a_median as annual_median_wage,
+            s.h_pct10 as hourly_10th,
+            s.h_pct25 as hourly_25th,
+            s.h_pct75 as hourly_75th,
+            s.h_pct90 as hourly_90th,
+            s.a_pct10 as annual_10th,
+            s.a_pct25 as annual_25th,
+            s.a_pct75 as annual_75th,
+            s.a_pct90 as annual_90th,
+            s.tot_emp as employment,
+            s.loc_quotient as location_quotient
+        FROM salaries s
+        WHERE s.occ_code IS NOT NULL 
+          AND s.occ_code != '0'
+          AND s.area = %s
+          AND s.year = (SELECT MAX(year) FROM salaries WHERE area = %s)
+          AND s.a_median IS NOT NULL
     """, (national_area, national_area))
 
     rows = cursor.fetchall()
@@ -364,20 +362,18 @@ def transform_career_roi():
 
     cursor.execute("""
         SELECT 
-            SUBSTRING(sd.series_id FROM 20 FOR 6) as occ_code,
-            MAX(CASE WHEN sd.datatype_code = '13' THEN sd.value END) as annual_median_wage,
-            MAX(CASE WHEN sd.datatype_code = '4' THEN sd.value END) as annual_mean_wage,
-            MAX(CASE WHEN sd.datatype_code = '8' THEN sd.value END) as hourly_median_wage,
-            MAX(CASE WHEN sd.datatype_code = '1' THEN sd.value END) as employment,
-            sd.year
-        FROM salary_data sd
-        WHERE sd.area_code = '0000000'
-          AND sd.datatype_code IN ('1', '4', '8', '13')
-          AND SUBSTRING(sd.series_id FROM 20 FOR 6) IS NOT NULL
-        GROUP BY occ_code, sd.year
-        HAVING MAX(CASE WHEN sd.datatype_code = '13' THEN sd.value END) IS NOT NULL
-           AND MAX(CASE WHEN sd.datatype_code = '13' THEN sd.value END) < 500000
-        ORDER BY annual_median_wage DESC
+            s.occ_code as occ_code,
+            s.occ_title as occ_title,
+            s.a_median as annual_median_wage,
+            s.a_mean as annual_mean_wage,
+            s.h_median as hourly_median_wage,
+            s.tot_emp as employment,
+            s.year
+        FROM salaries s
+        WHERE s.area = '99'
+          AND s.a_median IS NOT NULL
+          AND s.a_median < 500000
+        ORDER BY s.a_median DESC
         LIMIT 500
     """)
 
@@ -385,16 +381,12 @@ def transform_career_roi():
 
     values = []
     for row in rows:
-        occ_code, annual_median, annual_mean, hourly_median, employment, year = row
+        occ_code, occ_title, annual_median, annual_mean, hourly_median, employment, year = row
 
         if not annual_median:
             continue
 
-        # NOTE: salary_data uses BLS OE occupation codes (e.g., "301001") which do not
-        # directly map to salary_occupations O*NET-SOC codes (e.g., "111011").
-        # A crosswalk table would be needed for proper name resolution.
-        # Currently using code as identifier.
-        occ_name = f"Code: {occ_code}"
+        occ_name = occ_title or f"Code: {occ_code}"
         job_zone = None
         edu_cost = 20000
 
