@@ -25,6 +25,36 @@ def create_schema():
     """)
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS institutions (
+            unitid INTEGER PRIMARY KEY,
+            institution_name VARCHAR(255),
+            address VARCHAR(255),
+            city VARCHAR(100),
+            state VARCHAR(2),
+            zip VARCHAR(20),
+            sector INTEGER,
+            control INTEGER,
+            iclevel INTEGER,
+            hloffer INTEGER,
+            cbsa INTEGER,
+            locele INTEGER
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS institutional_characteristics (
+            unitid INTEGER PRIMARY KEY,
+            tuition_pl VARCHAR(10),
+            room VARCHAR(1),
+            room_amt NUMERIC,
+            board VARCHAR(1),
+            board_amt NUMERIC,
+            applfee_u NUMERIC,
+            year_school NUMERIC
+        )
+    """)
+
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS salary_occupations (
             occupation_code VARCHAR(20) PRIMARY KEY,
             occupation_name VARCHAR(255),

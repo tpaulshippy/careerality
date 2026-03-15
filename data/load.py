@@ -246,6 +246,134 @@ def load_education_data():
     print(f"  Loading student_financial_aid...")
     count = load_csv_to_table(filepath, 'student_financial_aid')
     print(f"    Loaded {count} rows")
+    
+    load_ipeds_institutions()
+    load_ipeds_institutional_characteristics()
+
+
+def load_ipeds_institutions():
+    print("Loading IPEDS institutions (HD2023)...")
+    
+    filepath = os.path.join(DATA_DIR, 'education', 'HD2023.csv')
+    if not os.path.exists(filepath):
+        print(f"    File not found: {filepath}")
+        return
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        df = pd.read_csv(filepath, sep=',', low_memory=False)
+        df.columns = df.columns.str.strip()
+        
+        values = []
+        for _, row in df.iterrows():
+            unitid = clean_int(row.get('UNITID'))
+            if not unitid:
+                continue
+            values.append((
+                unitid,
+                row.get('INSTNM'),
+                row.get('ADDR'),
+                row.get('CITY'),
+                row.get('STABBR'),
+                row.get('ZIP'),
+                clean_int(row.get('SECTOR')),
+                clean_int(row.get('CONTROL')),
+                clean_int(row.get('ICLEVEL')),
+                clean_int(row.get('HLOFFER')),
+                clean_int(row.get('CBSA')),
+                clean_int(row.get('LOCALE'))
+            ))
+        
+        query = '''
+            INSERT INTO institutions 
+            (unitid, institution_name, address, city, state, zip, sector, control, iclevel, hloffer, cbsa, locele)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (unitid) DO NOTHING
+        '''
+        
+        from psycopg2.extras import execute_batch
+        execute_batch(cursor, query, values)
+        conn.commit()
+        
+        print(f"    Loaded {len(values)} institutions")
+        
+    except Exception as e:
+        print(f"    Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def load_ipeds_institutional_characteristics():
+    print("Loading IPEDS institutional characteristics (IC2023)...")
+    
+    filepath = os.path.join(DATA_DIR, 'education', 'IC2023.csv')
+    if not os.path.exists(filepath):
+        print(f"    File not found: {filepath}")
+        return
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        df = pd.read_csv(filepath, sep=',', low_memory=False)
+        df.columns = df.columns.str.strip()
+        
+        values = []
+        for _, row in df.iterrows():
+            unitid = clean_int(row.get('UNITID'))
+            if not unitid:
+                continue
+            
+            room_amt = clean_numeric(row.get('ROOMAMT'))
+            if room_amt and str(row.get('XROOMAMT')) == 'R':
+                room_amt = room_amt
+            else:
+                room_amt = None
+            
+            board_amt = clean_numeric(row.get('BOARDAMT'))
+            if board_amt and str(row.get('XBORDAMT')) == 'R':
+                board_amt = board_amt
+            else:
+                board_amt = None
+            
+            applfee = clean_numeric(row.get('APPLFEEU'))
+            if applfee and str(row.get('XAPPFEEU')) == 'R':
+                applfee = applfee
+            else:
+                applfee = None
+            
+            values.append((
+                unitid,
+                row.get('TUITPL'),
+                row.get('ROOM'),
+                room_amt,
+                row.get('BOARD'),
+                board_amt,
+                applfee,
+                clean_int(row.get('YRSCOLL'))
+            ))
+        
+        query = '''
+            INSERT INTO institutional_characteristics 
+            (unitid, tuition_pl, room, room_amt, board, board_amt, applfee_u, year_school)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (unitid) DO NOTHING
+        '''
+        
+        from psycopg2.extras import execute_batch
+        execute_batch(cursor, query, values)
+        conn.commit()
+        
+        print(f"    Loaded {len(values)} institutional characteristics records")
+        
+    except Exception as e:
+        print(f"    Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 def load_salary_reference_data():
     print("Loading salary reference data...")
@@ -421,6 +549,8 @@ def main():
     cursor.execute("""
         SELECT 'salaries' as table_name, COUNT(*) FROM salaries
         UNION ALL SELECT 'student_financial_aid', COUNT(*) FROM student_financial_aid
+        UNION ALL SELECT 'institutions', COUNT(*) FROM institutions
+        UNION ALL SELECT 'institutional_characteristics', COUNT(*) FROM institutional_characteristics
         UNION ALL SELECT 'salary_occupations', COUNT(*) FROM salary_occupations
         UNION ALL SELECT 'salary_areas', COUNT(*) FROM salary_areas
         UNION ALL SELECT 'salary_industries', COUNT(*) FROM salary_industries
