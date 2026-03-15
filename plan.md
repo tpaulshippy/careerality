@@ -1,119 +1,144 @@
 # Data Transformation Improvement Plan
 
-## Problem Summary
+## Problem Summary (2026-03-15 Assessment)
 
-The `data/transform.py` script produces output with significant quality issues:
+| Issue | Severity | Details |
+|-------|----------|---------|
+| `career_profiles` metadata empty | **High** | All 1082 records have NULL job_zone and education_level |
+| `skills` column empty | **High** | 100% NULL across all 243K career_roi records |
+| `career_salaries` limited | **Medium** | Only 1388 national records (area 99), no regional salaries |
+| Breakeven too aggressive | **Medium** | 37K records show 1-year, 163K show 2-year (unrealistic) |
+| ROI inflation | **Medium** | "Less than high school" shows 4561% avg - formula issues |
+| Industry names broken | **Low** | Shows "3-digit", "sector" instead of actual industry names |
 
-| Issue | Impact |
-|-------|--------|
-| Cost of living data missing | No state-level salary adjustments possible |
-| Flat education costs | All occupations get same ~$50K tuition regardless of field/state |
-| Incorrect education levels | Physicians showing "Some college" |
-| Crude job zones | Hard-coded from occupation prefix, not O*NET data |
-| Oversimplified ROI | 10-year fixed, no inflation/opportunity cost |
+## What's Working ✓
+
+- Salary distribution: Median ~$55K (matches BLS)
+- Cost of living: Hawaii (142), DC (141), California (127) correctly ranked
+- Education-to-salary ranking: Doctoral > Bachelor's > High school (correct order)
+- Geographic coverage: 583 unique areas
+
+---
 
 ## Plan
 
-### Phase 1: Fix Source Data (Priority: Critical)
+### Phase 1: Fix career_profiles Metadata (Priority: Critical)
 
-1. **Populate cost_of_living table**
-   - Source actual COL data from BLS or external API
-   - Ensure state-level indexes exist (not just national)
-   - Verify `area` column has valid state identifiers
+The `career_profiles` table has 1082 occupation records but all have NULL for job_zone, education_level, experience_required, and skills.
 
-2. **Verify O*NET education data loading**
-   - Check `onet_data` table has `education_experience` records
-   - Validate `Element ID = '2.D.1'` contains valid education categories
+**Root cause**: The INSERT statement at line 40-51 passes `None` for these columns:
+```python
+values.append((
+    occ_code, occ_name, occ_desc,
+    None,  # onet_data
+    None,  # job_zone
+    None,  # education_level
+    None,  # experience_required
+    "[]", "[]", "[]"  # skills, tasks, work_activities
+))
+```
 
-### Phase 2: Improve Education Cost Calculation
+**Fix**:
+1. Query `onet_education` table for education levels per occupation
+2. Query `onet_data` table for job zones (data_type = 'job_zones')
+3. Query `onet_skills` or `onet_tasks` tables for skills data
+4. Populate these fields during career_profiles INSERT
 
-1. **Get actual tuition by state and degree level**
-   - Query IPEDS tuition data properly (current query fails)
-   - Match tuition by institution level (4-year vs 2-year vs graduate)
-   - Handle in-state vs out-of-state correctly
+### Phase 2: Populate Skills Data (Priority: High)
 
-2. **Calculate degree-specific costs**
-   - Associate's: 2 years of community college tuition
-   - Bachelor's: 4 years of in-state public university
-   - Master's: +2 years after bachelor's
-   - Doctoral/Medical: 4-8 years depending on field
+The `skills` column in `career_roi` is 100% NULL. O*NET provides:
+- Technical skills (Element ID starting with 2.A)
+- Knowledge areas (Element ID starting with 2.C)  
+- Abilities (Element ID starting with 2.B)
 
-### Phase 3: Fix Occupation Metadata
+**Fix**:
+1. Query O*NET skills data by occupation code
+2. Extract top 10-15 skills per occupation
+3. Store as JSON array in career_roi.skills column
 
-1. **Use actual O*NET job zones**
-   - Query O*NET Job Zone database instead of code prefix
-   - Map `job_zone` from `Element ID = '1.A.1'` or similar
+### Phase 3: Expand career_salaries with Regional Data (Priority: Medium)
 
-2. **Correct education level mappings**
-   - Pull from O*NET's "Required Level of Education" (2.D.1)
-   - Match O*NET category codes to human-readable labels
+Currently only national (area 99) salaries are loaded. BLS provides state and metro area salaries.
 
-### Phase 4: Improve ROI Calculation
+**Fix**:
+1. Add state-level salary records (area_type = 2 in BLS data)
+2. Add metropolitan area records
+3. Add industry-specific salaries (different from cross-industry)
 
-1. **Add salary growth trajectory**
-   - Entry-level vs mid-career vs senior salaries
-   - Use BLS percentiles to estimate growth
+### Phase 4: Fix ROI Calculation (Priority: Medium)
 
-2. **Account for inflation**
-   - Discount future earnings by ~3% annually
+**Issues**:
+- 1-year breakeven is unrealistic for most careers
+- "Less than high school" showing 4561% ROI suggests formula isn't accounting for underemployment
+- ROI formula needs review:
 
-3. **Include opportunity cost**
-   - Lost wages during schooling years
+```python
+# Current formula issues:
+# - School years is 0 for less than high school, meaning immediate full salary
+# - No adjustment for unemployment risk or underemployment
+# - 35-year career may be optimistic for some occupations
+```
 
-4. **Calculate more realistic breakeven**
-   - Account for typical career length (~30-40 years)
+**Fix**:
+1. Add minimum 2-year breakeven for all occupations (job search time)
+2. Add "underemployment factor" for lower education levels
+3. Cap maximum ROI at reasonable levels (e.g., 5000%)
+4. Consider adding "early career" vs "mid-career" salary adjustment
 
-### Phase 5: Testing & Validation
+### Phase 5: Fix Industry Names (Priority: Low)
 
-1. **Sanity checks**
-   - Doctors should have education_cost > $150K
-   - California COL > Nebraska COL
-   - Job zones should vary within same occupation code prefix
+Current industry names show "3-digit", "sector", "cross-industry" instead of actual industry names like "Healthcare", "Finance", "Manufacturing".
 
-2. **Spot check samples**
-   - Sample 10 diverse occupations and verify each field
-   - Compare computed ROI against external sources (e.g., Payscale)
+**Fix**:
+1. Map industry codes to proper names using BLS industry taxonomy
+2. Or exclude the industry dimension if clean mapping not available
+
+---
 
 ## Implementation Order
 
 ```
-1. transform.py: fix cost_of_living source query
-2. transform.py: fix IPEDS tuition queries (transaction issues)
-3. transform.py: use O*NET job_zones table
-4. transform.py: improve ROI formula with growth/inflation
-5. Test: verify realistic values for sample occupations
+1. Fix career_profiles: Populate job_zone and education_level from O*NET
+2. Fix career_profiles: Add skills, tasks, work_activities from O*NET
+3. Populate career_roi.skills by joining from career_profiles
+4. Expand career_salaries: Add state/regional salary records
+5. Fix ROI formula: Add minimum breakeven, cap ROI, adjust for underemployment
+6. Fix industry names: Map codes to readable names
+7. Test: Verify career_profiles has populated metadata
+8. Test: Verify career_roi.skills is no longer NULL
 ```
 
 ## Success Criteria
 
-- [x] State-level cost of living data exists for 50+ states/regions
-- [x] Education cost varies by degree level (not flat $50K)
-- [x] Physicians show doctoral-level education, not "some college"
-- [x] Job zones derived from O*NET, not occupation code prefix
-- [x] ROI accounts for inflation and opportunity cost
-- [x] Sample spot checks pass sanity tests
+- [ ] career_profiles.job_zone populated (not NULL)
+- [ ] career_profiles.education_level populated (not NULL)  
+- [ ] career_profiles.skills has JSON array of skills per occupation
+- [ ] career_roi.skills populated from career_profiles
+- [ ] career_salaries has state-level records beyond just national
+- [ ] No occupation has breakeven < 2 years
+- [ ] No occupation has ROI > 5000%
+- [ ] Industry names are readable (not "3-digit", "sector")
 
-## Progress (2026-03-15)
+## Testing Checklist
+
+| Test | Expected |
+|------|----------|
+| `SELECT COUNT(*) FROM career_profiles WHERE job_zone IS NOT NULL` | > 1000 |
+| `SELECT COUNT(*) FROM career_profiles WHERE education_level IS NOT NULL` | > 1000 |
+| `SELECT COUNT(*) FROM career_profiles WHERE skills != '[]'` | > 500 |
+| `SELECT MIN(years_to_breakeven) FROM career_roi` | >= 2 |
+| `SELECT MAX(roi_percentage) FROM career_roi` | <= 5000 |
+
+---
+
+## Progress
 
 ### Completed
-1. **Populated cost_of_living table** - Loaded EPI family budget data, aggregated by state, created relative COL indexes (100 = national average). Now have 52 state/region records.
+(None yet - this is the new plan)
 
-2. **Fixed O*NET education data loading** - Now correctly uses `data_value` from `onet_education` table instead of incorrectly using `category`. Oral and Maxillofacial Surgeons now correctly show "Post-doctoral training" with $57K education cost.
-
-3. **Fixed IPEDS tuition queries** - Added transaction rollback after exceptions to handle missing tables gracefully. Now completes without errors.
-
-4. **Use actual O*NET job zones** - Now loads job zones from O*NET `job_zones` data with fallback to old prefix-based logic. Distribution: Zone 2 (88K), Zone 3 (56K), Zone 4 (51K), Zone 5 (28K).
-
-5. **Improved ROI calculation** - Now includes:
-   - 3% inflation discount rate
-   - 2% annual salary growth
-   - Opportunity cost (30% of salary during school years)
-   - 35-year career span
-   - More realistic breakeven (e.g., Software Dev: 2 yrs, Surgeons: 5 yrs)
-
-### Verified
-- California COL (127.43) > Nebraska COL (90.76)
-- Education costs vary: Professional ($91K) > Doctoral ($77K) > Master's ($68K) > Bachelor's ($45K)
-- Job zones vary across occupations (not all same prefix)
-- Software Developer ROI: 2 years breakeven, ~1400% ROI
-- Oral/Maxillofacial Surgeon: 5 years breakeven, ~230% ROI
+### To Do
+- Phase 1: Fix career_profiles metadata
+- Phase 2: Populate skills data
+- Phase 3: Expand career_salaries
+- Phase 4: Fix ROI calculation
+- Phase 5: Fix industry names
