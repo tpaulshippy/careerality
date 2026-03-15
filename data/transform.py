@@ -725,6 +725,12 @@ def transform_career_roi():
             if len(occ_code) == 6:
                 alt_code = f"{occ_code[:2]}-{occ_code[2:]}"
                 skills = skills_cache.get(alt_code)
+        if not skills:
+            base_code = occ_code.replace('-', '')[:4]
+            for cached_code in skills_cache:
+                if cached_code.startswith(base_code):
+                    skills = skills_cache[cached_code]
+                    break
 
         values.append((
             occ_code,
