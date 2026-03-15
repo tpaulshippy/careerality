@@ -4,3 +4,10 @@ data/salary/
 data/education/
 data/cost_of_living/
 data/cost-of-living/
+
+# Python cache
+__pycache__/
+data/__pycache__/
+
+# Ruby vendor bundle
+server/vendor/bundle/
