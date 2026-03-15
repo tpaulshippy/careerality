@@ -3,6 +3,7 @@
 import os
 import json
 import sys
+import numpy as np
 import pandas as pd
 import psycopg2
 import warnings
@@ -24,6 +25,40 @@ DB_CONFIG = {
 
 def get_connection():
     return psycopg2.connect(**DB_CONFIG)
+
+def clean_numeric(val):
+    if pd.isna(val):
+        return None
+    if isinstance(val, (int, float, np.integer, np.floating)):
+        return float(val)
+    if isinstance(val, str):
+        val = val.strip()
+        if val in ('#', '-', '', '*', '**', 'N/A'):
+            return None
+        try:
+            return float(val)
+        except:
+            return None
+    return None
+
+def clean_int(val):
+    if pd.isna(val):
+        return None
+    if isinstance(val, (int, np.integer)):
+        return int(val)
+    if isinstance(val, (float, np.floating)):
+        if pd.isna(val):
+            return None
+        return int(val)
+    if isinstance(val, str):
+        val = val.strip()
+        if val in ('#', '-', '', '*', '**', 'N/A'):
+            return None
+        try:
+            return int(val)
+        except:
+            return None
+    return None
 
 def load_csv_to_table(filepath, table_name):
     if not os.path.exists(filepath):
@@ -276,86 +311,85 @@ def load_cost_of_living():
         cursor.close()
         conn.close()
 
-def parse_series_id(series_id):
-    if not series_id or len(series_id) < 23:
-        return None, None, None, None, None
+def load_salaries():
+    log("Loading salaries data from Excel (414K+ rows - this takes a while)...")
     
-    try:
-        area = series_id[5:12]
-        industry = series_id[12:18]
-        datatype = series_id[18:20]
-        occupation = series_id[20:26]
-        sector = series_id[26:28]
-        return area, industry, datatype, occupation, sector
-    except:
-        return None, None, None, None, None
-
-def load_salary_data():
-    log("Loading main salary data (6M+ rows - this takes a while)...")
-    
-    data_file = os.path.join(DATA_DIR, 'salary', 'oe.data.0.Current')
-    if not os.path.exists(data_file):
-        print("  Salary data file not found")
+    excel_file = os.path.join(DATA_DIR, 'salary', 'oesm24all', 'all_data_M_2024.xlsx')
+    if not os.path.exists(excel_file):
+        log("  Salaries Excel file not found")
         return
     
     conn = get_connection()
     cursor = conn.cursor()
     
-    chunk_size = 50000
-    total_loaded = 0
-    
     try:
-        for chunk in pd.read_csv(data_file, sep='\t', chunksize=chunk_size, low_memory=False):
-            chunk.columns = chunk.columns.str.strip()
-            
-            values = []
-            for _, row in chunk.iterrows():
-                series_id = row.get('series_id')
-                area_code, industry_code, datatype_code, occupation_code, sector_code = parse_series_id(series_id)
-                
-                val = row.get('value')
-                if pd.isna(val) or (isinstance(val, str) and val.strip() in ('-', '')):
-                    val = None
-                else:
-                    try:
-                        val = float(val)
-                    except:
-                        val = None
-                
-                values.append((
-                    series_id,
-                    row.get('year'),
-                    row.get('period'),
-                    val,
-                    row.get('footnote_codes'),
-                    occupation_code,
-                    area_code,
-                    industry_code,
-                    datatype_code,
-                    sector_code
-                ))
-            
-            query = '''
-                INSERT INTO salary_data 
-                (series_id, year, period, value, footnote_codes, occupation_code, area_code, industry_code, datatype_code, sector_code)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (series_id) DO NOTHING
-            '''
-            
-            from psycopg2.extras import execute_batch
-            execute_batch(cursor, query, values)
+        df = pd.read_excel(excel_file)
+        df.columns = df.columns.str.strip().str.lower()
+        log(f"  Loaded {len(df)} rows from Excel, processing...")
+        
+        values = []
+        for idx, row in df.iterrows():
+            values.append((
+                str(row.get('area', '')),
+                str(row.get('area_title')) if pd.notna(row.get('area_title')) else None,
+                clean_int(row.get('area_type')),
+                str(row.get('prim_state')) if pd.notna(row.get('prim_state')) else None,
+                str(row.get('naics')) if pd.notna(row.get('naics')) else None,
+                str(row.get('naics_title')) if pd.notna(row.get('naics_title')) else None,
+                str(row.get('i_group')) if pd.notna(row.get('i_group')) else None,
+                clean_int(row.get('own_code')),
+                str(row.get('occ_code')) if pd.notna(row.get('occ_code')) else None,
+                str(row.get('occ_title')) if pd.notna(row.get('occ_title')) else None,
+                str(row.get('o_group')) if pd.notna(row.get('o_group')) else None,
+                clean_int(row.get('tot_emp')),
+                clean_numeric(row.get('emp_prse')),
+                clean_numeric(row.get('jobs_1000')),
+                clean_numeric(row.get('loc_quotient')),
+                clean_numeric(row.get('pct_total')),
+                clean_numeric(row.get('pct_rpt')),
+                clean_numeric(row.get('h_mean')),
+                clean_numeric(row.get('a_mean')),
+                clean_numeric(row.get('mean_prse')),
+                clean_numeric(row.get('h_pct10')),
+                clean_numeric(row.get('h_pct25')),
+                clean_numeric(row.get('h_median')),
+                clean_numeric(row.get('h_pct75')),
+                clean_numeric(row.get('h_pct90')),
+                clean_numeric(row.get('a_pct10')),
+                clean_numeric(row.get('a_pct25')),
+                clean_numeric(row.get('a_median')),
+                clean_numeric(row.get('a_pct75')),
+                clean_numeric(row.get('a_pct90')),
+                clean_numeric(row.get('annual')),
+                clean_numeric(row.get('hourly')),
+                2024
+            ))
+        
+        query = '''
+            INSERT INTO salaries 
+            (area, area_title, area_type, prim_state, naics, naics_title, i_group, own_code, 
+             occ_code, occ_title, o_group, tot_emp, emp_prse, jobs_1000, loc_quotient, 
+             pct_total, pct_rpt, h_mean, a_mean, mean_prse, h_pct10, h_pct25, h_median, 
+             h_pct75, h_pct90, a_pct10, a_pct25, a_median, a_pct75, a_pct90, annual, hourly, year)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (occ_code, area, naics, own_code) DO NOTHING
+        '''
+        
+        from psycopg2.extras import execute_batch
+        
+        batch_size = 10000
+        for start in range(0, len(values), batch_size):
+            end = min(start + batch_size, len(values))
+            batch = values[start:end]
+            execute_batch(cursor, query, batch)
             conn.commit()
-            
-            total_loaded += len(values)
-            log(f"    Loaded {total_loaded} rows...")
+            log(f"    Loaded {end} rows...")
             
     except Exception as e:
         log(f"  Error: {e}")
     finally:
         cursor.close()
         conn.close()
-    
-    log(f"  Total salary data loaded: {total_loaded} rows")
 
 def main():
     log("=" * 60)
@@ -363,13 +397,13 @@ def main():
     log("=" * 60)
     log("")
     
+    load_salaries()
+    log("")
+    
     load_education_data()
     log("")
     
     load_salary_reference_data()
-    log("")
-    
-    load_salary_data()
     log("")
     
     load_onet_data()
@@ -385,13 +419,13 @@ def main():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT 'student_financial_aid' as table_name, COUNT(*) FROM student_financial_aid
+        SELECT 'salaries' as table_name, COUNT(*) FROM salaries
+        UNION ALL SELECT 'student_financial_aid', COUNT(*) FROM student_financial_aid
         UNION ALL SELECT 'salary_occupations', COUNT(*) FROM salary_occupations
         UNION ALL SELECT 'salary_areas', COUNT(*) FROM salary_areas
         UNION ALL SELECT 'salary_industries', COUNT(*) FROM salary_industries
         UNION ALL SELECT 'salary_datatypes', COUNT(*) FROM salary_datatypes
         UNION ALL SELECT 'salary_sector', COUNT(*) FROM salary_sector
-        UNION ALL SELECT 'salary_data', COUNT(*) FROM salary_data
         UNION ALL SELECT 'cost_of_living', COUNT(*) FROM cost_of_living
         UNION ALL SELECT 'onet_data', COUNT(*) FROM onet_data
     """)

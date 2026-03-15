@@ -70,17 +70,42 @@ def create_schema():
     """)
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS salary_data (
-            series_id VARCHAR(50) PRIMARY KEY,
-            year INTEGER,
-            period VARCHAR(10),
-            value NUMERIC,
-            footnote_codes VARCHAR(10),
-            occupation_code VARCHAR(20),
-            area_code VARCHAR(10),
-            industry_code VARCHAR(20),
-            datatype_code VARCHAR(10),
-            sector_code VARCHAR(10)
+        CREATE TABLE IF NOT EXISTS salaries (
+            id SERIAL PRIMARY KEY,
+            area VARCHAR,
+            area_title TEXT,
+            area_type INTEGER,
+            prim_state VARCHAR,
+            naics VARCHAR,
+            naics_title TEXT,
+            i_group VARCHAR,
+            own_code INTEGER,
+            occ_code VARCHAR,
+            occ_title TEXT,
+            o_group VARCHAR,
+            tot_emp INTEGER,
+            emp_prse NUMERIC,
+            jobs_1000 NUMERIC,
+            loc_quotient NUMERIC,
+            pct_total NUMERIC,
+            pct_rpt NUMERIC,
+            h_mean NUMERIC,
+            a_mean NUMERIC,
+            mean_prse NUMERIC,
+            h_pct10 NUMERIC,
+            h_pct25 NUMERIC,
+            h_median NUMERIC,
+            h_pct75 NUMERIC,
+            h_pct90 NUMERIC,
+            a_pct10 NUMERIC,
+            a_pct25 NUMERIC,
+            a_median NUMERIC,
+            a_pct75 NUMERIC,
+            a_pct90 NUMERIC,
+            annual NUMERIC,
+            hourly NUMERIC,
+            year INTEGER DEFAULT 2024,
+            UNIQUE(occ_code, area, naics, own_code)
         )
     """)
 
