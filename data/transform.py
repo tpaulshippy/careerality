@@ -364,7 +364,13 @@ def transform_career_roi():
         occ_name = occ_title or f"Code: {occ_code}"
         area_name = area_title or "Unknown Area"
         
-        onet_code = occ_code if '.' in occ_code else f"{occ_code[:2]}.{occ_code[2:]}"
+        if '.' in occ_code:
+            onet_code = occ_code
+        elif '-' in occ_code:
+            onet_code = f"{occ_code}.00"
+        else:
+            onet_code = f"{occ_code[:2]}-{occ_code[2:6]}.00"
+        
         education_category = education_cache.get(onet_code)
         cat_int = int(float(education_category)) if education_category else 4
         
@@ -410,15 +416,17 @@ def transform_career_roi():
         edu_cost = tuition_by_level.get(cat_int, default_tuition)
         education_level = years_map.get(cat_int, 'varies')
 
-        if annual_median > 0 and edu_cost > 0:
-            years_to_breakeven = int(edu_cost / annual_median) if annual_median > 0 else 0
+        annual_median_float = float(annual_median) if annual_median else 0
+        
+        if annual_median_float > 0 and edu_cost > 0:
+            years_to_breakeven = int(edu_cost / annual_median_float)
         else:
             years_to_breakeven = 0
 
-        roi_pct = ((annual_median * 10 - edu_cost) / edu_cost * 100) if edu_cost > 0 else 0
+        roi_pct = ((annual_median_float * 10 - edu_cost) / edu_cost * 100) if edu_cost > 0 else 0
 
         col_index = 100.0
-        adjusted_salary = annual_median
+        adjusted_salary = annual_median_float
 
         values.append((
             occ_code,
