@@ -77,6 +77,11 @@ IPEDS_COST_FILES = ["COST1_2024", "COST2_2024"]
 
 EPI_COST_OF_LIVING_URL = "https://files.epi.org/uploads/fbc_data_2026.xlsx"
 
+BLS_OEWS_STATE_URL = "https://www.bls.gov/oes/special.requests/oesm24st.zip"
+ONET_EDUCATION_URL = "https://www.onetcenter.org/dl_files/database/db_29_0_excel/Education%2C%20Training%2C%20and%20%20Experience.xlsx"
+ONET_SOC_CROSSWALK_URL = "https://www.onetcenter.org/taxonomy/2019/list/2019_Crosswalk_ONET_SOC_2019_to_SOC_2018.xlsx"
+CIP_SOC_CROSSWALK_URL = "https://nces.ed.gov/ipeds/cipcode/resources.aspx"
+
 
 def download_file(url, dest_path, retries=3):
     """Download a single file with retry logic."""
@@ -254,6 +259,142 @@ def download_cost_of_living_data(base_path):
     return True
 
 
+def download_bls_state_oes_data(base_path):
+    """Download BLS OEWS state-level data."""
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    bls_path = os.path.join(repo_root, "data/salary")
+    
+    os.makedirs(bls_path, exist_ok=True)
+    
+    zip_path = os.path.join(bls_path, "oesm24st.zip")
+    extract_dir = os.path.join(bls_path, "oesm24st")
+    
+    print(f"Downloading BLS OEWS state data to {bls_path}\n")
+    
+    if os.path.exists(extract_dir) and os.listdir(extract_dir):
+        print(f"  State OEWS data already extracted, skipping")
+        return True
+    
+    if not os.path.exists(zip_path):
+        print(f"  Downloading BLS state OEWS data...", end=" ", flush=True)
+        
+        if download_file(BLS_OEWS_STATE_URL, zip_path):
+            size = os.path.getsize(zip_path)
+            print(f"OK ({size:,} bytes)")
+        else:
+            print(f"FAILED")
+            return False
+    
+    print(f"  Extracting {zip_path}...", end=" ", flush=True)
+    try:
+        os.makedirs(extract_dir, exist_ok=True)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+        os.remove(zip_path)
+        
+        for f in os.listdir(extract_dir):
+            if f.endswith('.xlsx') or f.endswith('.xls'):
+                print(f"OK (found {f})")
+                break
+        else:
+            print("OK")
+        
+        return True
+    except Exception as e:
+        print(f"FAILED: {e}")
+        return False
+
+
+def download_onet_education_data(base_path):
+    """Download O*NET Education, Training & Experience data."""
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    onet_path = os.path.join(repo_root, "data/careers/onetsql")
+    
+    os.makedirs(onet_path, exist_ok=True)
+    
+    dest_path = os.path.join(onet_path, "Education_Training_and_Experience.xlsx")
+    
+    print(f"Downloading O*NET Education data to {onet_path}\n")
+    
+    if os.path.exists(dest_path):
+        print(f"  O*NET Education data already exists, skipping")
+        return True
+    
+    print(f"  Downloading O*NET Education, Training & Experience...", end=" ", flush=True)
+    
+    if download_file(ONET_EDUCATION_URL, dest_path):
+        size = os.path.getsize(dest_path)
+        print(f"OK ({size:,} bytes)")
+        return True
+    else:
+        print(f"FAILED")
+        return False
+
+
+def download_onet_soc_crosswalk(base_path):
+    """Download O*NET-SOC to SOC 2018 crosswalk."""
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    onet_path = os.path.join(repo_root, "data/careers/onetsql")
+    
+    os.makedirs(onet_path, exist_ok=True)
+    
+    dest_path = os.path.join(onet_path, "onet_soc_2019_to_soc_2018_crosswalk.xlsx")
+    
+    print(f"Downloading O*NET SOC crosswalk to {onet_path}\n")
+    
+    if os.path.exists(dest_path):
+        print(f"  O*NET SOC crosswalk already exists, skipping")
+        return True
+    
+    print(f"  Downloading O*NET-SOC to SOC 2018 crosswalk...", end=" ", flush=True)
+    
+    if download_file(ONET_SOC_CROSSWALK_URL, dest_path):
+        size = os.path.getsize(dest_path)
+        print(f"OK ({size:,} bytes)")
+        return True
+    else:
+        print(f"FAILED")
+        return False
+
+
+def download_cip_soc_crosswalk(base_path):
+    """Download CIP to SOC crosswalk from BLS."""
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    cip_path = os.path.join(repo_root, "data/education")
+    
+    os.makedirs(cip_path, exist_ok=True)
+    
+    dest_path = os.path.join(cip_path, "soc_2018_to_cip2020_crosswalk.xlsx")
+    
+    print(f"Downloading CIP-SOC crosswalk to {cip_path}\n")
+    
+    BLS_SOC_CIP_URL = "https://www.bls.gov/soc/soccrosswalks.xlsx"
+    
+    if os.path.exists(dest_path):
+        print(f"  CIP-SOC crosswalk already exists, skipping")
+        return True
+    
+    print(f"  Downloading CIP to SOC crosswalk...", end=" ", flush=True)
+    
+    if download_file(BLS_SOC_CIP_URL, dest_path):
+        size = os.path.getsize(dest_path)
+        print(f"OK ({size:,} bytes)")
+        return True
+    else:
+        print(f"  Trying alternate source...")
+        alt_url = "https://nces.ed.gov/ipeds/cipcode/download/2020-CIP-to-SOC.xlsx"
+        if download_file(alt_url, dest_path):
+            size = os.path.getsize(dest_path)
+            print(f"OK ({size:,} bytes)")
+            return True
+        print(f"FAILED")
+        return False
+
+
 def download_data(base_path):
     """Download O*NET database files."""
     script_dir = os.path.dirname(os.path.abspath(base_path))
@@ -406,8 +547,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Data Downloader for Careerality")
     parser.add_argument("--download-onet", action="store_true", help="Download O*NET data from onetcenter.org")
     parser.add_argument("--download-bls", action="store_true", help="Download BLS OEWS data from download.bls.gov")
+    parser.add_argument("--download-bls-state", action="store_true", help="Download BLS OEWS state-level data")
     parser.add_argument("--download-ipeds", action="store_true", help="Download IPEDS education data from nces.ed.gov")
     parser.add_argument("--download-ipeds-cost", action="store_true", help="Download IPEDS Cost data (tuition) from nces.ed.gov")
+    parser.add_argument("--download-onet-education", action="store_true", help="Download O*NET Education, Training & Experience data")
+    parser.add_argument("--download-onet-crosswalk", action="store_true", help="Download O*NET-SOC to SOC crosswalk")
+    parser.add_argument("--download-cip-crosswalk", action="store_true", help="Download CIP to SOC crosswalk")
     parser.add_argument("--download-epi", action="store_true", help="Download EPI cost of living data from files.epi.org")
     parser.add_argument("--download-all", action="store_true", help="Download all available data sources")
     args = parser.parse_args()
@@ -419,13 +564,29 @@ if __name__ == "__main__":
         print("="*50)
         download_data(__file__)
         print("\n" + "="*50)
+        print("O*NET Education Data")
+        print("="*50)
+        download_onet_education_data(__file__)
+        print("\n" + "="*50)
+        print("O*NET SOC Crosswalk")
+        print("="*50)
+        download_onet_soc_crosswalk(__file__)
+        print("\n" + "="*50)
         print("BLS OEWS Data")
         print("="*50)
         download_bls_data(__file__)
         print("\n" + "="*50)
+        print("BLS State OEWS Data")
+        print("="*50)
+        download_bls_state_oes_data(__file__)
+        print("\n" + "="*50)
         print("IPEDS Education Data")
         print("="*50)
         download_ipeds_data(__file__)
+        print("\n" + "="*50)
+        print("CIP-SOC Crosswalk")
+        print("="*50)
+        download_cip_soc_crosswalk(__file__)
         print("\n" + "="*50)
         print("EPI Cost of Living Data")
         print("="*50)
@@ -438,7 +599,15 @@ if __name__ == "__main__":
         download_ipeds_cost_data(__file__)
     elif args.download_bls:
         download_bls_data(__file__)
+    elif args.download_bls_state:
+        download_bls_state_oes_data(__file__)
     elif args.download_onet:
         download_data(__file__)
+    elif args.download_onet_education:
+        download_onet_education_data(__file__)
+    elif args.download_onet_crosswalk:
+        download_onet_soc_crosswalk(__file__)
+    elif args.download_cip_crosswalk:
+        download_cip_soc_crosswalk(__file__)
     else:
         list_occupation_data()

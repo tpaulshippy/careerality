@@ -425,6 +425,205 @@ def transform_career_roi():
     conn.close()
     log(f"  Calculated ROI for {len(values)} careers (from {processed} salary records)")
 
+def clean_numeric(val):
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, str):
+        val = val.strip()
+        if val in ('#', '-', '', '*', '**', 'N/A'):
+            return None
+        try:
+            return float(val)
+        except:
+            return None
+    return None
+
+
+def transform_education_cost_by_state_occupation():
+    log("Computing education cost per occupation per state...")
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM education_cost_by_state_occupation")
+    conn.commit()
+    
+    log("  Building institution tuition lookup by state...")
+    cursor.execute("""
+        SELECT 
+            i.unitid,
+            i.state,
+            i.iclevel,
+            c.data->>'TUITION2' as tuition_in_state,
+            c.data->>'FEE2' as fees_in_state
+        FROM institutions i
+        LEFT JOIN ipeds_cost c ON i.unitid = c.unitid
+        WHERE i.state IS NOT NULL
+    """)
+    
+    tuition_by_state_ilevel = {}
+    for row in cursor.fetchall():
+        unitid, state, iclevel, tuition_in, fees_in = row
+        if state not in tuition_by_state_ilevel:
+            tuition_by_state_ilevel[state] = {}
+        
+        tuition = clean_numeric(tuition_in) or 0
+        fees = clean_numeric(fees_in) or 0
+        total = tuition + fees
+        
+        if total > 0:
+            if iclevel not in tuition_by_state_ilevel[state]:
+                tuition_by_state_ilevel[state][iclevel] = []
+            tuition_by_state_ilevel[state][iclevel].append(total)
+    
+    log("  Computing average tuition by state and institution level...")
+    avg_tuition_by_state_ilevel = {}
+    for state, ilevels in tuition_by_state_ilevel.items():
+        for ilevel, tuition_list in ilevels.items():
+            if tuition_list:
+                avg_tuition_by_state_ilevel[(state, ilevel)] = sum(tuition_list) / len(tuition_list)
+    
+    log("  Building O*NET education lookup...")
+    cursor.execute("""
+        SELECT onet_soc_code, category, data_value, data_value_label
+        FROM onet_education
+        WHERE category = 1
+    """)
+    
+    onet_education = {}
+    for row in cursor.fetchall():
+        onet_code, category, data_value, data_value_label = row
+        if onet_code:
+            normalized_code = onet_code.replace('.00', '')
+            onet_education[normalized_code] = {
+                'data_value': data_value,
+                'data_value_label': data_value_label
+            }
+            onet_education[onet_code] = {
+                'data_value': data_value,
+                'data_value_label': data_value_label
+            }
+    
+    log("  Building O*NET-SOC to SOC 2018 crosswalk lookup...")
+    onet_to_soc = {}
+    try:
+        cursor.execute("""
+            SELECT onet_soc_code, soc_2018_code
+            FROM onet_soc_crosswalk
+        """)
+        for row in cursor.fetchall():
+            onet_code, soc_code = row
+            if onet_code and soc_code:
+                onet_to_soc[onet_code] = soc_code
+    except:
+        log("    Crosswalk table not available, using direct occupation codes")
+    
+    log("  Processing BLS state wages (detailed occupations only)...")
+    cursor.execute("""
+        SELECT DISTINCT ON (s.occ_code, s.prim_state)
+            s.occ_code,
+            s.occ_title,
+            s.prim_state as state,
+            s.a_median as median_wage
+        FROM salaries s
+        WHERE s.o_group = 'detailed'
+          AND s.occ_code IS NOT NULL
+          AND s.prim_state IS NOT NULL
+          AND s.a_median IS NOT NULL
+          AND s.area_type = 2
+        ORDER BY s.occ_code, s.prim_state, s.tot_emp DESC
+    """)
+    
+    wage_records = cursor.fetchall()
+    log(f"  Found {len(wage_records)} state-occupation combinations with wages")
+    
+    education_level_map = {
+        1: 'Less than high school',
+        2: 'High school diploma',
+        3: 'Postsecondary certificate',
+        4: 'Some college, no degree',
+        5: "Associate's degree",
+        6: "Bachelor's degree",
+        7: "Master's degree",
+        8: 'Doctoral degree',
+        9: 'Professional degree',
+        10: 'First professional degree',
+        11: 'Doctoral degree',
+        12: 'Post-doctoral training',
+    }
+    
+    values = []
+    for occ_code, occ_title, state, median_wage in wage_records:
+        if not occ_code or not state:
+            continue
+        
+        edu_info = onet_education.get(occ_code)
+        
+        if not edu_info:
+            continue
+        
+        edu_data_value = edu_info.get('data_value', 4)
+        edu_label = edu_info.get('data_value_label', education_level_map.get(edu_data_value, 'varies'))
+        
+        if edu_data_value >= 8:
+            target_ilevel = 3
+        elif edu_data_value >= 6:
+            target_ilevel = 2
+        elif edu_data_value >= 5:
+            target_ilevel = 2
+        else:
+            target_ilevel = 1
+        
+        avg_tuition = avg_tuition_by_state_ilevel.get((state, target_ilevel))
+        
+        if avg_tuition is None:
+            if target_ilevel == 2:
+                avg_tuition = avg_tuition_by_state_ilevel.get((state, 1))
+            elif target_ilevel == 1:
+                avg_tuition = avg_tuition_by_state_ilevel.get((state, 2))
+        
+        if avg_tuition is None:
+            all_tuitions = []
+            for ilevel, t in tuition_by_state_ilevel.get(state, {}).items():
+                all_tuitions.extend(t)
+            if all_tuitions:
+                avg_tuition = sum(all_tuitions) / len(all_tuitions)
+        
+        if avg_tuition is not None:
+            values.append((
+                state,
+                occ_code,
+                occ_title,
+                median_wage,
+                edu_label,
+                edu_data_value,
+                None,
+                None,
+                avg_tuition,
+                None,
+                2024
+            ))
+    
+    log(f"  Inserting {len(values)} education cost records...")
+    
+    query = """
+        INSERT INTO education_cost_by_state_occupation 
+        (state, occ_code, occ_title, median_annual_wage, education_level, education_data_value,
+         cip_code, cip_title, avg_tuition, total_completions, year)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (state, occ_code) DO NOTHING
+    """
+    
+    if values:
+        execute_batch(cursor, query, values)
+        conn.commit()
+    
+    cursor.close()
+    conn.close()
+    log(f"  Computed education cost for {len(values)} state-occupation pairs")
+
+
 def main():
     log("=" * 60)
     log("Transforming data into integrated tables")
@@ -443,6 +642,9 @@ def main():
     transform_career_roi()
     log("")
 
+    transform_education_cost_by_state_occupation()
+    log("")
+
     log("=" * 60)
     log("Transformation complete!")
     log("=" * 60)
@@ -454,6 +656,7 @@ def main():
         UNION ALL SELECT 'career_salaries', COUNT(*) FROM career_salaries
         UNION ALL SELECT 'career_cost_of_living', COUNT(*) FROM career_cost_of_living
         UNION ALL SELECT 'career_roi', COUNT(*) FROM career_roi
+        UNION ALL SELECT 'education_cost_by_state_occupation', COUNT(*) FROM education_cost_by_state_occupation
     """)
     log("\nTable summary:")
     for row in cursor.fetchall():

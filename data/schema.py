@@ -256,6 +256,94 @@ def create_schema():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bls_state_wages (
+            id SERIAL PRIMARY KEY,
+            area VARCHAR,
+            area_title TEXT,
+            area_type INTEGER,
+            prim_state VARCHAR,
+            naics VARCHAR,
+            naics_title TEXT,
+            i_group VARCHAR,
+            own_code INTEGER,
+            occ_code VARCHAR,
+            occ_title TEXT,
+            o_group VARCHAR,
+            tot_emp INTEGER,
+            emp_prse NUMERIC,
+            h_mean NUMERIC,
+            a_mean NUMERIC,
+            h_median NUMERIC,
+            a_median NUMERIC,
+            year INTEGER DEFAULT 2024,
+            UNIQUE(occ_code, area, naics, own_code)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS onet_education (
+            id SERIAL PRIMARY KEY,
+            onet_soc_code VARCHAR(20),
+            category INTEGER,
+            category_label VARCHAR(100),
+            data_value INTEGER,
+            data_value_label VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS onet_soc_crosswalk (
+            id SERIAL PRIMARY KEY,
+            onet_soc_code VARCHAR(20),
+            soc_2018_code VARCHAR(10),
+            soc_2018_title VARCHAR(255),
+            is_primary BOOLEAN DEFAULT TRUE
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cip_soc_crosswalk (
+            id SERIAL PRIMARY KEY,
+            soc_code VARCHAR(10),
+            cip_code VARCHAR(10),
+            cip_title VARCHAR(255),
+            is_primary BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ipeds_completions (
+            id SERIAL PRIMARY KEY,
+            unitid INTEGER,
+            cipcode VARCHAR(10),
+            ctotalt INTEGER,
+            year INTEGER DEFAULT 2023,
+            UNIQUE(unitid, cipcode, year)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS education_cost_by_state_occupation (
+            id SERIAL PRIMARY KEY,
+            state VARCHAR(2),
+            occ_code VARCHAR(20),
+            occ_title VARCHAR(255),
+            median_annual_wage NUMERIC,
+            education_level VARCHAR(100),
+            education_data_value INTEGER,
+            cip_code VARCHAR(10),
+            cip_title VARCHAR(255),
+            avg_tuition NUMERIC,
+            total_completions INTEGER,
+            year INTEGER DEFAULT 2024,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(state, occ_code)
+        )
+    """)
+
     conn.commit()
     cursor.close()
     conn.close()

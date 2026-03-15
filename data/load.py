@@ -488,6 +488,361 @@ def load_cost_of_living():
         cursor.close()
         conn.close()
 
+def load_bls_state_wages():
+    log("Loading BLS state wages data...")
+    
+    state_excel = os.path.join(DATA_DIR, 'salary', 'oesm24st')
+    if not os.path.exists(state_excel):
+        log("  State wages directory not found")
+        return
+    
+    xlsx_files = [f for f in os.listdir(state_excel) if f.endswith('.xlsx') or f.endswith('.xls')]
+    if not xlsx_files:
+        log("  No Excel files found in oesm24st directory")
+        return
+    
+    excel_file = os.path.join(state_excel, xlsx_files[0])
+    log(f"  Loading {xlsx_files[0]}...")
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        df = pd.read_excel(excel_file)
+        df.columns = df.columns.str.strip().str.lower()
+        log(f"  Loaded {len(df)} rows from Excel, processing...")
+        
+        values = []
+        for idx, row in df.iterrows():
+            values.append((
+                str(row.get('area', '')),
+                str(row.get('area_title')) if pd.notna(row.get('area_title')) else None,
+                clean_int(row.get('area_type')),
+                str(row.get('prim_state')) if pd.notna(row.get('prim_state')) else None,
+                str(row.get('naics')) if pd.notna(row.get('naics')) else None,
+                str(row.get('naics_title')) if pd.notna(row.get('naics_title')) else None,
+                str(row.get('i_group')) if pd.notna(row.get('i_group')) else None,
+                clean_int(row.get('own_code')),
+                str(row.get('occ_code')) if pd.notna(row.get('occ_code')) else None,
+                str(row.get('occ_title')) if pd.notna(row.get('occ_title')) else None,
+                str(row.get('o_group')) if pd.notna(row.get('o_group')) else None,
+                clean_int(row.get('tot_emp')),
+                clean_numeric(row.get('emp_prse')),
+                clean_numeric(row.get('h_mean')),
+                clean_numeric(row.get('a_mean')),
+                clean_numeric(row.get('h_median')),
+                clean_numeric(row.get('a_median')),
+                2024
+            ))
+        
+        query = '''
+            INSERT INTO bls_state_wages 
+            (area, area_title, area_type, prim_state, naics, naics_title, i_group, own_code, 
+             occ_code, occ_title, o_group, tot_emp, emp_prse, h_mean, a_mean, h_median, a_median, year)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (occ_code, area, naics, own_code) DO NOTHING
+        '''
+        
+        from psycopg2.extras import execute_batch
+        
+        batch_size = 5000
+        for start in range(0, len(values), batch_size):
+            end = min(start + batch_size, len(values))
+            batch = values[start:end]
+            execute_batch(cursor, query, batch)
+            conn.commit()
+            log(f"    Loaded {end} rows...")
+            
+        log(f"  Loaded {len(values)} state wage records")
+        
+    except Exception as e:
+        log(f"  Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def load_onet_education():
+    log("Loading O*NET Education, Training & Experience data...")
+    
+    onet_dir = os.path.join(DATA_DIR, 'careers', 'onetsql', 'db_30_2_text')
+    txt_file = os.path.join(onet_dir, 'Education, Training, and Experience.txt')
+    
+    if not os.path.exists(txt_file):
+        log("  O*NET Education file not found, skipping")
+        return
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        df = pd.read_csv(txt_file, sep='\t', low_memory=False)
+        df.columns = df.columns.str.strip()
+        log(f"  Loaded {len(df)} rows from file, processing...")
+        
+        education_level_map = {
+            1: 'Less than high school',
+            2: 'High school diploma',
+            3: 'Postsecondary certificate',
+            4: 'Some college, no degree',
+            5: "Associate's degree",
+            6: "Bachelor's degree",
+            7: "Master's degree",
+            8: 'Doctoral degree',
+            9: 'Professional degree',
+            10: 'First professional degree',
+            11: 'Doctoral degree',
+            12: 'Post-doctoral training',
+        }
+        
+        edu_data = {}
+        for idx, row in df.iterrows():
+            onet_code = str(row.get('O*NET-SOC Code', '')).strip() if pd.notna(row.get('O*NET-SOC Code')) else None
+            if not onet_code:
+                continue
+            
+            element_id = str(row.get('Element ID', '')).strip() if pd.notna(row.get('Element ID')) else None
+            scale_id = str(row.get('Scale ID', '')).strip() if pd.notna(row.get('Scale ID')) else None
+            
+            if element_id != '2.D.1' or scale_id != 'RL':
+                continue
+            
+            category = clean_int(row.get('Category'))
+            data_value = clean_numeric(row.get('Data Value'))
+            
+            if onet_code not in edu_data:
+                edu_data[onet_code] = {'category': category, 'data_value': data_value}
+            elif data_value and data_value > edu_data[onet_code].get('data_value', 0):
+                edu_data[onet_code] = {'category': category, 'data_value': data_value}
+        
+        values = []
+        for onet_code, data in edu_data.items():
+            category = data.get('category')
+            data_value = data.get('data_value')
+            data_value_label = education_level_map.get(category, f'Category {category}')
+            
+            values.append((
+                onet_code,
+                1,
+                'Required Level of Education',
+                category,
+                data_value_label
+            ))
+        
+        query = '''
+            INSERT INTO onet_education 
+            (onet_soc_code, category, category_label, data_value, data_value_label)
+            VALUES (%s, %s, %s, %s, %s)
+        '''
+        
+        from psycopg2.extras import execute_batch
+        
+        if values:
+            execute_batch(cursor, query, values)
+            conn.commit()
+            log(f"  Loaded {len(values)} education records")
+        
+    except Exception as e:
+        log(f"  Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def load_onet_soc_crosswalk():
+    log("Loading O*NET-SOC to SOC 2018 crosswalk...")
+    
+    onet_dir = os.path.join(DATA_DIR, 'careers', 'onetsql')
+    excel_file = os.path.join(onet_dir, 'onet_soc_2019_to_soc_2018_crosswalk.xlsx')
+    
+    if not os.path.exists(excel_file):
+        log("  O*NET SOC crosswalk file not found, skipping")
+        return
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        df = pd.read_excel(excel_file)
+        df.columns = df.columns.str.strip()
+        log(f"  Loaded {len(df)} rows from Excel, processing...")
+        
+        values = []
+        for idx, row in df.iterrows():
+            onet_code = str(row.get(0, '')).strip() if pd.notna(row.get(0)) else None
+            soc_code = str(row.get(1, '')).strip() if pd.notna(row.get(1)) else None
+            soc_title = str(row.get(2, '')).strip() if pd.notna(row.get(2)) else None
+            
+            if onet_code and soc_code:
+                values.append((
+                    onet_code,
+                    soc_code,
+                    soc_title,
+                    True
+                ))
+        
+        query = '''
+            INSERT INTO onet_soc_crosswalk 
+            (onet_soc_code, soc_2018_code, soc_2018_title, is_primary)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+        '''
+        
+        from psycopg2.extras import execute_batch
+        
+        if values:
+            execute_batch(cursor, query, values)
+            conn.commit()
+            log(f"  Loaded {len(values)} crosswalk records")
+        
+    except Exception as e:
+        log(f"  Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def load_cip_soc_crosswalk():
+    log("Loading CIP to SOC crosswalk...")
+    
+    cip_file = os.path.join(DATA_DIR, 'education', 'soc_2018_to_cip2020_crosswalk.xlsx')
+    
+    if not os.path.exists(cip_file):
+        log("  CIP-SOC crosswalk file not found, skipping")
+        return
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        df = pd.read_excel(cip_file, sheet_name=None)
+        log(f"  Found {len(df)} sheets in workbook")
+        
+        values = []
+        for sheet_name, sheet_df in df.items():
+            sheet_df.columns = sheet_df.columns.str.strip()
+            
+            for idx, row in sheet_df.iterrows():
+                soc_code = None
+                cip_code = None
+                cip_title = None
+                
+                for col in row.index:
+                    col_lower = str(col).lower()
+                    if 'soc' in col_lower and 'code' in col_lower:
+                        soc_code = str(row[col]).strip() if pd.notna(row[col]) else None
+                    elif 'cip' in col_lower and 'code' in col_lower:
+                        cip_code = str(row[col]).strip() if pd.notna(row[col]) else None
+                    elif 'cip' in col_lower and 'title' in col_lower:
+                        cip_title = str(row[col]).strip() if pd.notna(row[col]) else None
+                
+                if soc_code and cip_code:
+                    values.append((
+                        soc_code,
+                        cip_code,
+                        cip_title,
+                        False
+                    ))
+        
+        if not values:
+            for sheet_name, sheet_df in df.items():
+                for idx, row in sheet_df.iterrows():
+                    try:
+                        soc_code = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else None
+                        cip_code = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else None
+                        cip_title = str(row.iloc[2]).strip() if len(row) > 2 and pd.notna(row.iloc[2]) else None
+                        
+                        if soc_code and cip_code:
+                            values.append((
+                                soc_code,
+                                cip_code,
+                                cip_title,
+                                False
+                            ))
+                    except:
+                        pass
+        
+        query = '''
+            INSERT INTO cip_soc_crosswalk 
+            (soc_code, cip_code, cip_title, is_primary)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+        '''
+        
+        from psycopg2.extras import execute_batch
+        
+        if values:
+            execute_batch(cursor, query, values)
+            conn.commit()
+            log(f"  Loaded {len(values)} CIP-SOC crosswalk records")
+        
+    except Exception as e:
+        log(f"  Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def load_ipeds_completions():
+    log("Loading IPEDS completions data...")
+    
+    comp_file = os.path.join(DATA_DIR, 'education', 'C2023_a.csv')
+    
+    if not os.path.exists(comp_file):
+        log("  IPEDS completions file not found, skipping")
+        return
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        df = pd.read_csv(comp_file, low_memory=False)
+        df.columns = df.columns.str.strip()
+        log(f"  Loaded {len(df)} rows from CSV, processing...")
+        
+        values = []
+        for idx, row in df.iterrows():
+            unitid = clean_int(row.get('UNITID'))
+            if not unitid:
+                continue
+            
+            cipcode = str(row.get('CIPCODE', '')).strip() if pd.notna(row.get('CIPCODE')) else None
+            ctotalt = clean_int(row.get('CTOTALT'))
+            
+            if cipcode and ctotalt is not None:
+                values.append((
+                    unitid,
+                    cipcode,
+                    ctotalt,
+                    2023
+                ))
+        
+        query = '''
+            INSERT INTO ipeds_completions 
+            (unitid, cipcode, ctotalt, year)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (unitid, cipcode, year) DO NOTHING
+        '''
+        
+        from psycopg2.extras import execute_batch
+        
+        batch_size = 10000
+        for start in range(0, len(values), batch_size):
+            end = min(start + batch_size, len(values))
+            batch = values[start:end]
+            execute_batch(cursor, query, batch)
+            conn.commit()
+            log(f"    Loaded {end} rows...")
+        
+        log(f"  Loaded {len(values)} completions records")
+        
+    except Exception as e:
+        log(f"  Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def load_salaries():
     log("Loading salaries data from Excel (414K+ rows - this takes a while)...")
     
@@ -577,6 +932,9 @@ def main():
     load_salaries()
     log("")
     
+    load_bls_state_wages()
+    log("")
+    
     load_education_data()
     log("")
     
@@ -584,6 +942,18 @@ def main():
     log("")
     
     load_onet_data()
+    log("")
+    
+    load_onet_education()
+    log("")
+    
+    load_onet_soc_crosswalk()
+    log("")
+    
+    load_cip_soc_crosswalk()
+    log("")
+    
+    load_ipeds_completions()
     log("")
     
     load_cost_of_living()
