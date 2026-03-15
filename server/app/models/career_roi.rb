@@ -17,7 +17,9 @@ class CareerRoi < ApplicationRecord
       education_level: education_level,
       skills: skills,
       cost_of_living_index: cost_of_living_index,
-      adjusted_salary: adjusted_salary
+      adjusted_salary: adjusted_salary,
+      industry_code: industry_code,
+      industry_name: industry_name
     }
   end
 end
