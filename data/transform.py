@@ -117,10 +117,12 @@ def create_tables():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS career_roi (
                 id SERIAL PRIMARY KEY,
-                occupation_code VARCHAR(20) UNIQUE,
+                occupation_code VARCHAR(20),
                 occupation_name VARCHAR(255),
                 area_code VARCHAR(10),
                 area_name VARCHAR(255),
+                industry_code VARCHAR(50),
+                industry_name VARCHAR(255),
                 annual_median_salary NUMERIC,
                 education_cost NUMERIC,
                 years_to_breakeven INTEGER,
@@ -131,7 +133,8 @@ def create_tables():
                 cost_of_living_index NUMERIC,
                 adjusted_salary NUMERIC,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(occupation_code, area_code, industry_code)
             )
         """)
         conn.commit()
@@ -361,31 +364,39 @@ def transform_career_roi():
     conn.commit()
 
     cursor.execute("""
-        SELECT DISTINCT ON (s.occ_code)
+        SELECT DISTINCT ON (s.occ_code, s.area, s.i_group)
             s.occ_code as occ_code,
             s.occ_title as occ_title,
+            s.area as area_code,
+            s.area_title as area_title,
+            s.i_group as industry_code,
+            s.i_group as industry_name,
             s.a_median as annual_median_wage,
             s.a_mean as annual_mean_wage,
             s.h_median as hourly_median_wage,
             s.tot_emp as employment,
             s.year
         FROM salaries s
-        WHERE s.area = '99'
-          AND s.i_group = 'cross-industry'
+        WHERE s.area IS NOT NULL
+          AND s.area != '0'
+          AND s.i_group IS NOT NULL
           AND s.a_median IS NOT NULL
-        ORDER BY s.occ_code, s.a_median DESC
+          AND s.occ_code IS NOT NULL
+          AND s.occ_code != '0'
+        ORDER BY s.occ_code, s.area, s.i_group, s.a_median DESC
     """)
 
     rows = cursor.fetchall()
 
     values = []
     for row in rows:
-        occ_code, occ_title, annual_median, annual_mean, hourly_median, employment, year = row
+        occ_code, occ_title, area_code, area_title, industry_code, industry_name, annual_median, annual_mean, hourly_median, employment, year = row
 
         if not annual_median:
             continue
 
         occ_name = occ_title or f"Code: {occ_code}"
+        area_name = area_title or "Unknown Area"
         job_zone = None
         edu_cost = 20000
 
@@ -436,8 +447,10 @@ def transform_career_roi():
         values.append((
             occ_code,
             occ_name,
-            "0000000",
-            "National Average",
+            area_code,
+            area_name,
+            industry_code,
+            industry_name,
             annual_median,
             edu_cost,
             years_to_breakeven,
@@ -451,11 +464,11 @@ def transform_career_roi():
 
     query = """
         INSERT INTO career_roi 
-        (occupation_code, occupation_name, area_code, area_name, annual_median_salary,
-         education_cost, years_to_breakeven, roi_percentage, job_zone, education_level,
-         skills, cost_of_living_index, adjusted_salary, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-        ON CONFLICT (occupation_code) DO NOTHING
+        (occupation_code, occupation_name, area_code, area_name, industry_code, industry_name,
+         annual_median_salary, education_cost, years_to_breakeven, roi_percentage, job_zone, 
+         education_level, skills, cost_of_living_index, adjusted_salary, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+        ON CONFLICT (occupation_code, area_code, industry_code) DO NOTHING
     """
 
     if values:
