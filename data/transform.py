@@ -449,6 +449,22 @@ def transform_education_cost_by_state_occupation():
     cursor.execute("DELETE FROM education_cost_by_state_occupation")
     conn.commit()
     
+    log("  Building CIP to O*NET crosswalk lookup...")
+    cip_onet_map = {}
+    try:
+        cursor.execute("""
+            SELECT onet_soc_code, cip_code
+            FROM cip_onet_crosswalk
+        """)
+        for row in cursor.fetchall():
+            onet_code, cip_code = row
+            if onet_code and cip_code:
+                if onet_code not in cip_onet_map:
+                    cip_onet_map[onet_code] = []
+                cip_onet_map[onet_code].append(cip_code)
+    except:
+        log("    CIP-O*NET crosswalk table not available")
+    
     log("  Building institution tuition lookup by state...")
     cursor.execute("""
         SELECT 
@@ -591,6 +607,8 @@ def transform_education_cost_by_state_occupation():
                 avg_tuition = sum(all_tuitions) / len(all_tuitions)
         
         if avg_tuition is not None:
+            cip_code = cip_onet_map.get(occ_code, [None])[0] if cip_onet_map.get(occ_code) else None
+            
             values.append((
                 state,
                 occ_code,
@@ -598,7 +616,7 @@ def transform_education_cost_by_state_occupation():
                 median_wage,
                 edu_label,
                 edu_data_value,
-                None,
+                cip_code,
                 None,
                 avg_tuition,
                 None,

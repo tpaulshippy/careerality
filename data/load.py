@@ -783,6 +783,54 @@ def load_cip_soc_crosswalk():
         conn.close()
 
 
+def load_onet_cip_crosswalk():
+    log("Loading O*NET CIP to O*NET-SOC crosswalk...")
+    
+    cip_file = os.path.join(DATA_DIR, 'education', 'Education_CIP_to_ONET_SOC.xlsx')
+    
+    if not os.path.exists(cip_file):
+        log("  O*NET CIP crosswalk file not found, skipping")
+        return
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        df = pd.read_excel(cip_file)
+        log(f"  Loaded {len(df)} rows from Excel, processing...")
+        
+        values = []
+        for idx, row in df.iterrows():
+            cip_code = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else None
+            onet_code = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else None
+            
+            if cip_code and onet_code:
+                values.append((
+                    onet_code,
+                    cip_code
+                ))
+        
+        query = '''
+            INSERT INTO cip_onet_crosswalk 
+            (onet_soc_code, cip_code)
+            VALUES (%s, %s)
+            ON CONFLICT DO NOTHING
+        '''
+        
+        from psycopg2.extras import execute_batch
+        
+        if values:
+            execute_batch(cursor, query, values)
+            conn.commit()
+            log(f"  Loaded {len(values)} CIP-O*NET crosswalk records")
+        
+    except Exception as e:
+        log(f"  Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def load_ipeds_completions():
     log("Loading IPEDS completions data...")
     
@@ -951,6 +999,9 @@ def main():
     log("")
     
     load_cip_soc_crosswalk()
+    log("")
+    
+    load_onet_cip_crosswalk()
     log("")
     
     load_ipeds_completions()

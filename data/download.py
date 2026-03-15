@@ -30,10 +30,16 @@ Downloaded Data:
    - License: Public Domain
 
 4. EPI Family Budget Calculator:
-    - Location: data/cost-of-living/
-    - Contains: Cost of living data by metro area and family type
-    - Source: https://files.epi.org/uploads/fbc_data_2026.xlsx
-    - License: Used with permission from Economic Policy Institute
+     - Location: data/cost-of-living/
+     - Contains: Cost of living data by metro area and family type
+     - Source: https://files.epi.org/uploads/fbc_data_2026.xlsx
+     - License: Used with permission from Economic Policy Institute
+
+5. O*NET CIP to O*NET-SOC Crosswalk:
+     - Location: data/education/
+     - Contains: Mapping between CIP education codes and O*NET-SOC occupation codes
+     - Source: https://www.onetcenter.org/crosswalks/cip/Education_CIP_to_ONET_SOC.xlsx
+     - License: Creative Commons Attribution 4.0
 """
 
 import os
@@ -81,6 +87,8 @@ BLS_OEWS_STATE_URL = "https://www.bls.gov/oes/special.requests/oesm24st.zip"
 ONET_EDUCATION_URL = "https://www.onetcenter.org/dl_files/database/db_29_0_excel/Education%2C%20Training%2C%20and%20%20Experience.xlsx"
 ONET_SOC_CROSSWALK_URL = "https://www.onetcenter.org/taxonomy/2019/list/2019_Crosswalk_ONET_SOC_2019_to_SOC_2018.xlsx"
 CIP_SOC_CROSSWALK_URL = "https://nces.ed.gov/ipeds/cipcode/resources.aspx"
+
+ONET_CIP_CROSSWALK_URL = "https://www.onetcenter.org/crosswalks/cip/Education_CIP_to_ONET_SOC.xlsx"
 
 
 def download_file(url, dest_path, retries=3):
@@ -395,6 +403,33 @@ def download_cip_soc_crosswalk(base_path):
         return False
 
 
+def download_onet_cip_crosswalk(base_path):
+    """Download O*NET CIP to O*NET-SOC crosswalk."""
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    cip_path = os.path.join(repo_root, "data/education")
+    
+    os.makedirs(cip_path, exist_ok=True)
+    
+    dest_path = os.path.join(cip_path, "Education_CIP_to_ONET_SOC.xlsx")
+    
+    print(f"Downloading O*NET CIP crosswalk to {cip_path}\n")
+    
+    if os.path.exists(dest_path):
+        print(f"  O*NET CIP crosswalk already exists, skipping")
+        return True
+    
+    print(f"  Downloading O*NET CIP to O*NET-SOC crosswalk...", end=" ", flush=True)
+    
+    if download_file(ONET_CIP_CROSSWALK_URL, dest_path):
+        size = os.path.getsize(dest_path)
+        print(f"OK ({size:,} bytes)")
+        return True
+    else:
+        print(f"FAILED")
+        return False
+
+
 def download_data(base_path):
     """Download O*NET database files."""
     script_dir = os.path.dirname(os.path.abspath(base_path))
@@ -553,6 +588,7 @@ if __name__ == "__main__":
     parser.add_argument("--download-onet-education", action="store_true", help="Download O*NET Education, Training & Experience data")
     parser.add_argument("--download-onet-crosswalk", action="store_true", help="Download O*NET-SOC to SOC crosswalk")
     parser.add_argument("--download-cip-crosswalk", action="store_true", help="Download CIP to SOC crosswalk")
+    parser.add_argument("--download-onet-cip-crosswalk", action="store_true", help="Download O*NET CIP to O*NET-SOC crosswalk")
     parser.add_argument("--download-epi", action="store_true", help="Download EPI cost of living data from files.epi.org")
     parser.add_argument("--download-all", action="store_true", help="Download all available data sources")
     args = parser.parse_args()
@@ -588,6 +624,10 @@ if __name__ == "__main__":
         print("="*50)
         download_cip_soc_crosswalk(__file__)
         print("\n" + "="*50)
+        print("O*NET CIP Crosswalk")
+        print("="*50)
+        download_onet_cip_crosswalk(__file__)
+        print("\n" + "="*50)
         print("EPI Cost of Living Data")
         print("="*50)
         download_cost_of_living_data(__file__)
@@ -609,5 +649,7 @@ if __name__ == "__main__":
         download_onet_soc_crosswalk(__file__)
     elif args.download_cip_crosswalk:
         download_cip_soc_crosswalk(__file__)
+    elif args.download_onet_cip_crosswalk:
+        download_onet_cip_crosswalk(__file__)
     else:
         list_occupation_data()
