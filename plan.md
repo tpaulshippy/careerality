@@ -64,8 +64,8 @@ The code that calculates ROI appears to be:
 
 | Test | Expected | Current | Status |
 |------|----------|---------|--------|
-| `cost_of_living_index` varies by region | Yes | No (always 100) | ❌ |
-| `adjusted_salary != annual_median_salary` | Yes | No | ❌ |
+| `cost_of_living_index` varies by region | Yes | Yes (86-141) | ✅ |
+| `adjusted_salary != annual_median_salary` | Yes | Yes (229K/243K) | ✅ |
 | `skills` populated | 100% | 82% | ⚠️ |
 | `years_to_breakeven >= 2` | Yes | Yes | ✅ |
 | `roi_percentage <= 5000` | Yes | Yes | ✅ |
@@ -117,7 +117,18 @@ FROM career_roi;
 
 ## Progress
 
-### To Do
-- [ ] Phase 1: Fix regional cost of living application
-- [ ] Phase 2: Populate remaining skills data  
-- [ ] Phase 3: Verify all success criteria pass
+### Phase 1: ✅ COMPLETE (2026-03-15)
+
+**Fix applied**: Modified `data/transform.py` to:
+1. Add cost of living cache that maps state abbreviation to COL index
+2. Query `prim_state` from salaries table
+3. Apply formula: `adjusted_salary = annual_median_salary * (100 / cost_of_living_index)`
+
+**Verification results**:
+- DC: COL index 140.81 (expected ~141) ✅
+- California: COL index 127.43 (expected ~127) ✅
+- Alabama: COL index 86.91 (expected ~87) ✅
+- 229,244/243,175 records now have `adjusted_salary != annual_median_salary` ✅
+
+### Phase 2: Populate remaining skills data  
+### Phase 3: Verify all success criteria pass

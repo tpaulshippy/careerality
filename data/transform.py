@@ -509,7 +509,8 @@ def transform_career_roi():
             s.a_mean as annual_mean_wage,
             s.h_median as hourly_median_wage,
             s.tot_emp as employment,
-            s.year
+            s.year,
+            s.prim_state
         FROM salaries s
         WHERE s.area IS NOT NULL
           AND s.area != '0'
@@ -563,6 +564,29 @@ def transform_career_roi():
             skills_cache[raw_code] = row[1]
             skills_cache[normalized] = row[1]
     
+    log("  Loading cost of living data...")
+    col_cache = {}
+    state_to_fips = {
+        'AL': '01', 'AK': '02', 'AZ': '04', 'AR': '05', 'CA': '06', 'CO': '08', 'CT': '09', 'DE': '10',
+        'DC': '11', 'FL': '12', 'GA': '13', 'HI': '15', 'ID': '16', 'IL': '17', 'IN': '18', 'IA': '19',
+        'KS': '20', 'KY': '21', 'LA': '22', 'ME': '23', 'MD': '24', 'MA': '25', 'MI': '26', 'MN': '27',
+        'MS': '28', 'MO': '29', 'MT': '30', 'NE': '31', 'NV': '32', 'NH': '33', 'NJ': '34', 'NM': '35',
+        'NY': '36', 'NC': '37', 'ND': '38', 'OH': '39', 'OK': '40', 'OR': '41', 'PA': '42', 'RI': '44',
+        'SC': '45', 'SD': '46', 'TN': '47', 'TX': '48', 'UT': '49', 'VT': '50', 'VA': '51', 'WA': '53',
+        'WV': '54', 'WI': '55', 'WY': '56', 'PR': '72'
+    }
+    cursor.execute("""
+        SELECT area_code, col_index FROM career_cost_of_living
+    """)
+    for row in cursor.fetchall():
+        if row[0] and row[1] is not None:
+            fips_code = row[0]
+            col_cache[fips_code] = float(row[1])
+    state_col_cache = {}
+    for state_abbr, fips_code in state_to_fips.items():
+        if fips_code in col_cache:
+            state_col_cache[state_abbr] = col_cache[fips_code]
+    
     log("  Loading average tuition costs from IPEDS...")
     tuition_by_level = {}
     for cat in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
@@ -573,7 +597,7 @@ def transform_career_roi():
     values = []
     processed = 0
     for row in rows:
-        occ_code, occ_title, area_code, area_title, industry_code, industry_name, annual_median, annual_mean, hourly_median, employment, year = row
+        occ_code, occ_title, area_code, area_title, industry_code, industry_name, annual_median, annual_mean, hourly_median, employment, year, prim_state = row
 
         if not annual_median:
             continue
@@ -689,8 +713,8 @@ def transform_career_roi():
         if roi_pct > 5000:
             roi_pct = 5000
 
-        col_index = 100.0
-        adjusted_salary = annual_median_float
+        col_index = state_col_cache.get(prim_state, 100.0)
+        adjusted_salary = annual_median_float * (100.0 / col_index) if col_index > 0 else annual_median_float
         
         skills = skills_cache.get(occ_code)
         if not skills:
