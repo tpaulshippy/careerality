@@ -14,10 +14,13 @@ Downloaded Data:
    - License: Creative Commons Attribution 4.0
 
 2. BLS Occupational Employment and Wage Statistics (OEWS):
-   - Location: data/salary/
-   - Contains: Employment and wage data by occupation and area
-   - Source: https://download.bls.gov/pub/time.series/oe/
-   - License: Public Domain
+    - Location: data/salary/
+    - Contains: Employment and wage data by occupation and area
+    - Source: https://download.bls.gov/pub/time.series/oe/
+    - License: Public Domain
+    - Note: For annual OES data, manually download from:
+      https://www.bls.gov/oes/special-requests/oesm24all.zip
+      and extract all_data_M_2024.xlsx to data/salary/oesm24all/
 
 3. IPEDS Education Data:
    - Location: data/education/
@@ -93,7 +96,12 @@ def download_file(url, dest_path, retries=3):
 
 
 def download_bls_data(base_path):
-    """Download BLS Occupational Employment and Wage Statistics data."""
+    """Download BLS Occupational Employment and Wage Statistics data.
+    
+    Note: For annual OES data (oesm24all), download manually from:
+    https://www.bls.gov/oes/special-requests/oesm24all.zip
+    and extract all_data_M_2024.xlsx to data/salary/oesm24all/
+    """
     script_dir = os.path.dirname(os.path.abspath(base_path))
     repo_root = os.path.dirname(script_dir)
     bls_path = os.path.join(repo_root, "data/salary")
@@ -325,6 +333,8 @@ def list_occupation_data():
     print("\nBLS OEWS Data")
     print(f"  Source: {info['bls']['source']}")
     print(f"  Files: {len(info['bls']['files'])}")
+    print("  Note: For annual OES data, manually download from:")
+    print("        https://www.bls.gov/oes/special-requests/oesm24all.zip")
     print("\n  Key files:")
     
     bls_key_files = [
