@@ -138,21 +138,96 @@ def transform_cost_of_living():
     cursor.execute("DELETE FROM career_cost_of_living")
     conn.commit()
 
-    national_col_index = 100.0
+    cursor.execute("SELECT area, col_index, grocery_index, housing_index, utilities_index, transportation_index, misc_index, year, quarter FROM cost_of_living")
+    rows = cursor.fetchall()
+
+    state_data = {}
+    fips_to_state = {
+        '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA', '08': 'CO', '09': 'CT', '10': 'DE',
+        '11': 'DC', '12': 'FL', '13': 'GA', '15': 'HI', '16': 'ID', '17': 'IL', '18': 'IN', '19': 'IA',
+        '20': 'KS', '21': 'KY', '22': 'LA', '23': 'ME', '24': 'MD', '25': 'MA', '26': 'MI', '27': 'MN',
+        '28': 'MS', '29': 'MO', '30': 'MT', '31': 'NE', '32': 'NV', '33': 'NH', '34': 'NJ', '35': 'NM',
+        '36': 'NY', '37': 'NC', '38': 'ND', '39': 'OH', '40': 'OK', '41': 'OR', '42': 'PA', '44': 'RI',
+        '45': 'SC', '46': 'SD', '47': 'TN', '48': 'TX', '49': 'UT', '50': 'VT', '51': 'VA', '53': 'WA',
+        '54': 'WV', '55': 'WI', '56': 'WY', '72': 'PR'
+    }
+
+    for row in rows:
+        area = row[0]
+        if not area:
+            continue
+
+        area_lower = area.lower().strip()
+
+        state_code = None
+        if len(area) == 2 and area.isupper() and area in fips_to_state.values():
+            state_code = area
+        elif area_lower in ['united states', 'national', 'national average', 'us average']:
+            state_code = '00'
+        else:
+            for fips, state in fips_to_state.items():
+                if fips in area or state.lower() in area_lower or area_lower.endswith(f' {state.lower()}') or area_lower.endswith(f', {state.lower()}'):
+                    state_code = fips
+                    break
+            if not state_code and '(' in area:
+                abbrev = area.split('(')[-1].strip().replace(')', '').strip()
+                if abbrev in fips_to_state.values():
+                    state_code = [k for k, v in fips_to_state.items() if v == abbrev][0] if [k for k, v in fips_to_state.items() if v == abbrev] else None
+
+        if state_code:
+            if state_code not in state_data:
+                state_data[state_code] = {'col_index': [], 'grocery_index': [], 'housing_index': [], 'utilities_index': [], 'transportation_index': [], 'misc_index': []}
+            state_data[state_code]['col_index'].append(row[1])
+            state_data[state_code]['grocery_index'].append(row[2])
+            state_data[state_code]['housing_index'].append(row[3])
+            state_data[state_code]['utilities_index'].append(row[4])
+            state_data[state_code]['transportation_index'].append(row[5])
+            state_data[state_code]['misc_index'].append(row[6])
 
     values = []
     values.append((
         "0000000",
         "National Average",
-        national_col_index,
-        national_col_index,
-        national_col_index,
-        national_col_index,
-        national_col_index,
-        national_col_index,
-        2026,
-        1
+        100.0, 100.0, 100.0, 100.0, 100.0, 100.0,
+        2026, 1
     ))
+
+    state_names = {
+        '00': 'National Average', '01': 'Alabama', '02': 'Alaska', '04': 'Arizona', '05': 'Arkansas',
+        '06': 'California', '08': 'Colorado', '09': 'Connecticut', '10': 'Delaware', '11': 'District of Columbia',
+        '12': 'Florida', '13': 'Georgia', '15': 'Hawaii', '16': 'Idaho', '17': 'Illinois', '18': 'Indiana',
+        '19': 'Iowa', '20': 'Kansas', '21': 'Kentucky', '22': 'Louisiana', '23': 'Maine', '24': 'Maryland',
+        '25': 'Massachusetts', '26': 'Michigan', '27': 'Minnesota', '28': 'Mississippi', '29': 'Missouri',
+        '30': 'Montana', '31': 'Nebraska', '32': 'Nevada', '33': 'New Hampshire', '34': 'New Jersey',
+        '35': 'New Mexico', '36': 'New York', '37': 'North Carolina', '38': 'North Dakota', '39': 'Ohio',
+        '40': 'Oklahoma', '41': 'Oregon', '42': 'Pennsylvania', '44': 'Rhode Island', '45': 'South Carolina',
+        '46': 'South Dakota', '47': 'Tennessee', '48': 'Texas', '49': 'Utah', '50': 'Vermont',
+        '51': 'Virginia', '53': 'Washington', '54': 'West Virginia', '55': 'Wisconsin', '56': 'Wyoming',
+        '72': 'Puerto Rico'
+    }
+
+    for state_fips, data in state_data.items():
+        if state_fips == '00':
+            continue
+
+        avg_col = sum(data['col_index']) / len(data['col_index']) if data['col_index'] else 100.0
+        avg_grocery = sum(data['grocery_index']) / len(data['grocery_index']) if data['grocery_index'] else 100.0
+        avg_housing = sum(data['housing_index']) / len(data['housing_index']) if data['housing_index'] else 100.0
+        avg_utilities = sum(data['utilities_index']) / len(data['utilities_index']) if data['utilities_index'] else 100.0
+        avg_transport = sum(data['transportation_index']) / len(data['transportation_index']) if data['transportation_index'] else 100.0
+        avg_misc = sum(data['misc_index']) / len(data['misc_index']) if data['misc_index'] else 100.0
+
+        values.append((
+            state_fips,
+            state_names.get(state_fips, f"State {state_fips}"),
+            round(avg_col, 2),
+            round(avg_grocery, 2),
+            round(avg_housing, 2),
+            round(avg_utilities, 2),
+            round(avg_transport, 2),
+            round(avg_misc, 2),
+            2026, 1
+        ))
 
     query = """
         INSERT INTO career_cost_of_living 
@@ -167,7 +242,7 @@ def transform_cost_of_living():
 
     cursor.close()
     conn.close()
-    log(f"  Transformed {len(values)} cost of living records")
+    log(f"  Transformed {len(values)} cost of living records ({len(state_data)} states)")
 
 def get_occupation_education_level(occ_code):
     onet_code = occ_code if '.' in occ_code else f"{occ_code[:2]}.{occ_code[2:]}"
