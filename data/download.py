@@ -38,9 +38,11 @@ Downloaded Data:
 
 import os
 import sys
+import re
 import argparse
 import urllib.request
 import zipfile
+import io
 from urllib.error import URLError, HTTPError
 
 ONET_VERSION = "30.2"
@@ -69,6 +71,9 @@ IPEDS_KEY_FILES = [
     "GR2023",
     "SFA2223",
 ]
+
+IPEDS_COST_URL = "https://nces.ed.gov/ipeds/data-generator?year=2024&tableName={}&HasRV=0&type=csv"
+IPEDS_COST_FILES = ["COST1_2024", "COST2_2024"]
 
 EPI_COST_OF_LIVING_URL = "https://files.epi.org/uploads/fbc_data_2026.xlsx"
 
@@ -170,6 +175,51 @@ def download_ipeds_data(base_path):
                 os.remove(dest_path)
     
     print("\nIPEDS education data download complete!")
+    return True
+
+
+def download_ipeds_cost_data(base_path):
+    """Download IPEDS Cost data (tuition) from NCES."""
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    ipeds_path = os.path.join(repo_root, "data/education")
+    
+    os.makedirs(ipeds_path, exist_ok=True)
+    
+    print(f"\nDownloading IPEDS Cost data to {ipeds_path}\n")
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    
+    for filename in IPEDS_COST_FILES:
+        dest_path = os.path.join(ipeds_path, f"{filename}.csv")
+        
+        if os.path.exists(dest_path):
+            print(f"  {filename}: already exists, skipping")
+            continue
+        
+        url = IPEDS_COST_URL.format(filename)
+        print(f"  Downloading {filename}...", end=" ", flush=True)
+        
+        try:
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request) as response:
+                content = response.read()
+                if content.startswith(b'PK'):
+                    zip_file = io.BytesIO(content)
+                    with zipfile.ZipFile(zip_file, 'r') as zf:
+                        csv_name = [f for f in zf.namelist() if f.endswith('.csv')][0]
+                        with open(dest_path, 'wb') as f:
+                            f.write(zf.read(csv_name))
+                    size = os.path.getsize(dest_path)
+                    print(f"OK ({size:,} bytes)")
+                else:
+                    print(f"FAILED: Unexpected content type")
+        except Exception as e:
+            print(f"FAILED: {e}")
+    
+    print("\nIPEDS Cost data download complete!")
     return True
 
 
@@ -357,6 +407,7 @@ if __name__ == "__main__":
     parser.add_argument("--download-onet", action="store_true", help="Download O*NET data from onetcenter.org")
     parser.add_argument("--download-bls", action="store_true", help="Download BLS OEWS data from download.bls.gov")
     parser.add_argument("--download-ipeds", action="store_true", help="Download IPEDS education data from nces.ed.gov")
+    parser.add_argument("--download-ipeds-cost", action="store_true", help="Download IPEDS Cost data (tuition) from nces.ed.gov")
     parser.add_argument("--download-epi", action="store_true", help="Download EPI cost of living data from files.epi.org")
     parser.add_argument("--download-all", action="store_true", help="Download all available data sources")
     args = parser.parse_args()
@@ -383,6 +434,8 @@ if __name__ == "__main__":
         download_cost_of_living_data(__file__)
     elif args.download_ipeds:
         download_ipeds_data(__file__)
+    elif args.download_ipeds_cost:
+        download_ipeds_cost_data(__file__)
     elif args.download_bls:
         download_bls_data(__file__)
     elif args.download_onet:

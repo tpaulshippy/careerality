@@ -23,6 +23,14 @@ def create_schema():
             data JSONB
         )
     """)
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ipeds_cost (
+            id SERIAL PRIMARY KEY,
+            unitid INTEGER,
+            data JSONB
+        )
+    """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS institutions (

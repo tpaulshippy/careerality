@@ -196,45 +196,66 @@ def get_occupation_education_level(occ_code):
 
 
 def get_tuition_by_education_level(education_category):
-    conn = get_connection()
-    cursor = conn.cursor()
+    import os
+    import pandas as pd
+    
+    years_map = {
+        1: 1,   # Less than high school
+        2: 2,   # High school
+        3: 2,   # Post-high school certificate
+        4: 2,   # Some college
+        5: 4,   # Associate's degree
+        6: 4,   # Bachelor's degree
+        7: 6,   # Master's degree
+        8: 8,   # Doctoral degree
+        9: 8,   # Professional degree
+        10: 6,  # First professional degree
+        11: 8,  # Doctoral degree
+        12: 10, # Post-doctoral training
+    }
+    
+    cat_int = int(float(education_category)) if education_category else 4
+    years = years_map.get(cat_int, 4)
+    
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ic_path = os.path.join(base_path, 'data', 'education', 'IC2023.csv')
+    cost_path = os.path.join(base_path, 'data', 'education', 'COST1_2024.csv')
+    
+    target_level = 1 if cat_int >= 5 else (2 if cat_int == 5 else 3)
     
     try:
-        years_map = {
-            1: 1,   # Less than high school
-            2: 2,   # High school
-            3: 2,   # Post-high school certificate
-            4: 2,   # Some college
-            5: 4,   # Associate's degree
-            6: 4,   # Bachelor's degree
-            7: 6,   # Master's degree
-            8: 8,   # Doctoral degree
-            9: 8,   # Professional degree
-            10: 6,  # First professional degree
-            11: 8,  # Doctoral degree
-            12: 10, # Post-doctoral training
-        }
+        ic_df = pd.read_csv(ic_path, usecols=['UNITID', 'LEVEL1', 'LEVEL2', 'LEVEL3'], low_memory=False)
+        ic_df['UNITID'] = pd.to_numeric(ic_df['UNITID'], errors='coerce')
+        ic_df['LEVEL1'] = pd.to_numeric(ic_df['LEVEL1'], errors='coerce').fillna(0)
+        ic_df['LEVEL2'] = pd.to_numeric(ic_df['LEVEL2'], errors='coerce').fillna(0)
+        ic_df['LEVEL3'] = pd.to_numeric(ic_df['LEVEL3'], errors='coerce').fillna(0)
         
-        cat_int = int(float(education_category)) if education_category else 4
-        years = years_map.get(cat_int, 4)
+        def get_iclevel(row):
+            if row['LEVEL1'] > 0:
+                return 1
+            elif row['LEVEL2'] > 0:
+                return 2
+            else:
+                return 3
         
-        cursor.execute("""
-            SELECT 
-                AVG(
-                    COALESCE((data->>'TUITIONFEE_IN')::NUMERIC, 0) + 
-                    COALESCE((data->>'ROOMBOARD_OFFC')::NUMERIC, 0)
-                ) as avg_in_state
-            FROM student_financial_aid
-            WHERE (data->>'TUITIONFEE_IN')::NUMERIC > 0
-        """)
-        result = cursor.fetchone()
-        avg_tuition = float(result[0]) if result and result[0] else 25000
+        ic_df['iclevel'] = ic_df.apply(get_iclevel, axis=1)
+        level_unitids = set(ic_df[ic_df['iclevel'] == target_level]['UNITID'].dropna())
         
-        return avg_tuition * years
+        cost_df = pd.read_csv(cost_path, usecols=['UNITID', 'TUITION1', 'TUITION2', 'TUITION3', 'HRCHG1', 'HRCHG2'], low_memory=False)
+        cost_df['UNITID'] = pd.to_numeric(cost_df['UNITID'], errors='coerce')
+        cost_df['TUITION1'] = pd.to_numeric(cost_df['TUITION1'], errors='coerce').fillna(0)
+        cost_df = cost_df[cost_df['UNITID'].isin(level_unitids)]
+        cost_df = cost_df[cost_df['TUITION1'] > 0]
         
-    finally:
-        cursor.close()
-        conn.close()
+        if len(cost_df) > 0:
+            avg_tuition = cost_df['TUITION1'].mean()
+        else:
+            avg_tuition = 25000
+        
+    except Exception as e:
+        avg_tuition = 25000
+    
+    return avg_tuition * years
 
 
 def transform_career_roi():
@@ -354,7 +375,7 @@ def transform_career_roi():
         elif occ_code and occ_code.startswith('51'):
             job_zone = 2
         
-        edu_cost = tuition_by_level.get(cat_int, default_tuition)
+        edu_cost = tuition_by_level.get(str(cat_int), default_tuition)
         education_level = years_map.get(cat_int, 'varies')
 
         annual_median_float = float(annual_median) if annual_median else 0
@@ -377,14 +398,14 @@ def transform_career_roi():
             industry_code,
             industry_name,
             annual_median,
-            edu_cost,
-            years_to_breakeven,
-            roi_pct,
+            float(edu_cost),
+            int(years_to_breakeven),
+            float(roi_pct),
             job_zone,
             education_level,
             None,
-            col_index,
-            adjusted_salary
+            float(col_index),
+            float(adjusted_salary)
         ))
 
     query = """

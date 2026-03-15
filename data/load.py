@@ -249,6 +249,55 @@ def load_education_data():
     
     load_ipeds_institutions()
     load_ipeds_institutional_characteristics()
+    load_ipeds_cost_data()
+
+
+def load_ipeds_cost_data():
+    print("Loading IPEDS Cost data (tuition)...")
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cost_files = ['COST1_2024.csv', 'COST2_2024.csv']
+        
+        for filename in cost_files:
+            filepath = os.path.join(DATA_DIR, 'education', filename)
+            if not os.path.exists(filepath):
+                print(f"    File not found: {filename}, skipping")
+                continue
+            
+            print(f"  Loading {filename}...")
+            df = pd.read_csv(filepath, low_memory=False)
+            
+            values = []
+            for _, row in df.iterrows():
+                unitid = clean_int(row.get('UNITID'))
+                if not unitid:
+                    continue
+                row_data = row.to_dict()
+                for key, value in row_data.items():
+                    if pd.isna(value):
+                        row_data[key] = None
+                values.append((unitid, json.dumps(row_data)))
+            
+            if values:
+                query = '''
+                    INSERT INTO ipeds_cost (unitid, data)
+                    VALUES (%s, %s::jsonb)
+                '''
+                from psycopg2.extras import execute_batch
+                execute_batch(cursor, query, values)
+                conn.commit()
+                print(f"    Loaded {len(values)} rows from {filename}")
+            else:
+                print(f"    No data to load from {filename}")
+    
+    except Exception as e:
+        print(f"  Error loading IPEDS cost data: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def load_ipeds_institutions():
