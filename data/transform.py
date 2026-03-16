@@ -692,7 +692,7 @@ def transform_career_roi():
                 total_earnings += present_value
         
         net_roi = total_earnings - total_cost
-        roi_pct = (net_roi / total_cost * 100) if total_cost > 0 else 0
+        annualized_roi = (((total_earnings / total_cost) ** (1.0 / career_years)) - 1) * 100 if total_cost > 0 else 0
         
         cumulative_earnings = 0
         cumulative_cost = edu_cost
@@ -710,8 +710,7 @@ def transform_career_roi():
         if years_to_breakeven < 2:
             years_to_breakeven = 2
         
-        if roi_pct > 5000:
-            roi_pct = 5000
+        roi_pct = annualized_roi
 
         col_index = state_col_cache.get(prim_state, 100.0)
         adjusted_salary = annual_median_float * (100.0 / col_index) if col_index > 0 else annual_median_float
