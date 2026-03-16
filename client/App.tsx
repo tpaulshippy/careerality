@@ -289,7 +289,7 @@ export default function App() {
           drawerActiveBackgroundColor: '#EEF2FF',
           drawerActiveTintColor: '#4F46E5',
           drawerInactiveTintColor: '#6B7280',
-          drawerLabelStyle: { marginLeft: -20, fontSize: 16 },
+          drawerLabelStyle: { marginLeft: 8, fontSize: 16 },
         }}
       >
         <Drawer.Screen 
