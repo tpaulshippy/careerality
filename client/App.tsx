@@ -82,7 +82,7 @@ function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRandomCareer = async () => {
+  const fetchTopCareer = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -92,8 +92,12 @@ function HomeScreen() {
       }
       const data: CareerROI[] = await response.json();
       if (data.length > 0) {
-        const randomIndex = Math.floor(Math.random() * data.length);
-        setCareer(data[randomIndex]);
+        const sortedByROI = [...data].sort((a, b) => 
+          parseFloat(b.roi_percentage) - parseFloat(a.roi_percentage)
+        );
+        const top10 = sortedByROI.slice(0, 10);
+        const randomIndex = Math.floor(Math.random() * top10.length);
+        setCareer(top10[randomIndex]);
       } else {
         setError('No careers found');
       }
@@ -106,7 +110,7 @@ function HomeScreen() {
   };
 
   useEffect(() => {
-    fetchRandomCareer();
+    fetchTopCareer();
   }, []);
 
   const formatCurrency = (value: string | number) => {
@@ -136,7 +140,7 @@ function HomeScreen() {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>{error || 'No career data available'}</Text>
-        <TouchableOpacity style={styles.button} onPress={fetchRandomCareer}>
+        <TouchableOpacity style={styles.button} onPress={fetchTopCareer}>
           <Text style={styles.buttonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -221,7 +225,7 @@ function HomeScreen() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={fetchRandomCareer}>
+      <TouchableOpacity style={styles.button} onPress={fetchTopCareer}>
         <Text style={styles.buttonText}>Find Another Career</Text>
       </TouchableOpacity>
 
