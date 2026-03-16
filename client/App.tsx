@@ -22,7 +22,8 @@ interface CareerROI {
   industry_name: string;
 }
 
-const API_URL = 'http://10.0.2.2:3000/api/roi';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000';
+const API_URL = `${API_BASE}/api/roi`;
 
 interface DataSource {
   name: string;
