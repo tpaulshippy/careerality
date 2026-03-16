@@ -498,7 +498,7 @@ def transform_career_roi():
     conn.commit()
 
     cursor.execute("""
-        SELECT DISTINCT ON (s.occ_code, s.area, s.i_group)
+        SELECT DISTINCT ON (s.occ_code, s.area)
             s.occ_code as occ_code,
             s.occ_title as occ_title,
             s.area as area_code,
@@ -518,7 +518,9 @@ def transform_career_roi():
           AND s.a_median IS NOT NULL
           AND s.occ_code IS NOT NULL
           AND s.occ_code != '0'
-        ORDER BY s.occ_code, s.area, s.i_group, s.a_median DESC
+        ORDER BY s.occ_code, s.area, 
+            CASE WHEN s.i_group = 'cross-industry' THEN 0 ELSE 1 END,
+            s.a_median DESC
     """)
 
     rows = cursor.fetchall()
