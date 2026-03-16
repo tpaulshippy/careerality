@@ -1,7 +1,8 @@
 class Api::RoiController < ApplicationController
   def index
     roi_records = CareerRoi.where(area_code: area_code).order(roi_percentage: :desc)
-    render json: roi_records.as_json
+    pagy, records = pagy(roi_records, items: 20)
+    render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
   end
 
   def show
@@ -14,25 +15,29 @@ class Api::RoiController < ApplicationController
   end
 
   def by_salary
-    roi_records = CareerRoi.where(area_code: area_code).order(annual_median_salary: :desc).limit(50)
-    render json: roi_records.as_json
+    roi_records = CareerRoi.where(area_code: area_code).order(annual_median_salary: :desc)
+    pagy, records = pagy(roi_records, items: 50)
+    render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
   end
 
   def by_roi
-    roi_records = CareerRoi.where(area_code: area_code).order(roi_percentage: :desc).limit(50)
-    render json: roi_records.as_json
+    roi_records = CareerRoi.where(area_code: area_code).order(roi_percentage: :desc)
+    pagy, records = pagy(roi_records, items: 50)
+    render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
   end
 
   def by_breakeven
-    roi_records = CareerRoi.where(area_code: area_code).order(years_to_breakeven: :asc).limit(50)
-    render json: roi_records.as_json
+    roi_records = CareerRoi.where(area_code: area_code).order(years_to_breakeven: :asc)
+    pagy, records = pagy(roi_records, items: 50)
+    render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
   end
 
   def search
     query = params[:q]
     if query.present?
       roi_records = CareerRoi.where(area_code: area_code).where("occupation_name ILIKE ?", "%#{query}%").order(roi_percentage: :desc)
-      render json: roi_records.as_json
+      pagy, records = pagy(roi_records, items: 20)
+      render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
     else
       render json: { error: 'Query parameter q is required' }, status: :bad_request
     end

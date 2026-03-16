@@ -91,7 +91,8 @@ function HomeScreen() {
       if (!response.ok) {
         throw new Error('Failed to fetch data');
       }
-      const data: CareerROI[] = await response.json();
+      const json = await response.json();
+      const data: CareerROI[] = json.records || json;
       if (data.length > 0) {
         const sortedByROI = [...data].sort((a, b) => 
           parseFloat(b.roi_percentage) - parseFloat(a.roi_percentage)

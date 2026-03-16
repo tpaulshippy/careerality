@@ -1,7 +1,8 @@
 class Api::CareersController < ApplicationController
   def index
     careers = Career.where(selectable: 'T').order(sort_sequence: :asc)
-    render json: careers.as_json
+    pagy, records = pagy(careers, items: 10)
+    render json: { careers: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
   end
 
   def show
