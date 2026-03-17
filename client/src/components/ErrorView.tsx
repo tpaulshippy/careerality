@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { colors, spacing, typography } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 import { Button } from './Button';
 
 interface ErrorViewProps {
@@ -9,9 +9,11 @@ interface ErrorViewProps {
 }
 
 export const ErrorView: React.FC<ErrorViewProps> = ({ message, onRetry }) => {
+  const theme = useTheme();
+  
   return (
-    <View style={styles.container}>
-      <Text style={styles.errorText}>{message}</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Text style={[styles.errorText, { color: theme.colors.error }]}>{message}</Text>
       {onRetry && <Button title="Try Again" onPress={onRetry} style={styles.button} />}
     </View>
   );
@@ -20,18 +22,16 @@ export const ErrorView: React.FC<ErrorViewProps> = ({ message, onRetry }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
+    padding: 20,
   } as ViewStyle,
   errorText: {
-    fontSize: typography.body.fontSize,
-    color: colors.error,
+    fontSize: 15,
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 20,
   } as TextStyle,
   button: {
-    marginHorizontal: spacing.lg,
+    marginHorizontal: 20,
   } as ViewStyle,
 });

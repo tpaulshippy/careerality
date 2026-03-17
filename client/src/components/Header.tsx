@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface HeaderProps {
   title: string;
@@ -9,31 +9,31 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ title, subtitle, style }) => {
+  const theme = useTheme();
+  
   return (
-    <View style={[styles.header, style]}>
+    <View style={[styles.header, { backgroundColor: theme.colors.primary }, style]}>
       <Text style={styles.title}>{title}</Text>
-      {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+      {subtitle && <Text style={[styles.subtitle, { color: theme.colors.text.light }]}>{subtitle}</Text>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: colors.primary,
-    paddingTop: spacing.xxl + 30,
-    paddingBottom: spacing.xxl,
-    paddingHorizontal: spacing.lg,
-    borderBottomLeftRadius: borderRadius.xl,
-    borderBottomRightRadius: borderRadius.xl,
+    paddingTop: 54,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   } as ViewStyle,
   title: {
-    fontSize: typography.title.fontSize,
-    fontWeight: typography.title.fontWeight,
+    fontSize: 32,
+    fontWeight: 'bold',
     color: '#FFFFFF',
   } as TextStyle,
   subtitle: {
-    fontSize: typography.subtitle.fontSize,
-    color: colors.text.light,
-    marginTop: spacing.xs,
+    fontSize: 16,
+    marginTop: 4,
   } as TextStyle,
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { colors, spacing, typography } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface SectionProps {
   title: string;
@@ -8,9 +8,11 @@ interface SectionProps {
 }
 
 export const Section: React.FC<SectionProps> = ({ title, children }) => {
+  const theme = useTheme();
+  
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>{title}</Text>
       {children}
     </View>
   );
@@ -18,17 +20,15 @@ export const Section: React.FC<SectionProps> = ({ title, children }) => {
 
 const styles = StyleSheet.create({
   section: {
-    marginBottom: spacing.lg,
-    paddingBottom: spacing.md,
+    marginBottom: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   } as ViewStyle,
   sectionTitle: {
-    fontSize: typography.sectionTitle.fontSize,
-    fontWeight: typography.sectionTitle.fontWeight,
-    color: colors.primary,
-    textTransform: typography.sectionTitle.textTransform,
-    letterSpacing: typography.sectionTitle.letterSpacing,
-    marginBottom: spacing.md,
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+    marginBottom: 16,
   } as TextStyle,
 });

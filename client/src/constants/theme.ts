@@ -1,4 +1,4 @@
-export const colors = {
+export const lightColors = {
   primary: '#4F46E5',
   primaryLight: '#EEF2FF',
   primaryDark: '#4338CA',
@@ -20,6 +20,31 @@ export const colors = {
   
   border: '#E5E7EB',
 };
+
+export const darkColors = {
+  primary: '#6366F1',
+  primaryLight: '#312E81',
+  primaryDark: '#4F46E5',
+  
+  background: '#111827',
+  surface: '#1F2937',
+  
+  text: {
+    primary: '#F9FAFB',
+    secondary: '#9CA3AF',
+    light: '#C7D2FE',
+    muted: '#6B7280',
+  },
+  
+  success: '#10B981',
+  warning: '#FBBF24',
+  warningLight: '#451A03',
+  error: '#EF4444',
+  
+  border: '#374151',
+};
+
+export const colors = lightColors;
 
 export const spacing = {
   xs: 4,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface ButtonProps {
   title: string;
@@ -9,8 +9,14 @@ interface ButtonProps {
 }
 
 export const Button: React.FC<ButtonProps> = ({ title, onPress, style }) => {
+  const theme = useTheme();
+  
   return (
-    <TouchableOpacity style={[styles.button, style]} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity 
+      style={[styles.button, { backgroundColor: theme.colors.primary }, style]} 
+      onPress={onPress} 
+      activeOpacity={0.8}
+    >
       <Text style={styles.buttonText}>{title}</Text>
     </TouchableOpacity>
   );
@@ -18,14 +24,13 @@ export const Button: React.FC<ButtonProps> = ({ title, onPress, style }) => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   } as ViewStyle,
   buttonText: {
     color: '#FFFFFF',
-    fontSize: typography.body.fontSize,
+    fontSize: 15,
     fontWeight: '600',
   } as TextStyle,
 });

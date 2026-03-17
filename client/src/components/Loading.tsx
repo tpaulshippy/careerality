@@ -1,16 +1,18 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { colors, spacing, typography } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface LoadingProps {
   message?: string;
 }
 
 export const Loading: React.FC<LoadingProps> = ({ message = 'Loading careers...' }) => {
+  const theme = useTheme();
+  
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.loadingText}>{message}</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>{message}</Text>
     </View>
   );
 };
@@ -18,14 +20,12 @@ export const Loading: React.FC<LoadingProps> = ({ message = 'Loading careers...'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
+    padding: 20,
   } as ViewStyle,
   loadingText: {
-    marginTop: spacing.md,
-    fontSize: typography.body.fontSize,
-    color: colors.text.secondary,
+    marginTop: 16,
+    fontSize: 15,
   } as TextStyle,
 });
