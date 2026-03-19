@@ -2,6 +2,8 @@ export { Button } from './Button';
 export { Card } from './Card';
 export { CustomDrawerContent } from './DrawerContent';
 export { ErrorView } from './ErrorView';
+export { FilterChip } from './FilterChip';
+export { FilterSheet } from './FilterSheet';
 export { Header } from './Header';
 export { InfoRow } from './InfoRow';
 export { Loading } from './Loading';

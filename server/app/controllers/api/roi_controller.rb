@@ -8,6 +8,18 @@ class Api::RoiController < ApplicationController
       CareerRoi.all
     end
     
+    if params[:location].present?
+      base_query = base_query.where(area_code: params[:location])
+    end
+    
+    if params[:salary_min].present?
+      base_query = base_query.where('annual_median_salary >= ?', params[:salary_min].to_f)
+    end
+    
+    if params[:salary_max].present?
+      base_query = base_query.where('annual_median_salary <= ?', params[:salary_max].to_f)
+    end
+    
     roi_records = case sort_by
       when 'roi' then base_query.order(roi_percentage: :desc)
       when 'salary' then base_query.order(annual_median_salary: :desc)

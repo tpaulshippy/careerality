@@ -33,3 +33,22 @@ export const DATA_SOURCES: DataSource[] = [
 
 export const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000';
 export const API_URL = `${API_BASE}/api/roi`;
+
+export const LOCATION_OPTIONS = [
+  { label: 'All Locations', value: 'all' },
+  { label: 'Northeast', value: 'northeast' },
+  { label: 'Southeast', value: 'southeast' },
+  { label: 'Midwest', value: 'midwest' },
+  { label: 'Southwest', value: 'southwest' },
+  { label: 'West', value: 'west' },
+  { label: 'Remote', value: 'remote' },
+];
+
+export const SALARY_RANGES = [
+  { label: 'Any Salary', min: 0, max: Infinity },
+  { label: '$30,000+', min: 30000, max: Infinity },
+  { label: '$50,000+', min: 50000, max: Infinity },
+  { label: '$75,000+', min: 75000, max: Infinity },
+  { label: '$100,000+', min: 100000, max: Infinity },
+  { label: '$150,000+', min: 150000, max: Infinity },
+];

@@ -39,3 +39,21 @@ export interface SectionProps {
   title: string;
   children: React.ReactNode;
 }
+
+export type SwipeDirection = 'left' | 'right';
+
+export interface Swipe {
+  id: string;
+  careerId: number;
+  direction: SwipeDirection;
+  feedback?: string;
+  createdAt: Date;
+}
+
+export interface FilterState {
+  location: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+}
+
+export type SwipeHistory = Swipe[];
