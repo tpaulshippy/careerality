@@ -40,6 +40,13 @@ Downloaded Data:
      - Contains: Mapping between CIP education codes and O*NET-SOC occupation codes
      - Source: https://www.onetcenter.org/crosswalks/cip/Education_CIP_to_ONET_SOC.xlsx
      - License: Creative Commons Attribution 4.0
+
+6. Projections Central State Employment Projections:
+     - Location: data/projections/
+     - Contains: State-level employment projections (long-term 10-year and short-term 2-year)
+       with projected growth, job openings by occupation and state
+     - Source: https://public.projectionscentral.org/Projections/LongTermRestJson
+     - License: Public Domain (US Department of Labor)
 """
 
 import os
@@ -89,6 +96,19 @@ ONET_SOC_CROSSWALK_URL = "https://www.onetcenter.org/taxonomy/2019/list/2019_Cro
 CIP_SOC_CROSSWALK_URL = "https://nces.ed.gov/ipeds/cipcode/resources.aspx"
 
 ONET_CIP_CROSSWALK_URL = "https://www.onetcenter.org/crosswalks/cip/Education_CIP_to_ONET_SOC.xlsx"
+
+PROJECTIONS_LONG_TERM_JSON_URL = "https://public.projectionscentral.org/Projections/LongTermRestJson"
+PROJECTIONS_SHORT_TERM_JSON_URL = "https://public.projectionscentral.org/Projections/ShortTermRestJson"
+
+STATE_FIPS_CODES = {
+    '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA', '08': 'CO', '09': 'CT', '10': 'DE',
+    '11': 'DC', '12': 'FL', '13': 'GA', '15': 'HI', '16': 'ID', '17': 'IL', '18': 'IN', '19': 'IA',
+    '20': 'KS', '21': 'KY', '22': 'LA', '23': 'ME', '24': 'MD', '25': 'MA', '26': 'MI', '27': 'MN',
+    '28': 'MS', '29': 'MO', '30': 'MT', '31': 'NE', '32': 'NV', '33': 'NH', '34': 'NJ', '35': 'NM',
+    '36': 'NY', '37': 'NC', '38': 'ND', '39': 'OH', '40': 'OK', '41': 'OR', '42': 'PA', '44': 'RI',
+    '45': 'SC', '46': 'SD', '47': 'TN', '48': 'TX', '49': 'UT', '50': 'VT', '51': 'VA', '53': 'WA',
+    '54': 'WV', '55': 'WI', '56': 'WY', '72': 'PR'
+}
 
 
 def download_file(url, dest_path, retries=3):
@@ -264,6 +284,162 @@ def download_cost_of_living_data(base_path):
             return False
     
     print("\nCost of living data download complete!")
+    return True
+
+
+def download_projections_data(base_path):
+    """Download state employment projections data from Projections Central."""
+    import json
+    
+    script_dir = os.path.dirname(os.path.abspath(base_path))
+    repo_root = os.path.dirname(script_dir)
+    proj_path = os.path.join(repo_root, "data/projections")
+    
+    os.makedirs(proj_path, exist_ok=True)
+    
+    print(f"Downloading state employment projections to {proj_path}\n")
+    
+    all_projections = {'long_term': [], 'short_term': []}
+    
+    for fips_code in STATE_FIPS_CODES.keys():
+        state_abbr = STATE_FIPS_CODES[fips_code]
+        
+        print(f"  Downloading Long-Term for {state_abbr}...", end=" ", flush=True)
+        
+        url = f"{PROJECTIONS_LONG_TERM_JSON_URL}/{fips_code}"
+        
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request, timeout=60) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                rows = data.get('rows', [])
+                
+                for row in rows:
+                    all_projections['long_term'].append({
+                        'state_fips': fips_code,
+                        'state_abbr': state_abbr,
+                        'occ_code': row.get('OccCode'),
+                        'title': row.get('Title'),
+                        'base_employment': row.get('Base'),
+                        'projected_employment': row.get('Projected'),
+                        'change': row.get('Change'),
+                        'percent_change': row.get('PercentChange'),
+                        'avg_annual_openings': row.get('AvgAnnualOpenings'),
+                        'base_year': row.get('BaseYear'),
+                        'proj_year': row.get('ProjYear'),
+                        'projection_type': 'long_term'
+                    })
+                print(f"OK ({len(rows)} occupations)")
+        except Exception as e:
+            print(f"FAILED: {e}")
+        
+        print(f"  Downloading Short-Term for {state_abbr}...", end=" ", flush=True)
+        
+        url = f"{PROJECTIONS_SHORT_TERM_JSON_URL}/{fips_code}"
+        
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request, timeout=60) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                rows = data.get('rows', [])
+                
+                for row in rows:
+                    all_projections['short_term'].append({
+                        'state_fips': fips_code,
+                        'state_abbr': state_abbr,
+                        'occ_code': row.get('OccCode'),
+                        'title': row.get('Title'),
+                        'base_employment': row.get('Base'),
+                        'projected_employment': row.get('Projected'),
+                        'change': row.get('Change'),
+                        'percent_change': row.get('PercentChange'),
+                        'avg_annual_openings': row.get('AvgAnnualOpenings'),
+                        'base_year': row.get('BaseYear'),
+                        'proj_year': row.get('ProjYear'),
+                        'projection_type': 'short_term'
+                    })
+                print(f"OK ({len(rows)} occupations)")
+        except Exception as e:
+            print(f"FAILED: {e}")
+    
+    national_long_url = PROJECTIONS_LONG_TERM_JSON_URL
+    print(f"  Downloading Long-Term National...", end=" ", flush=True)
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        request = urllib.request.Request(national_long_url, headers=headers)
+        with urllib.request.urlopen(request, timeout=60) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            rows = data.get('rows', [])
+            
+            for row in rows:
+                all_projections['long_term'].append({
+                    'state_fips': '00',
+                    'state_abbr': 'US',
+                    'occ_code': row.get('OccCode'),
+                    'title': row.get('Title'),
+                    'base_employment': row.get('Base'),
+                    'projected_employment': row.get('Projected'),
+                    'change': row.get('Change'),
+                    'percent_change': row.get('PercentChange'),
+                    'avg_annual_openings': row.get('AvgAnnualOpenings'),
+                    'base_year': row.get('BaseYear'),
+                    'proj_year': row.get('ProjYear'),
+                    'projection_type': 'long_term'
+                })
+            print(f"OK ({len(rows)} occupations)")
+    except Exception as e:
+        print(f"FAILED: {e}")
+    
+    national_short_url = PROJECTIONS_SHORT_TERM_JSON_URL
+    print(f"  Downloading Short-Term National...", end=" ", flush=True)
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        request = urllib.request.Request(national_short_url, headers=headers)
+        with urllib.request.urlopen(request, timeout=60) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            rows = data.get('rows', [])
+            
+            for row in rows:
+                all_projections['short_term'].append({
+                    'state_fips': '00',
+                    'state_abbr': 'US',
+                    'occ_code': row.get('OccCode'),
+                    'title': row.get('Title'),
+                    'base_employment': row.get('Base'),
+                    'projected_employment': row.get('Projected'),
+                    'change': row.get('Change'),
+                    'percent_change': row.get('PercentChange'),
+                    'avg_annual_openings': row.get('AvgAnnualOpenings'),
+                    'base_year': row.get('BaseYear'),
+                    'proj_year': row.get('ProjYear'),
+                    'projection_type': 'short_term'
+                })
+            print(f"OK ({len(rows)} occupations)")
+    except Exception as e:
+        print(f"FAILED: {e}")
+    
+    long_term_file = os.path.join(proj_path, "state_employment_projections_long_term.json")
+    short_term_file = os.path.join(proj_path, "state_employment_projections_short_term.json")
+    
+    with open(long_term_file, 'w') as f:
+        json.dump(all_projections['long_term'], f, indent=2)
+    
+    with open(short_term_file, 'w') as f:
+        json.dump(all_projections['short_term'], f, indent=2)
+    
+    print(f"\nProjections data download complete!")
+    print(f"  Long-term: {len(all_projections['long_term'])} records")
+    print(f"  Short-term: {len(all_projections['short_term'])} records")
     return True
 
 
@@ -590,6 +766,7 @@ if __name__ == "__main__":
     parser.add_argument("--download-cip-crosswalk", action="store_true", help="Download CIP to SOC crosswalk")
     parser.add_argument("--download-onet-cip-crosswalk", action="store_true", help="Download O*NET CIP to O*NET-SOC crosswalk")
     parser.add_argument("--download-epi", action="store_true", help="Download EPI cost of living data from files.epi.org")
+    parser.add_argument("--download-projections", action="store_true", help="Download state employment projections from projectionscentral.org")
     parser.add_argument("--download-all", action="store_true", help="Download all available data sources")
     args = parser.parse_args()
     
@@ -631,8 +808,14 @@ if __name__ == "__main__":
         print("EPI Cost of Living Data")
         print("="*50)
         download_cost_of_living_data(__file__)
+        print("\n" + "="*50)
+        print("Projections Central State Employment Projections")
+        print("="*50)
+        download_projections_data(__file__)
     elif args.download_epi:
         download_cost_of_living_data(__file__)
+    elif args.download_projections:
+        download_projections_data(__file__)
     elif args.download_ipeds:
         download_ipeds_data(__file__)
     elif args.download_ipeds_cost:

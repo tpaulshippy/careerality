@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_15_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_20_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -22,6 +22,29 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_15_000000) do
     t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
 
     t.unique_constraint ["oews_code"], name: "bls_soc_crosswalk_oews_code_key"
+  end
+
+  create_table "bls_state_wages", id: :serial, force: :cascade do |t|
+    t.string "area"
+    t.text "area_title"
+    t.integer "area_type"
+    t.string "prim_state"
+    t.string "naics"
+    t.text "naics_title"
+    t.string "i_group"
+    t.integer "own_code"
+    t.string "occ_code"
+    t.text "occ_title"
+    t.string "o_group"
+    t.integer "tot_emp"
+    t.decimal "emp_prse"
+    t.decimal "h_mean"
+    t.decimal "a_mean"
+    t.decimal "h_median"
+    t.decimal "a_median"
+    t.integer "year", default: 2024
+
+    t.unique_constraint ["occ_code", "area", "naics", "own_code"], name: "bls_state_wages_occ_code_area_naics_own_code_key"
   end
 
   create_table "career_cost_of_living", id: :serial, force: :cascade do |t|
@@ -93,6 +116,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_15_000000) do
     t.datetime "updated_at", null: false
     t.string "industry_code", limit: 50
     t.string "industry_name", limit: 255
+    t.integer "demand_rank"
+    t.integer "avg_annual_openings"
+    t.decimal "projected_growth_percent"
     t.index ["annual_median_salary"], name: "index_career_roi_on_annual_median_salary"
     t.index ["occupation_code", "area_code", "industry_code"], name: "index_career_roi_on_unique_key", unique: true
     t.index ["roi_percentage"], name: "index_career_roi_on_roi_percentage"
@@ -123,6 +149,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_15_000000) do
     t.unique_constraint ["occupation_code", "area_code", "year"], name: "career_salaries_occupation_code_area_code_year_key"
   end
 
+  create_table "cip_soc_crosswalk", id: :serial, force: :cascade do |t|
+    t.string "soc_code", limit: 10
+    t.string "cip_code", limit: 10
+    t.string "cip_title", limit: 255
+    t.boolean "is_primary", default: false
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
+  end
+
   create_table "cost_of_living", id: :serial, force: :cascade do |t|
     t.string "area", limit: 255
     t.decimal "col_index"
@@ -135,9 +169,80 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_15_000000) do
     t.integer "quarter"
   end
 
+  create_table "education_cost_by_state_occupation", id: :serial, force: :cascade do |t|
+    t.string "state", limit: 2
+    t.string "occ_code", limit: 20
+    t.string "occ_title", limit: 255
+    t.decimal "median_annual_wage"
+    t.string "education_level", limit: 100
+    t.integer "education_data_value"
+    t.string "cip_code", limit: 10
+    t.string "cip_title", limit: 255
+    t.decimal "avg_tuition"
+    t.integer "total_completions"
+    t.integer "year", default: 2024
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
+
+    t.unique_constraint ["state", "occ_code"], name: "education_cost_by_state_occupation_state_occ_code_key"
+  end
+
+  create_table "institutional_characteristics", primary_key: "unitid", id: :integer, default: nil, force: :cascade do |t|
+    t.string "tuition_pl", limit: 10
+    t.string "room", limit: 1
+    t.decimal "room_amt"
+    t.string "board", limit: 1
+    t.decimal "board_amt"
+    t.decimal "applfee_u"
+    t.decimal "year_school"
+  end
+
+  create_table "institutions", primary_key: "unitid", id: :integer, default: nil, force: :cascade do |t|
+    t.string "institution_name", limit: 255
+    t.string "address", limit: 255
+    t.string "city", limit: 100
+    t.string "state", limit: 2
+    t.string "zip", limit: 20
+    t.integer "sector"
+    t.integer "control"
+    t.integer "iclevel"
+    t.integer "hloffer"
+    t.integer "cbsa"
+    t.integer "locele"
+  end
+
+  create_table "ipeds_completions", id: :serial, force: :cascade do |t|
+    t.integer "unitid"
+    t.string "cipcode", limit: 10
+    t.integer "ctotalt"
+    t.integer "year", default: 2023
+
+    t.unique_constraint ["unitid", "cipcode", "year"], name: "ipeds_completions_unitid_cipcode_year_key"
+  end
+
+  create_table "ipeds_cost", id: :serial, force: :cascade do |t|
+    t.integer "unitid"
+    t.jsonb "data"
+  end
+
   create_table "onet_data", id: :serial, force: :cascade do |t|
     t.string "data_type", limit: 50
     t.jsonb "data"
+  end
+
+  create_table "onet_education", id: :serial, force: :cascade do |t|
+    t.string "onet_soc_code", limit: 20
+    t.integer "category"
+    t.string "category_label", limit: 100
+    t.integer "data_value"
+    t.string "data_value_label", limit: 100
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
+  end
+
+  create_table "onet_soc_crosswalk", id: :serial, force: :cascade do |t|
+    t.string "onet_soc_code", limit: 20
+    t.string "soc_2018_code", limit: 10
+    t.string "soc_2018_title", limit: 255
+    t.boolean "is_primary", default: true
   end
 
   create_table "salaries", id: :serial, force: :cascade do |t|
@@ -220,8 +325,59 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_15_000000) do
     t.string "sector_name", limit: 255
   end
 
+  create_table "state_employment_projections", id: :serial, force: :cascade do |t|
+    t.string "state_fips", limit: 2, null: false
+    t.string "state_abbr", limit: 2, null: false
+    t.string "occ_code", limit: 10
+    t.string "occupation_title", limit: 255
+    t.integer "base_employment"
+    t.integer "projected_employment"
+    t.integer "employment_change"
+    t.decimal "percent_change", precision: 10, scale: 2
+    t.integer "avg_annual_openings"
+    t.integer "base_year"
+    t.integer "proj_year"
+    t.string "projection_type", limit: 20
+    t.datetime "created_at", precision: nil, default: -> { "now()" }
+    t.index ["occ_code"], name: "idx_projections_occ_code"
+    t.index ["projection_type"], name: "idx_projections_type"
+    t.index ["state_fips"], name: "idx_projections_state"
+    t.unique_constraint ["state_fips", "occ_code", "projection_type"], name: "state_employment_projections_state_fips_occ_code_projection_key"
+  end
+
+  create_table "state_high_demand_careers", id: :serial, force: :cascade do |t|
+    t.string "state_fips", limit: 2, null: false
+    t.string "state_abbr", limit: 2, null: false
+    t.string "occ_code", limit: 10, null: false
+    t.string "occupation_title", limit: 255
+    t.integer "rank"
+    t.string "demand_metric", limit: 50
+    t.decimal "demand_value"
+    t.integer "base_employment"
+    t.integer "projected_employment"
+    t.integer "employment_change"
+    t.decimal "percent_change", precision: 10, scale: 2
+    t.integer "avg_annual_openings"
+    t.string "projection_type", limit: 20
+    t.integer "base_year"
+    t.integer "proj_year"
+    t.datetime "created_at", precision: nil, default: -> { "now()" }
+    t.index ["occ_code"], name: "idx_high_demand_occ"
+    t.index ["state_fips", "state_abbr"], name: "idx_high_demand_state"
+    t.unique_constraint ["state_fips", "occ_code", "projection_type", "demand_metric"], name: "state_high_demand_careers_state_fips_occ_code_projection_ty_key"
+  end
+
   create_table "student_financial_aid", id: :serial, force: :cascade do |t|
     t.integer "unitid"
     t.jsonb "data"
+  end
+
+  create_table "swipes", force: :cascade do |t|
+    t.integer "career_id"
+    t.string "user_id"
+    t.string "direction"
+    t.text "feedback"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 end
