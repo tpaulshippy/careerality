@@ -1,52 +1,130 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform, NativeModules } from 'react-native';
 
 type SetValue<T> = T | ((prevValue: T) => T);
 
+const isAsyncStorageAvailable = (): boolean => {
+  if (Platform.OS === 'web') return typeof window !== 'undefined' && !!window.localStorage;
+  return !!AsyncStorage && !!AsyncStorage.getItem;
+};
+
 export const useLocalStorage = <T>(key: string, initialValue: T): [T, (value: SetValue<T>) => void, () => void] => {
-  const readValue = useCallback((): T => {
-    if (typeof window === 'undefined') {
+  const isMounted = useRef(true);
+  const hasWarned = useRef(false);
+
+  const readValue = useCallback(async (): Promise<T> => {
+    if (Platform.OS === 'web') {
+      try {
+        const item = window.localStorage.getItem(key);
+        return item ? (JSON.parse(item) as T) : initialValue;
+      } catch (error) {
+        if (!hasWarned.current) {
+          console.warn(`Error reading localStorage key "${key}":`, error);
+          hasWarned.current = true;
+        }
+        return initialValue;
+      }
+    }
+    if (!isAsyncStorageAvailable()) {
+      if (!hasWarned.current) {
+        console.warn(`Error reading localStorage key "${key}": AsyncStorage not available`);
+        hasWarned.current = true;
+      }
       return initialValue;
     }
     try {
-      const item = window.localStorage.getItem(key);
+      const item = await AsyncStorage.getItem(key);
       return item ? (JSON.parse(item) as T) : initialValue;
     } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error);
+      if (!hasWarned.current) {
+        console.warn(`Error reading localStorage key "${key}":`, error);
+        hasWarned.current = true;
+      }
       return initialValue;
     }
   }, [initialValue, key]);
 
-  const [storedValue, setStoredValue] = useState<T>(readValue);
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+    readValue().then((value) => {
+      if (isMounted.current) {
+        setStoredValue(value);
+        setIsLoaded(true);
+      }
+    });
+    return () => { isMounted.current = false; };
+  }, [readValue]);
 
   const setValue = useCallback(
-    (value: SetValue<T>) => {
+    async (value: SetValue<T>) => {
+      if (Platform.OS === 'web') {
+        try {
+          const valueToStore = value instanceof Function ? value(storedValue) : value;
+          setStoredValue(valueToStore);
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (error) {
+          if (!hasWarned.current) {
+            console.warn(`Error setting localStorage key "${key}":`, error);
+            hasWarned.current = true;
+          }
+        }
+        return;
+      }
+      if (!isAsyncStorageAvailable()) {
+        if (!hasWarned.current) {
+          console.warn(`Error setting localStorage key "${key}": AsyncStorage not available`);
+          hasWarned.current = true;
+        }
+        return;
+      }
       try {
         const valueToStore = value instanceof Function ? value(storedValue) : value;
         setStoredValue(valueToStore);
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        }
+        await AsyncStorage.setItem(key, JSON.stringify(valueToStore));
       } catch (error) {
-        console.warn(`Error setting localStorage key "${key}":`, error);
+        if (!hasWarned.current) {
+          console.warn(`Error setting localStorage key "${key}":`, error);
+          hasWarned.current = true;
+        }
       }
     },
     [key, storedValue],
   );
 
-  const removeValue = useCallback(() => {
+  const removeValue = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      try {
+        setStoredValue(initialValue);
+        window.localStorage.removeItem(key);
+      } catch (error) {
+        if (!hasWarned.current) {
+          console.warn(`Error removing localStorage key "${key}":`, error);
+          hasWarned.current = true;
+        }
+      }
+      return;
+    }
+    if (!isAsyncStorageAvailable()) {
+      if (!hasWarned.current) {
+        console.warn(`Error removing localStorage key "${key}": AsyncStorage not available`);
+        hasWarned.current = true;
+      }
+      return;
+    }
     try {
       setStoredValue(initialValue);
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem(key);
-      }
+      await AsyncStorage.removeItem(key);
     } catch (error) {
-      console.warn(`Error removing localStorage key "${key}":`, error);
+      if (!hasWarned.current) {
+        console.warn(`Error removing localStorage key "${key}":`, error);
+        hasWarned.current = true;
+      }
     }
   }, [initialValue, key]);
 
-  useEffect(() => {
-    setStoredValue(readValue());
-  }, [readValue]);
-
-  return [storedValue, setValue, removeValue];
+  return [isLoaded ? storedValue : initialValue, setValue, removeValue];
 };

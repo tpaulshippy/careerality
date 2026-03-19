@@ -37,9 +37,9 @@ export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
       direction: 'left',
       timestamp: Date.now(),
     };
-    setSwipeHistory((prev) => [...prev, record]);
+    setSwipeHistory([...swipeHistory, record]);
     return card;
-  }, [cards, currentIndex, setSwipeHistory]);
+  }, [cards, currentIndex, setSwipeHistory, swipeHistory]);
 
   const swipeRight = useCallback((): CareerROI | null => {
     if (currentIndex >= cards.length) return null;
@@ -49,14 +49,14 @@ export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
       direction: 'right',
       timestamp: Date.now(),
     };
-    setSwipeHistory((prev) => [...prev, record]);
+    setSwipeHistory([...swipeHistory, record]);
     return card;
-  }, [cards, currentIndex, setSwipeHistory]);
+  }, [cards, currentIndex, setSwipeHistory, swipeHistory]);
 
   const undo = useCallback((): SwipeRecord | null => {
     if (swipeHistory.length === 0) return null;
     const lastRecord = swipeHistory[swipeHistory.length - 1];
-    setSwipeHistory((prev) => prev.slice(0, -1));
+    setSwipeHistory(swipeHistory.slice(0, -1));
     return lastRecord;
   }, [swipeHistory, setSwipeHistory]);
 

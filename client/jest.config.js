@@ -1,5 +1,5 @@
 module.exports = {
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testMatch: ['**/__tests__/**/*.test.(ts|tsx)'],
   transform: {
@@ -8,5 +8,7 @@ module.exports = {
   moduleNameMapper: {
     '^react-native$': '<rootDir>/__mocks__/react-native.js',
     '^@react-navigation/native$': '<rootDir>/__mocks__/@react-navigation/native.js',
+    '^@react-native-async-storage/async-storage$': '<rootDir>/__mocks__/async-storage.js',
   },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 };
