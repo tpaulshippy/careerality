@@ -15,6 +15,9 @@ export interface CareerROI {
   adjusted_salary: string;
   industry_code: string;
   industry_name: string;
+  demand_rank: number | null;
+  avg_annual_openings: number | null;
+  projected_growth_percent: number | null;
 }
 
 export interface DataSource {

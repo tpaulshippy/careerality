@@ -19,7 +19,10 @@ class CareerRoi < ApplicationRecord
       cost_of_living_index: cost_of_living_index,
       adjusted_salary: adjusted_salary,
       industry_code: industry_code,
-      industry_name: industry_name
+      industry_name: industry_name,
+      demand_rank: demand_rank,
+      avg_annual_openings: avg_annual_openings,
+      projected_growth_percent: projected_growth_percent
     }
   end
 end

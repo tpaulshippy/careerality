@@ -596,6 +596,24 @@ def transform_career_roi():
     
     default_tuition = sum(tuition_by_level.values()) / len(tuition_by_level) if tuition_by_level else 30000
 
+    log("  Loading high demand careers data...")
+    demand_cache = {}
+    cursor.execute("""
+        SELECT state_fips, occ_code, rank, demand_metric, demand_value, percent_change, avg_annual_openings
+        FROM state_high_demand_careers
+        WHERE demand_metric = 'percent_change'
+    """)
+    for row in cursor.fetchall():
+        state_fips, occ_code, rank, demand_metric, demand_value, pct_change, openings = row
+        if occ_code and state_fips:
+            key = (occ_code, state_fips)
+            demand_cache[key] = {
+                'rank': rank,
+                'demand_value': demand_value,
+                'pct_change': pct_change,
+                'avg_annual_openings': openings
+            }
+
     values = []
     processed = 0
     for row in rows:
@@ -733,6 +751,12 @@ def transform_career_roi():
                     skills = skills_cache[cached_code]
                     break
 
+        state_fips = state_to_fips.get(prim_state)
+        demand_info = demand_cache.get((occ_code, state_fips)) if state_fips else None
+        demand_rank = demand_info['rank'] if demand_info else None
+        avg_annual_openings = demand_info['avg_annual_openings'] if demand_info else None
+        projected_growth_percent = demand_info['pct_change'] if demand_info else None
+
         values.append((
             occ_code,
             occ_name,
@@ -748,15 +772,19 @@ def transform_career_roi():
             education_level,
             json.dumps(skills) if skills else None,
             float(col_index),
-            float(adjusted_salary)
+            float(adjusted_salary),
+            demand_rank,
+            int(avg_annual_openings) if avg_annual_openings else None,
+            float(projected_growth_percent) if projected_growth_percent else None
         ))
 
     query = """
         INSERT INTO career_roi 
         (occupation_code, occupation_name, area_code, area_name, industry_code, industry_name,
          annual_median_salary, education_cost, years_to_breakeven, roi_percentage, job_zone, 
-         education_level, skills, cost_of_living_index, adjusted_salary, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+         education_level, skills, cost_of_living_index, adjusted_salary, demand_rank, 
+         avg_annual_openings, projected_growth_percent, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         ON CONFLICT (occupation_code, area_code, industry_code) DO NOTHING
     """
 
@@ -1074,6 +1102,159 @@ def transform_education_cost_by_state_occupation():
     log(f"  Computed education cost for {len(values)} state-occupation pairs")
 
 
+def transform_state_high_demand_careers():
+    log("Transforming state high demand careers from projections data...")
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM state_high_demand_careers")
+    conn.commit()
+    
+    cursor.execute("""
+        SELECT DISTINCT state_fips, state_abbr, base_year, proj_year, projection_type
+        FROM state_employment_projections
+    """)
+    config_rows = cursor.fetchall()
+    
+    state_abbr_to_fips = {
+        'AL': '01', 'AK': '02', 'AZ': '04', 'AR': '05', 'CA': '06', 'CO': '08', 'CT': '09', 'DE': '10',
+        'DC': '11', 'FL': '12', 'GA': '13', 'HI': '15', 'ID': '16', 'IL': '17', 'IN': '18', 'IA': '19',
+        'KS': '20', 'KY': '21', 'LA': '22', 'ME': '23', 'MD': '24', 'MA': '25', 'MI': '26', 'MN': '27',
+        'MS': '28', 'MO': '29', 'MT': '30', 'NE': '31', 'NV': '32', 'NH': '33', 'NJ': '34', 'NM': '35',
+        'NY': '36', 'NC': '37', 'ND': '38', 'OH': '39', 'OK': '40', 'OR': '41', 'PA': '42', 'RI': '44',
+        'SC': '45', 'SD': '46', 'TN': '47', 'TX': '48', 'UT': '49', 'VT': '50', 'VA': '51', 'WA': '53',
+        'WV': '54', 'WI': '55', 'WY': '56', 'PR': '72', 'US': '00'
+    }
+    
+    fips_to_state_abbr = {v: k for k, v in state_abbr_to_fips.items()}
+    
+    for state_fips, state_abbr, base_year, proj_year, projection_type in config_rows:
+        log(f"  Processing {state_abbr} ({projection_type})...")
+        
+        cursor.execute("""
+            SELECT occ_code, occupation_title, base_employment, projected_employment,
+                   employment_change, percent_change, avg_annual_openings
+            FROM state_employment_projections
+            WHERE state_fips = %s
+              AND projection_type = %s
+              AND occ_code IS NOT NULL
+              AND base_employment IS NOT NULL
+              AND base_employment > 0
+            ORDER BY percent_change DESC NULLS LAST
+        """, (state_fips, projection_type))
+        
+        growth_rows = cursor.fetchall()
+        
+        cursor.execute("""
+            SELECT occ_code, occupation_title, base_employment, projected_employment,
+                   employment_change, percent_change, avg_annual_openings
+            FROM state_employment_projections
+            WHERE state_fips = %s
+              AND projection_type = %s
+              AND occ_code IS NOT NULL
+              AND avg_annual_openings IS NOT NULL
+              AND avg_annual_openings > 0
+            ORDER BY avg_annual_openings DESC NULLS LAST
+        """, (state_fips, projection_type))
+        
+        openings_rows = cursor.fetchall()
+        
+        cursor.execute("""
+            SELECT occ_code, occupation_title, base_employment, projected_employment,
+                   employment_change, percent_change, avg_annual_openings
+            FROM state_employment_projections
+            WHERE state_fips = %s
+              AND projection_type = %s
+              AND occ_code IS NOT NULL
+              AND employment_change IS NOT NULL
+              AND employment_change > 0
+            ORDER BY employment_change DESC NULLS LAST
+        """, (state_fips, projection_type))
+        
+        total_growth_rows = cursor.fetchall()
+        
+        values = []
+        
+        for rank, row in enumerate(growth_rows[:50], 1):
+            occ_code, occupation_title, base_emp, proj_emp, emp_change, pct_change, openings = row
+            values.append((
+                state_fips,
+                state_abbr,
+                occ_code,
+                occupation_title,
+                rank,
+                'percent_change',
+                pct_change,
+                base_emp,
+                proj_emp,
+                emp_change,
+                pct_change,
+                openings,
+                projection_type,
+                base_year,
+                proj_year
+            ))
+        
+        for rank, row in enumerate(openings_rows[:50], 1):
+            occ_code, occupation_title, base_emp, proj_emp, emp_change, pct_change, openings = row
+            values.append((
+                state_fips,
+                state_abbr,
+                occ_code,
+                occupation_title,
+                rank,
+                'avg_annual_openings',
+                openings,
+                base_emp,
+                proj_emp,
+                emp_change,
+                pct_change,
+                openings,
+                projection_type,
+                base_year,
+                proj_year
+            ))
+        
+        for rank, row in enumerate(total_growth_rows[:50], 1):
+            occ_code, occupation_title, base_emp, proj_emp, emp_change, pct_change, openings = row
+            values.append((
+                state_fips,
+                state_abbr,
+                occ_code,
+                occupation_title,
+                rank,
+                'total_growth',
+                emp_change,
+                base_emp,
+                proj_emp,
+                emp_change,
+                pct_change,
+                openings,
+                projection_type,
+                base_year,
+                proj_year
+            ))
+        
+        query = """
+            INSERT INTO state_high_demand_careers 
+            (state_fips, state_abbr, occ_code, occupation_title, rank, demand_metric, 
+             demand_value, base_employment, projected_employment, employment_change, 
+             percent_change, avg_annual_openings, projection_type, base_year, proj_year)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (state_fips, occ_code, projection_type, demand_metric) DO NOTHING
+        """
+        
+        if values:
+            execute_batch(cursor, query, values)
+            conn.commit()
+        
+        log(f"    Inserted {len(values)} high demand career records for {state_abbr}")
+    
+    cursor.close()
+    conn.close()
+    log(f"  Transformed state high demand careers")
+
+
 def main():
     log("=" * 60)
     log("Transforming data into integrated tables")
@@ -1094,11 +1275,14 @@ def main():
 
     transform_education_cost_by_state_occupation()
     log("")
-
+    
+    transform_state_high_demand_careers()
+    log("")
+    
     log("=" * 60)
     log("Transformation complete!")
     log("=" * 60)
-
+    
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -1107,6 +1291,7 @@ def main():
         UNION ALL SELECT 'career_cost_of_living', COUNT(*) FROM career_cost_of_living
         UNION ALL SELECT 'career_roi', COUNT(*) FROM career_roi
         UNION ALL SELECT 'education_cost_by_state_occupation', COUNT(*) FROM education_cost_by_state_occupation
+        UNION ALL SELECT 'state_high_demand_careers', COUNT(*) FROM state_high_demand_careers
     """)
     log("\nTable summary:")
     for row in cursor.fetchall():

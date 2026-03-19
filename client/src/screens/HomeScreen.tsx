@@ -57,6 +57,20 @@ export const HomeScreen: React.FC = () => {
             </View>
           )}
         </Section>
+
+        {(career.demand_rank || career.avg_annual_openings || career.projected_growth_percent) && (
+          <Section title="Market Demand">
+            {career.demand_rank && (
+              <InfoRow label="Demand Rank" value={`#${career.demand_rank}`} />
+            )}
+            {career.avg_annual_openings && (
+              <InfoRow label="Annual Openings" value={career.avg_annual_openings.toString()} />
+            )}
+            {career.projected_growth_percent && (
+              <InfoRow label="Projected Growth" value={`${career.projected_growth_percent}%`} highlight />
+            )}
+          </Section>
+        )}
       </Card>
 
       <Button title="Find Another Career" onPress={refetch} style={styles.button} />
