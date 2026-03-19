@@ -56,7 +56,7 @@ export default function App() {
           name="Home" 
           component={HomeScreen}
           options={{
-            title: 'Career ROI',
+            title: 'Explore',
             drawerIcon: () => (
               <Text style={styles.icon}>📊</Text>
             ),

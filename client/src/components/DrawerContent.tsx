@@ -9,7 +9,7 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContent}>
       <View style={[styles.drawerHeader, { backgroundColor: theme.colors.primary }]}>
-        <Text style={styles.drawerTitle}>Career ROI</Text>
+        <Text style={styles.drawerTitle}>Careerality</Text>
         <Text style={[styles.drawerSubtitle, { color: theme.colors.text.light }]}>Career Investment Calculator</Text>
       </View>
       <DrawerItemList {...props} />

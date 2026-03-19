@@ -19,7 +19,7 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Header title="Career ROI" subtitle="Discover career investment returns" />
+      <Header title="Careerality" subtitle="Discover career investment returns" />
 
       <Card>
         <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>{career.occupation_name}</Text>
