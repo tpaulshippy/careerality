@@ -25,9 +25,9 @@ export const useCareerData = (): UseCareerDataResult => {
       const json = await response.json();
       const data: CareerROI[] = json.records || json;
       if (data.length > 0) {
-        const top10 = data.slice(0, 10);
-        const randomIndex = Math.floor(Math.random() * top10.length);
-        setCareer(top10[randomIndex]);
+        const top50 = data.slice(0, 50);
+        const randomIndex = Math.floor(Math.random() * top50.length);
+        setCareer(top50[randomIndex]);
       } else {
         setError('No careers found');
       }

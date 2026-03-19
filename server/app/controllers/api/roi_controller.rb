@@ -73,7 +73,7 @@ class Api::RoiController < ApplicationController
     area = params[:area] || '99'
     if query.present?
       roi_records = CareerRoi.where(area_code: area).where("occupation_name ILIKE ?", "%#{query}%").order(roi_percentage: :desc)
-      pagy, records = pagy(roi_records, items: 20)
+pagy, records = pagy(roi_records, items: 50)
       render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
     else
       render json: { error: 'Query parameter q is required' }, status: :bad_request
