@@ -95,11 +95,10 @@ For users who know where they want to live—or want to explore what's available
 
 Filter careers by:
 
-- **Interests** — based on O*NET and ESCO skills frameworks
-- **Location** — city, state, or remote-first
+- **Location** — state or region
+- **Salary range** — minimum and maximum salary
 - **Education pathway** — no degree, associate's, bachelor's, graduate, bootcamp, apprenticeship
-- **Time to start** — how soon you can begin earning
-- **Work environment** — office, hybrid, field, remote, shift work
+- **Work environment** — office, hybrid, field, remote, shift work (Phase 2)
 
 ### Virtual Career Counselor
 
@@ -172,15 +171,15 @@ This stack is a starting point. Contributors are encouraged to propose architect
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/careerality.git
+git clone https://github.com/tpaulshippy/careerality.git
 cd careerality
 
 # Install frontend dependencies
-cd frontend
+cd client
 npm install
 
 # Install backend dependencies
-cd ../backend
+cd ../server
 bundle install
 
 # Set up environment variables
@@ -217,16 +216,17 @@ Please read our [Contributing Guide](CONTRIBUTING.md) before submitting pull req
 
 ## Roadmap
 
-### Phase 1 — MVP
+### Phase 1 — MVP (Current)
 
-- [ ] Swipe interface for career cards
-- [ ] ROI data display
-- [ ] Basic filtering
+- [x] Swipe interface for career cards
+- [x] ROI data display
+- [ ] Basic filtering (location, salary range)
 - [ ] Post-swipe feedback collection
-- [ ] Virtual counselor MVP
+- [ ] Local storage persistence
 
 ### Phase 2 — Engagement
 
+- [ ] Virtual career counselor (AI-powered chat)
 - [ ] Map-based career exploration
 - [ ] Gamification system (points, streaks, leaderboards)
 - [ ] Task tracking for career readiness
