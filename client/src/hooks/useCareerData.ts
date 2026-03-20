@@ -27,9 +27,8 @@ export const useCareerData = (): UseCareerDataResult => {
       } else {
         setError('No careers found');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load career data');
-      console.error(err);
     } finally {
       setLoading(false);
     }

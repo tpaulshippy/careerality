@@ -52,7 +52,7 @@ jest.mock('../../components/FeedbackModal', () => ({
 }));
 
 jest.mock('../../components', () => ({
-  Loading: ({ message }) => null,
+  Loading: ({ message: _message }) => null,
   ErrorView: () => null,
 }));
 

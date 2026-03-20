@@ -8,7 +8,7 @@ import { useFilters } from '../hooks/useFilters';
 import { SwipeCard } from '../components/SwipeCard';
 import { SwipeControls } from '../components/SwipeControls';
 import { FilterSheet } from '../components/FilterSheet';
-import { FeedbackModal, InterestLevel } from '../components/FeedbackModal';
+import { FeedbackModal } from '../components/FeedbackModal';
 import { useTheme } from '../hooks/useTheme';
 
 export const SwipeScreen: React.FC = () => {
@@ -46,10 +46,9 @@ export const SwipeScreen: React.FC = () => {
       setCareers(data);
       setDataKey(prev => prev + 1);
       resetSwipes();
-    } catch (err) {
+    } catch {
       if (thisFetch === fetchKeyRef.current) {
         setError('Failed to load careers');
-        console.error(err);
       }
     } finally {
       if (thisFetch === fetchKeyRef.current) {
@@ -92,8 +91,8 @@ export const SwipeScreen: React.FC = () => {
   const submitSwipe = async (careerId: number, direction: 'left' | 'right') => {
     try {
       await apiClient.submitSwipe(careerId, direction);
-    } catch (err) {
-      console.error('Failed to submit swipe:', err);
+    } catch {
+      // Swipe submission failed silently - user can retry
     }
   };
 

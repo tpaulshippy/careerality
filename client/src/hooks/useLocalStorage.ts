@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform, NativeModules } from 'react-native';
+import { Platform } from 'react-native';
 
 type SetValue<T> = T | ((prevValue: T) => T);
 
@@ -11,36 +11,23 @@ const isAsyncStorageAvailable = (): boolean => {
 
 export const useLocalStorage = <T>(key: string, initialValue: T): [T, (value: SetValue<T>) => void, () => void] => {
   const isMounted = useRef(true);
-  const hasWarned = useRef(false);
 
   const readValue = useCallback(async (): Promise<T> => {
     if (Platform.OS === 'web') {
       try {
         const item = window.localStorage.getItem(key);
         return item ? (JSON.parse(item) as T) : initialValue;
-      } catch (error) {
-        if (!hasWarned.current) {
-          console.warn(`Error reading localStorage key "${key}":`, error);
-          hasWarned.current = true;
-        }
+      } catch {
         return initialValue;
       }
     }
     if (!isAsyncStorageAvailable()) {
-      if (!hasWarned.current) {
-        console.warn(`Error reading localStorage key "${key}": AsyncStorage not available`);
-        hasWarned.current = true;
-      }
       return initialValue;
     }
     try {
       const item = await AsyncStorage.getItem(key);
       return item ? (JSON.parse(item) as T) : initialValue;
-    } catch (error) {
-      if (!hasWarned.current) {
-        console.warn(`Error reading localStorage key "${key}":`, error);
-        hasWarned.current = true;
-      }
+    } catch {
       return initialValue;
     }
   }, [initialValue, key]);
@@ -66,30 +53,20 @@ export const useLocalStorage = <T>(key: string, initialValue: T): [T, (value: Se
           const valueToStore = value instanceof Function ? value(storedValue) : value;
           setStoredValue(valueToStore);
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        } catch (error) {
-          if (!hasWarned.current) {
-            console.warn(`Error setting localStorage key "${key}":`, error);
-            hasWarned.current = true;
-          }
+        } catch {
+          // Silently ignore storage errors
         }
         return;
       }
       if (!isAsyncStorageAvailable()) {
-        if (!hasWarned.current) {
-          console.warn(`Error setting localStorage key "${key}": AsyncStorage not available`);
-          hasWarned.current = true;
-        }
         return;
       }
       try {
         const valueToStore = value instanceof Function ? value(storedValue) : value;
         setStoredValue(valueToStore);
         await AsyncStorage.setItem(key, JSON.stringify(valueToStore));
-      } catch (error) {
-        if (!hasWarned.current) {
-          console.warn(`Error setting localStorage key "${key}":`, error);
-          hasWarned.current = true;
-        }
+      } catch {
+        // Silently ignore storage errors - falls back to initial value
       }
     },
     [key, storedValue],
@@ -100,31 +77,21 @@ export const useLocalStorage = <T>(key: string, initialValue: T): [T, (value: Se
       try {
         setStoredValue(initialValue);
         window.localStorage.removeItem(key);
-      } catch (error) {
-        if (!hasWarned.current) {
-          console.warn(`Error removing localStorage key "${key}":`, error);
-          hasWarned.current = true;
-        }
+      } catch {
+        // Silently ignore storage errors - falls back to initial value
       }
       return;
     }
     if (!isAsyncStorageAvailable()) {
-      if (!hasWarned.current) {
-        console.warn(`Error removing localStorage key "${key}": AsyncStorage not available`);
-        hasWarned.current = true;
-      }
       return;
     }
     try {
       setStoredValue(initialValue);
       await AsyncStorage.removeItem(key);
-    } catch (error) {
-      if (!hasWarned.current) {
-        console.warn(`Error removing localStorage key "${key}":`, error);
-        hasWarned.current = true;
+      } catch {
+        // Silently ignore storage errors
       }
-    }
-  }, [initialValue, key]);
+    }, [initialValue, key]);
 
   return [isLoaded ? storedValue : initialValue, setValue, removeValue];
 };

@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useSwipe, SwipeRecord } from '../useSwipe';
+import { useSwipe } from '../useSwipe';
 import { CareerROI } from '../../types';
 
 const mockCareer: CareerROI = {

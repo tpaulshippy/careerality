@@ -1,6 +1,8 @@
 jest.mock('react-native-worklets', () => ({}));
 
+// eslint-disable-next-line no-console
 const originalError = console.error;
+// eslint-disable-next-line no-console
 console.error = (...args: Parameters<typeof console.error>) => {
   const message = args[0];
   if (

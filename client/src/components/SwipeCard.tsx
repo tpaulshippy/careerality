@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring, withSequence, withDelay } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
 import { CareerROI } from '../types';
 
@@ -15,7 +15,7 @@ interface SwipeCardProps {
 
 const SWIPE_THRESHOLD = 100;
 
-export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwipeRight, cardKey, shouldReset }) => {
+export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwipeRight, cardKey: _cardKey, shouldReset }) => {
   const theme = useTheme();
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
