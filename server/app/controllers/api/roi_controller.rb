@@ -25,17 +25,12 @@ class Api::RoiController < ApplicationController
     when "salary" then base_query.order(annual_median_salary: :desc)
     when "breakeven" then base_query.order(years_to_breakeven: :asc)
     when "demand"
-        demand_query = base_query.where("demand_rank IS NOT NULL")
+        demand_query = base_query.where("demand_score IS NOT NULL")
         if demand_query.count > 0
-          # Use weighted random ordering that prioritizes high-demand careers
-          # but adds randomization for variety. Weights:
-          # - 50%: Inverse of demand_rank (lower rank = higher score)
-          # - 30%: Projected growth percentage
-          # - 20%: Pure randomness
+          # Use pre-computed demand_score (weighted combination of demand_rank and growth)
+          # plus small random component for variety
           demand_query.order(Arel.sql("
-            (1.0 / GREATEST(demand_rank, 1)) * 0.5 +
-            (COALESCE(projected_growth_percent, 0) / 100.0) * 0.3 +
-            RANDOM() * 0.2 DESC,
+            demand_score + RANDOM() * 0.2 DESC,
             demand_rank ASC,
             projected_growth_percent DESC
           "))
