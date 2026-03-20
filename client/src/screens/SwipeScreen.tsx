@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CareerROI } from '../types';
-import { API_URL } from '../constants/dataSources';
+import { apiClient } from '../api/client';
 import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
 import { SwipeCard } from '../components/SwipeCard';
@@ -32,22 +32,16 @@ export const SwipeScreen: React.FC = () => {
     setError(null);
     
     try {
-      const params = new URLSearchParams();
-      if (filters.location) params.append('area_code', filters.location);
-      if (filters.salaryMin > 0) params.append('min_salary', filters.salaryMin.toString());
-      if (filters.salaryMax < 1000000) params.append('max_salary', filters.salaryMax.toString());
+      const params: Record<string, string | number> = {};
+      if (filters.location) params.area_code = filters.location;
+      if (filters.salaryMin > 0) params.min_salary = filters.salaryMin;
+      if (filters.salaryMax < 1000000) params.max_salary = filters.salaryMax;
 
-      const url = `${API_URL}?${params.toString()}`;
-      const response = await fetch(url);
+      const json = await apiClient.getCareers(params) as { records: CareerROI[] } | CareerROI[];
       
       if (thisFetch !== fetchKeyRef.current) return;
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch careers');
-      }
-      
-      const json = await response.json();
-      const data: CareerROI[] = json.records || json;
+      const data: CareerROI[] = Array.isArray(json) ? json : (json.records || []);
       setCareers(data);
       setDataKey(prev => prev + 1);
       resetSwipes();
@@ -96,11 +90,7 @@ export const SwipeScreen: React.FC = () => {
 
   const submitSwipe = async (careerId: number, direction: 'left' | 'right') => {
     try {
-      await fetch('/api/swipes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ career_id: careerId, direction }),
-      });
+      await apiClient.submitSwipe(careerId, direction);
     } catch (err) {
       console.error('Failed to submit swipe:', err);
     }
