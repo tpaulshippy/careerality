@@ -47,7 +47,7 @@ jobs:
         run: |
           bundle exec rails db:create RAILS_ENV=test 2>/dev/null || true
           bundle exec rails db:migrate --trace
-          bundle exec test
+          bundle exec rails test
 
   client:
     runs-on: ubuntu-latest
