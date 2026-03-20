@@ -9,13 +9,14 @@ interface SwipeCardProps {
   career: CareerROI;
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
+  onViewDetails?: () => void;
   cardKey?: string | number;
-  shouldReset?: boolean;
+  shouldReset?: number;
 }
 
 const SWIPE_THRESHOLD = 100;
 
-export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwipeRight, cardKey: _cardKey, shouldReset }) => {
+export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwipeRight, onViewDetails, cardKey: _cardKey, shouldReset }) => {
   const theme = useTheme();
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -47,6 +48,15 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
     onSwipeRight?.();
   };
 
+  const handleViewDetails = () => {
+    onViewDetails?.();
+  };
+
+  const tapGesture = Gesture.Tap()
+    .onEnd(() => {
+      runOnJS(handleViewDetails)();
+    });
+
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       translateX.value = event.translationX;
@@ -65,6 +75,8 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
       }
     });
 
+  const composedGesture = Gesture.Race(panGesture, tapGesture);
+
   const cardStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
@@ -76,7 +88,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
   }));
 
   return (
-    <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.shadows.card, cardStyle]}>
         <View style={styles.header}>
           <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>
@@ -120,7 +132,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
         </View>
 
         <Text style={[styles.hint, { color: theme.colors.text.secondary }]}>
-          Swipe left to skip, right to like
+          Tap for details, swipe to continue
         </Text>
       </Animated.View>
     </GestureDetector>

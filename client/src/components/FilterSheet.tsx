@@ -4,15 +4,15 @@ import {
   Text, 
   Modal, 
   TouchableOpacity, 
-  TextInput,
+  ScrollView,
   StyleSheet,
   ViewStyle,
   TextStyle,
   TouchableWithoutFeedback,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import { FilterChip } from './FilterChip';
+import { LOCATION_OPTIONS, SALARY_RANGES } from '../constants/dataSources';
 
 export interface FilterState {
   location: string;
@@ -53,8 +53,27 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
     onClose();
   };
 
-  const updateFilter = (key: keyof FilterState, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  const handleLocationSelect = (value: string) => {
+    setFilters(prev => ({ ...prev, location: value === 'all' ? '' : value }));
+  };
+
+  const handleSalarySelect = (min: number, max: number) => {
+    setFilters(prev => ({
+      ...prev,
+      minSalary: min === 0 ? '' : String(min),
+      maxSalary: max === Infinity ? '' : String(max),
+    }));
+  };
+
+  const isLocationSelected = (value: string) => {
+    if (value === 'all') return filters.location === '';
+    return filters.location === value;
+  };
+
+  const isSalarySelected = (min: number, max: number) => {
+    const currentMin = filters.minSalary === '' ? 0 : parseInt(filters.minSalary, 10);
+    const currentMax = filters.maxSalary === '' ? Infinity : parseInt(filters.maxSalary, 10);
+    return currentMin === min && currentMax === max;
   };
 
   return (
@@ -67,13 +86,10 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <KeyboardAvoidingView 
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={[
-                styles.sheet,
-                { backgroundColor: theme.colors.surface }
-              ]}
-            >
+            <View style={[
+              styles.sheet,
+              { backgroundColor: theme.colors.surface }
+            ]}>
               <View style={styles.handle} />
               
               <View style={styles.header}>
@@ -92,69 +108,40 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                   <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
                     Location
                   </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { 
-                        backgroundColor: theme.colors.background,
-                        color: theme.colors.text.primary,
-                        borderColor: theme.colors.border,
-                      }
-                    ]}
-                    placeholder="Enter city or remote"
-                    placeholderTextColor={theme.colors.text.muted}
-                    value={filters.location}
-                    onChangeText={(text) => updateFilter('location', text)}
-                  />
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRow}
+                  >
+                    {LOCATION_OPTIONS.map((option) => (
+                      <FilterChip
+                        key={option.value}
+                        label={option.label}
+                        selected={isLocationSelected(option.value)}
+                        onPress={() => handleLocationSelect(option.value)}
+                      />
+                    ))}
+                  </ScrollView>
                 </View>
 
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
                     Salary Range
                   </Text>
-                  <View style={styles.salaryRow}>
-                    <View style={styles.salaryInput}>
-                      <Text style={[styles.inputLabel, { color: theme.colors.text.secondary }]}>
-                        Min
-                      </Text>
-                      <TextInput
-                        style={[
-                          styles.input,
-                          { 
-                            backgroundColor: theme.colors.background,
-                            color: theme.colors.text.primary,
-                            borderColor: theme.colors.border,
-                          }
-                        ]}
-                        placeholder="$0"
-                        placeholderTextColor={theme.colors.text.muted}
-                        value={filters.minSalary}
-                        onChangeText={(text) => updateFilter('minSalary', text)}
-                        keyboardType="numeric"
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRow}
+                  >
+                    {SALARY_RANGES.map((range) => (
+                      <FilterChip
+                        key={range.label}
+                        label={range.label}
+                        selected={isSalarySelected(range.min, range.max)}
+                        onPress={() => handleSalarySelect(range.min, range.max)}
                       />
-                    </View>
-                    <View style={styles.salaryDivider} />
-                    <View style={styles.salaryInput}>
-                      <Text style={[styles.inputLabel, { color: theme.colors.text.secondary }]}>
-                        Max
-                      </Text>
-                      <TextInput
-                        style={[
-                          styles.input,
-                          { 
-                            backgroundColor: theme.colors.background,
-                            color: theme.colors.text.primary,
-                            borderColor: theme.colors.border,
-                          }
-                        ]}
-                        placeholder="No limit"
-                        placeholderTextColor={theme.colors.text.muted}
-                        value={filters.maxSalary}
-                        onChangeText={(text) => updateFilter('maxSalary', text)}
-                        keyboardType="numeric"
-                      />
-                    </View>
-                  </View>
+                    ))}
+                  </ScrollView>
                 </View>
               </View>
 
@@ -186,7 +173,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                   </Text>
                 </TouchableOpacity>
               </View>
-            </KeyboardAvoidingView>
+            </View>
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
@@ -243,27 +230,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 12,
   } as TextStyle,
-  input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-  } as TextStyle,
-  salaryRow: {
+  chipRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'nowrap',
   } as ViewStyle,
-  salaryInput: {
-    flex: 1,
-  } as ViewStyle,
-  salaryDivider: {
-    width: 16,
-  } as ViewStyle,
-  inputLabel: {
-    fontSize: 13,
-    marginBottom: 6,
-  } as TextStyle,
   footer: {
     flexDirection: 'row',
     gap: 12,
