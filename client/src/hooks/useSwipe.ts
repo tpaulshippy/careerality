@@ -1,8 +1,5 @@
-import { useState, useCallback } from 'react';
-import { CareerROI } from '../types';
-import { useLocalStorage } from './useLocalStorage';
-
-export type SwipeDirection = 'left' | 'right';
+import { useState, useCallback, useRef } from 'react';
+import { CareerROI, SwipeDirection } from '../types';
 
 export interface SwipeRecord {
   career: CareerROI;
@@ -23,50 +20,83 @@ interface UseSwipeResult {
 
 const STORAGE_KEY = 'careerality_swipes';
 
-export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
-  const [cards, setCards] = useState<CareerROI[]>(initialCards);
-  const [swipeHistory, setSwipeHistory] = useLocalStorage<SwipeRecord[]>(STORAGE_KEY, []);
+const getStoredHistory = (): SwipeRecord[] => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
 
+const setStoredHistory = (history: SwipeRecord[]) => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    } catch {
+      // ignore
+    }
+  }
+};
+
+export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
+  const [swipeHistory, setSwipeHistory] = useState<SwipeRecord[]>(() => getStoredHistory());
+  const historyRef = useRef<SwipeRecord[]>(swipeHistory);
+
+  historyRef.current = swipeHistory;
   const currentIndex = swipeHistory.length;
+  const cards = initialCards;
 
   const swipeLeft = useCallback((): CareerROI | null => {
-    if (currentIndex >= cards.length) return null;
+    if (currentIndex >= cards.length || cards.length === 0) return null;
+    
     const card = cards[currentIndex];
-    const record: SwipeRecord = {
-      career: card,
-      direction: 'left',
-      timestamp: Date.now(),
-    };
-    setSwipeHistory([...swipeHistory, record]);
+    const record: SwipeRecord = { career: card, direction: 'left', timestamp: Date.now() };
+    const newHistory = [...historyRef.current, record];
+    
+    historyRef.current = newHistory;
+    setSwipeHistory(newHistory);
+    setStoredHistory(newHistory);
     return card;
-  }, [cards, currentIndex, setSwipeHistory, swipeHistory]);
+  }, [cards, currentIndex]);
 
   const swipeRight = useCallback((): CareerROI | null => {
-    if (currentIndex >= cards.length) return null;
+    if (currentIndex >= cards.length || cards.length === 0) return null;
+    
     const card = cards[currentIndex];
-    const record: SwipeRecord = {
-      career: card,
-      direction: 'right',
-      timestamp: Date.now(),
-    };
-    setSwipeHistory([...swipeHistory, record]);
+    const record: SwipeRecord = { career: card, direction: 'right', timestamp: Date.now() };
+    const newHistory = [...historyRef.current, record];
+    
+    historyRef.current = newHistory;
+    setSwipeHistory(newHistory);
+    setStoredHistory(newHistory);
     return card;
-  }, [cards, currentIndex, setSwipeHistory, swipeHistory]);
+  }, [cards, currentIndex]);
 
   const undo = useCallback((): SwipeRecord | null => {
-    if (swipeHistory.length === 0) return null;
-    const lastRecord = swipeHistory[swipeHistory.length - 1];
-    setSwipeHistory(swipeHistory.slice(0, -1));
+    if (historyRef.current.length === 0) return null;
+    
+    const lastRecord = historyRef.current[historyRef.current.length - 1];
+    const newHistory = historyRef.current.slice(0, -1);
+    
+    historyRef.current = newHistory;
+    setSwipeHistory(newHistory);
+    setStoredHistory(newHistory);
     return lastRecord;
-  }, [swipeHistory, setSwipeHistory]);
+  }, []);
 
   const getUnswipedCards = useCallback((): CareerROI[] => {
     return cards.slice(currentIndex);
   }, [cards, currentIndex]);
 
   const resetSwipes = useCallback(() => {
+    historyRef.current = [];
     setSwipeHistory([]);
-  }, [setSwipeHistory]);
+    setStoredHistory([]);
+  }, []);
 
   return {
     cards,

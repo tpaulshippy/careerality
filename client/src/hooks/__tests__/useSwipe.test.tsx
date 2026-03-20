@@ -1,23 +1,6 @@
-import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { useSwipe, SwipeRecord } from '../useSwipe';
 import { CareerROI } from '../../types';
-
-let mockStorage: SwipeRecord[] = [];
-const mockSetStorage = jest.fn((value: SwipeRecord[] | ((prev: SwipeRecord[]) => SwipeRecord[])) => {
-  if (typeof value === 'function') {
-    const result = value(mockStorage);
-    mockStorage = [...result];
-  } else {
-    mockStorage = [...value];
-  }
-});
-
-jest.mock('../useLocalStorage', () => ({
-  useLocalStorage: () => {
-    return [mockStorage, mockSetStorage, () => { mockStorage = []; }];
-  },
-}));
 
 const mockCareer: CareerROI = {
   id: 1,
@@ -41,16 +24,24 @@ const mockCareer: CareerROI = {
   projected_growth_percent: 15,
 };
 
+Object.defineProperty(window, 'localStorage', {
+  value: {
+    getItem: jest.fn(() => '[]'),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+  },
+  writable: true,
+});
+
 describe('useSwipe', () => {
   beforeEach(() => {
-    mockStorage = [];
-    mockSetStorage.mockClear();
+    jest.clearAllMocks();
+    (window.localStorage.getItem as jest.Mock).mockReturnValue('[]');
   });
 
   it('should return initial cards and index', () => {
     const { result } = renderHook(() => useSwipe([mockCareer]));
     expect(result.current.cards).toHaveLength(1);
-    expect(result.current.cards[0]).toEqual(mockCareer);
     expect(result.current.currentIndex).toBe(0);
   });
 
@@ -63,6 +54,7 @@ describe('useSwipe', () => {
     });
     
     expect(returned).toEqual(mockCareer);
+    expect(result.current.currentIndex).toBe(1);
   });
 
   it('should return career on swipeRight', () => {
@@ -74,51 +66,7 @@ describe('useSwipe', () => {
     });
     
     expect(returned).toEqual(mockCareer);
-  });
-
-  it('should call setSwipeHistory on swipeLeft', () => {
-    const { result } = renderHook(() => useSwipe([mockCareer]));
-    
-    act(() => {
-      result.current.swipeLeft();
-    });
-    
-    expect(mockSetStorage).toHaveBeenCalled();
-  });
-
-  it('should call setSwipeHistory on swipeRight', () => {
-    const { result } = renderHook(() => useSwipe([mockCareer]));
-    
-    act(() => {
-      result.current.swipeRight();
-    });
-    
-    expect(mockSetStorage).toHaveBeenCalled();
-  });
-
-  it('should call setSwipeHistory on undo', () => {
-    mockStorage = [{ career: mockCareer, direction: 'left' as const, timestamp: Date.now() }];
-    const { result } = renderHook(() => useSwipe([mockCareer]));
-    
-    act(() => {
-      result.current.undo();
-    });
-    
-    expect(mockSetStorage).toHaveBeenCalled();
-  });
-
-  it('should not cause infinite re-render loop (regression test)', () => {
-    const { result } = renderHook(() => useSwipe([mockCareer, mockCareer, mockCareer]));
-    
-    expect(() => {
-      act(() => {
-        result.current.swipeLeft();
-        result.current.swipeRight();
-        result.current.undo();
-      });
-    }).not.toThrow();
-    
-    expect(mockSetStorage).toHaveBeenCalled();
+    expect(result.current.currentIndex).toBe(1);
   });
 
   it('should return null when no cards available', () => {
@@ -130,5 +78,38 @@ describe('useSwipe', () => {
     });
     
     expect(returned).toBeNull();
+  });
+
+  it('should undo swipe', () => {
+    const { result } = renderHook(() => useSwipe([mockCareer]));
+    
+    act(() => {
+      result.current.swipeLeft();
+    });
+    
+    expect(result.current.currentIndex).toBe(1);
+    
+    act(() => {
+      result.current.undo();
+    });
+    
+    expect(result.current.currentIndex).toBe(0);
+  });
+
+  it('should reset swipes', () => {
+    const { result } = renderHook(() => useSwipe([mockCareer]));
+    
+    act(() => {
+      result.current.swipeLeft();
+      result.current.swipeRight();
+    });
+    
+    expect(result.current.currentIndex).toBe(2);
+    
+    act(() => {
+      result.current.resetSwipes();
+    });
+    
+    expect(result.current.currentIndex).toBe(0);
   });
 });

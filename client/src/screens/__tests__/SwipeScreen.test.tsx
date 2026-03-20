@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, act } from '@testing-library/react-native';
 import { SwipeScreen } from '../SwipeScreen';
 
 jest.mock('../../hooks/useSwipe', () => ({
@@ -63,7 +63,7 @@ jest.mock('../../constants/dataSources', () => ({
 
 jest.mock('../../api/client', () => ({
   apiClient: {
-    getCareers: jest.fn(() => Promise.resolve({ records: [] })),
+    getCareers: () => Promise.resolve({ records: [] }),
     submitSwipe: jest.fn().mockResolvedValue(undefined),
   },
 }));
@@ -76,8 +76,8 @@ jest.mock('@react-navigation/native', () => ({
 
 describe('SwipeScreen', () => {
   it('should render SwipeScreen without errors', () => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
-    render(<SwipeScreen />);
-    consoleError.mockRestore();
+    act(() => {
+      render(<SwipeScreen />);
+    });
   });
 });

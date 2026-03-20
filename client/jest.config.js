@@ -4,7 +4,6 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.(ts|tsx)'],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', { 
-      isolatedModules: true,
       tsconfig: {
         jsx: 'react-jsx',
       }
@@ -15,5 +14,5 @@ module.exports = {
     '^@react-navigation/native$': '<rootDir>/__mocks__/@react-navigation/native.js',
     '^@react-native-async-storage/async-storage$': '<rootDir>/__mocks__/async-storage.js',
   },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 };
