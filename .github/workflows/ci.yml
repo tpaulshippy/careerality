@@ -43,7 +43,7 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/server_test
         run: |
           bundle exec rails db:test:prepare
           bundle exec test
