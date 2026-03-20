@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
 import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
-import { FilterChip, SwipeCard, SwipeControls, FilterSheet, FeedbackModal, CareerDetailView } from '../components';
+import { SwipeCard, SwipeControls, FeedbackModal, CareerDetailView } from '../components';
 import { useTheme } from '../hooks/useTheme';
-import { FilterState } from '../components/FilterSheet';
-import { LOCATION_OPTIONS, SALARY_RANGES } from '../constants/dataSources';
 
 export const DiscoverScreen: React.FC = () => {
   const theme = useTheme();
@@ -101,12 +99,6 @@ export const DiscoverScreen: React.FC = () => {
     setCardReset(prev => prev + 1);
   }, []);
 
-  const handleFilterApply = useCallback((filterState: FilterState) => {
-    setLocation(filterState.location);
-    setSalaryMin(filterState.minSalary ? parseInt(filterState.minSalary, 10) : 0);
-    setSalaryMax(filterState.maxSalary ? parseInt(filterState.maxSalary, 10) : 1000000);
-  }, [setLocation, setSalaryMin, setSalaryMax]);
-
   const handleUndo = useCallback(() => {
     undo();
   }, [undo]);
@@ -118,20 +110,6 @@ export const DiscoverScreen: React.FC = () => {
   const handleCloseDetails = useCallback(() => {
     setDetailCareer(null);
   }, []);
-
-  const getLocationLabel = () => {
-    if (!filters.location) return null;
-    const option = LOCATION_OPTIONS.find(o => o.value === filters.location);
-    return option ? option.label : filters.location;
-  };
-
-  const getSalaryLabel = () => {
-    if (filters.salaryMin === 0 && filters.salaryMax >= 1000000) return null;
-    const range = SALARY_RANGES.find(r => r.min === filters.salaryMin);
-    return range ? range.label : null;
-  };
-
-  const hasActiveFilters = filters.location || filters.salaryMin > 0 || filters.salaryMax < 1000000;
 
   if (loading) {
     return (
@@ -166,58 +144,15 @@ export const DiscoverScreen: React.FC = () => {
   const currentCard = cards[currentIndex];
   const hasCareers = careers.length > 0;
 
-  const locationLabel = getLocationLabel();
-  const salaryLabel = getSalaryLabel();
-
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]} key={dataKey}>
-      <View style={styles.filterBar}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterBarContent}
-        >
-          {locationLabel && (
-            <FilterChip
-              label={locationLabel}
-              selected
-              onPress={() => setFilterSheetVisible(true)}
-              onRemove={() => {
-                setLocation('');
-                setFilterSheetVisible(false);
-              }}
-            />
-          )}
-          {salaryLabel && (
-            <FilterChip
-              label={salaryLabel}
-              selected
-              onPress={() => setFilterSheetVisible(true)}
-              onRemove={() => {
-                setSalaryMin(0);
-                setSalaryMax(1000000);
-                setFilterSheetVisible(false);
-              }}
-            />
-          )}
-          <FilterChip
-            label="+ Filters"
-            selected={false}
-            onPress={() => setFilterSheetVisible(true)}
-          />
-        </ScrollView>
+      <View style={styles.headerBar}>
         {hasCareers && (
           <Text style={[styles.progress, { color: theme.colors.text.secondary }]}>
             {currentIndex} of {cards.length} reviewed
           </Text>
         )}
       </View>
-
-      <FilterSheet
-        visible={filterSheetVisible}
-        onClose={() => setFilterSheetVisible(false)}
-        onApply={handleFilterApply}
-      />
 
       <View style={styles.cardContainer}>
         {!hasCareers ? (
@@ -226,21 +161,8 @@ export const DiscoverScreen: React.FC = () => {
               No careers found
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.colors.text.secondary }]}>
-              Try adjusting your filters
+              Try again later
             </Text>
-            {hasActiveFilters && (
-              <Text
-                style={[styles.resetFiltersText, { color: theme.colors.primary }]}
-                onPress={() => {
-                  resetFilters();
-                  setLocation('');
-                  setSalaryMin(0);
-                  setSalaryMax(1000000);
-                }}
-              >
-                Reset Filters
-              </Text>
-            )}
           </View>
         ) : currentCard ? (
           <SwipeCard
@@ -259,19 +181,6 @@ export const DiscoverScreen: React.FC = () => {
             <Text style={[styles.emptySubtitle, { color: theme.colors.text.secondary }]}>
               You've reviewed all available careers
             </Text>
-            {hasActiveFilters && (
-              <Text
-                style={[styles.resetFiltersText, { color: theme.colors.primary }]}
-                onPress={() => {
-                  resetFilters();
-                  setLocation('');
-                  setSalaryMin(0);
-                  setSalaryMax(1000000);
-                }}
-              >
-                Reset Filters
-              </Text>
-            )}
           </View>
         )}
       </View>
@@ -322,14 +231,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   } as TextStyle,
-  filterBar: {
+  headerBar: {
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 4,
-  } as ViewStyle,
-  filterBarContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
   } as ViewStyle,
   progress: {
     fontSize: 13,
@@ -354,9 +259,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 16,
-  } as TextStyle,
-  resetFiltersText: {
-    fontSize: 15,
-    fontWeight: '600',
   } as TextStyle,
 });
