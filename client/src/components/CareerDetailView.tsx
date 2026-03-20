@@ -1,30 +1,30 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Card, Header, Section, InfoRow, Button, Loading, ErrorView, SkillBadge } from '../components';
-import { useCareerData } from '../hooks/useCareerData';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { Card, Section, InfoRow, SkillBadge } from '../components';
+import { CareerROI } from '../types';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
 
-export const HomeScreen: React.FC = () => {
+interface CareerDetailViewProps {
+  career: CareerROI;
+  onClose?: () => void;
+}
+
+export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, onClose }) => {
   const theme = useTheme();
-  const { career, loading, error, refetch } = useCareerData();
-
-  if (loading) {
-    return <Loading />;
-  }
-
-  if (error || !career) {
-    return <ErrorView message={error || 'No career data available'} onRetry={refetch} />;
-  }
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Header title="Careerality" subtitle="Discover career investment returns" />
+      {onClose && (
+        <TouchableOpacity onPress={onClose} style={styles.backButton}>
+          <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
+        </TouchableOpacity>
+      )}
 
       <Card>
         <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>{career.occupation_name}</Text>
         <Text style={[styles.occupationCode, { color: theme.colors.text.secondary }]}>{career.occupation_code}</Text>
-        
+
         <Section title="Salary Information">
           <InfoRow label="Median Salary" value={formatCurrency(career.annual_median_salary)} />
           {career.adjusted_salary !== career.annual_median_salary && (
@@ -72,10 +72,6 @@ export const HomeScreen: React.FC = () => {
           </Section>
         )}
       </Card>
-
-      <Button title="Find Another Career" onPress={refetch} style={styles.button} />
-
-      <Text style={[styles.footer, { color: theme.colors.text.muted }]}>Data sourced from Bureau of Labor Statistics</Text>
     </ScrollView>
   );
 };
@@ -84,6 +80,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   } as ViewStyle,
+  backButton: {
+    padding: 16,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+  } as TextStyle,
   occupationName: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -105,13 +108,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
     gap: 8,
   } as ViewStyle,
-  button: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-  } as ViewStyle,
-  footer: {
-    textAlign: 'center',
-    fontSize: 12,
-    marginBottom: 30,
-  } as TextStyle,
 });

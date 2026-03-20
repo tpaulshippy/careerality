@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, StyleSheet, TextStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { HomeScreen, DataSourcesScreen, SwipeScreen } from './src/screens';
+import { DiscoverScreen, DataSourcesScreen } from './src/screens';
 import { CustomDrawerContent } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
 import { lightColors, darkColors } from './src/constants/theme';
@@ -53,12 +53,12 @@ export default function App() {
         }}
       >
         <Drawer.Screen 
-          name="Home" 
-          component={HomeScreen}
+          name="Discover" 
+          component={DiscoverScreen}
           options={{
-            title: 'Explore',
+            title: 'Discover',
             drawerIcon: () => (
-              <Text style={styles.icon}>📊</Text>
+              <Text style={styles.icon}>🔍</Text>
             ),
           }}
         />
@@ -69,16 +69,6 @@ export default function App() {
             title: 'Data Sources',
             drawerIcon: () => (
               <Text style={styles.icon}>📁</Text>
-            ),
-          }}
-        />
-        <Drawer.Screen 
-          name="Swipe" 
-          component={SwipeScreen}
-          options={{
-            title: 'Swipe',
-            drawerIcon: () => (
-              <Text style={styles.icon}>👆</Text>
             ),
           }}
         />
