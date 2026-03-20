@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CareerROI } from '../types';
-import { API_URL } from '../constants/dataSources';
+import { apiClient } from '../api/client';
 
 interface UseCareerDataResult {
   career: CareerROI | null;
@@ -18,12 +18,8 @@ export const useCareerData = (): UseCareerDataResult => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}?sort=demand`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      const json = await response.json();
-      const data: CareerROI[] = json.records || json;
+      const json = await apiClient.getCareers({ sort: 'demand' }) as { records: CareerROI[] } | CareerROI[];
+      const data: CareerROI[] = Array.isArray(json) ? json : (json.records || []);
       if (data.length > 0) {
         const top50 = data.slice(0, 50);
         const randomIndex = Math.floor(Math.random() * top50.length);
@@ -31,9 +27,8 @@ export const useCareerData = (): UseCareerDataResult => {
       } else {
         setError('No careers found');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load career data');
-      console.error(err);
     } finally {
       setLoading(false);
     }

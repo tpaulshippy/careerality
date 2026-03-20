@@ -488,6 +488,117 @@ def load_cost_of_living():
         cursor.close()
         conn.close()
 
+
+def load_state_employment_projections():
+    import json
+    
+    print("Loading state employment projections data...")
+    
+    long_term_file = os.path.join(DATA_DIR, 'projections', 'state_employment_projections_long_term.json')
+    short_term_file = os.path.join(DATA_DIR, 'projections', 'state_employment_projections_short_term.json')
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        if os.path.exists(long_term_file):
+            print(f"  Loading Long-Term projections from {long_term_file}...")
+            with open(long_term_file, 'r') as f:
+                projections = json.load(f)
+            
+            values = []
+            for row in projections:
+                base_emp = clean_int(row.get('base_employment'))
+                projected_emp = clean_int(row.get('projected_employment'))
+                change = clean_int(row.get('change'))
+                pct_change = clean_numeric(row.get('percent_change'))
+                openings = clean_int(row.get('avg_annual_openings'))
+                base_year = clean_int(row.get('base_year'))
+                proj_year = clean_int(row.get('proj_year'))
+                
+                values.append((
+                    row.get('state_fips'),
+                    row.get('state_abbr'),
+                    row.get('occ_code'),
+                    row.get('title'),
+                    base_emp,
+                    projected_emp,
+                    change,
+                    pct_change,
+                    openings,
+                    base_year,
+                    proj_year,
+                    'long_term'
+                ))
+            
+            query = '''
+                INSERT INTO state_employment_projections 
+                (state_fips, state_abbr, occ_code, occupation_title, base_employment, 
+                 projected_employment, employment_change, percent_change, avg_annual_openings,
+                 base_year, proj_year, projection_type)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT DO NOTHING
+            '''
+            
+            from psycopg2.extras import execute_batch
+            execute_batch(cursor, query, values)
+            conn.commit()
+            print(f"    Loaded {len(values)} long-term projection records")
+        else:
+            print(f"  Long-term projections file not found")
+        
+        if os.path.exists(short_term_file):
+            print(f"  Loading Short-Term projections from {short_term_file}...")
+            with open(short_term_file, 'r') as f:
+                projections = json.load(f)
+            
+            values = []
+            for row in projections:
+                base_emp = clean_int(row.get('base_employment'))
+                projected_emp = clean_int(row.get('projected_employment'))
+                change = clean_int(row.get('change'))
+                pct_change = clean_numeric(row.get('percent_change'))
+                openings = clean_int(row.get('avg_annual_openings'))
+                base_year = clean_int(row.get('base_year'))
+                proj_year = clean_int(row.get('proj_year'))
+                
+                values.append((
+                    row.get('state_fips'),
+                    row.get('state_abbr'),
+                    row.get('occ_code'),
+                    row.get('title'),
+                    base_emp,
+                    projected_emp,
+                    change,
+                    pct_change,
+                    openings,
+                    base_year,
+                    proj_year,
+                    'short_term'
+                ))
+            
+            query = '''
+                INSERT INTO state_employment_projections 
+                (state_fips, state_abbr, occ_code, occupation_title, base_employment, 
+                 projected_employment, employment_change, percent_change, avg_annual_openings,
+                 base_year, proj_year, projection_type)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT DO NOTHING
+            '''
+            
+            from psycopg2.extras import execute_batch
+            execute_batch(cursor, query, values)
+            conn.commit()
+            print(f"    Loaded {len(values)} short-term projection records")
+        else:
+            print(f"  Short-term projections file not found")
+    
+    except Exception as e:
+        print(f"  Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
 def load_bls_state_wages():
     log("Loading BLS state wages data...")
     
@@ -1010,6 +1121,9 @@ def main():
     load_cost_of_living()
     log("")
     
+    load_state_employment_projections()
+    log("")
+    
     log("=" * 60)
     log("Data loading complete!")
     log("=" * 60)
@@ -1028,6 +1142,7 @@ def main():
         UNION ALL SELECT 'salary_sector', COUNT(*) FROM salary_sector
         UNION ALL SELECT 'cost_of_living', COUNT(*) FROM cost_of_living
         UNION ALL SELECT 'onet_data', COUNT(*) FROM onet_data
+        UNION ALL SELECT 'state_employment_projections', COUNT(*) FROM state_employment_projections
     """)
     log("\nTable summary:")
     for row in cursor.fetchall():

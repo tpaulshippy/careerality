@@ -142,9 +142,7 @@ GEM
     mcp (0.8.0)
       json-schema (>= 4.1)
     mini_mime (1.1.5)
-    minitest (6.0.2)
-      drb (~> 2.0)
-      prism (~> 1.5)
+    minitest (5.27.0)
     msgpack (1.8.0)
     net-imap (0.6.3)
       date
@@ -317,6 +315,7 @@ DEPENDENCIES
   brakeman
   debug
   kamal
+  minitest (~> 5.20)
   pagy (~> 8.0)
   pg (~> 1.1)
   puma (>= 5.0)
