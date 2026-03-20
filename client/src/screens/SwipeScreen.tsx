@@ -21,6 +21,7 @@ export const SwipeScreen: React.FC = () => {
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [currentCareerName, setCurrentCareerName] = useState('');
   const [dataKey, setDataKey] = useState(0);
+  const [cardReset, setCardReset] = useState(0);
   const fetchKeyRef = useRef(0);
 
   const { filters, setLocation, setSalaryMin, setSalaryMax } = useFilters();
@@ -98,6 +99,7 @@ export const SwipeScreen: React.FC = () => {
 
   const handleFeedbackSubmit = useCallback(() => {
     setFeedbackVisible(false);
+    setCardReset(prev => prev + 1);
   }, []);
 
   const handleFilterApply = useCallback((filterState: { location: string; minSalary: string; maxSalary: string }) => {
@@ -167,6 +169,8 @@ export const SwipeScreen: React.FC = () => {
             career={currentCard}
             onSwipeLeft={handleSwipeLeft}
             onSwipeRight={handleSwipeRight}
+            cardKey={currentIndex}
+            shouldReset={cardReset}
           />
         ) : (
           <View style={[styles.emptyState, { backgroundColor: theme.colors.surface }]}>
