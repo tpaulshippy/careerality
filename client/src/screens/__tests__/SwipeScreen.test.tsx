@@ -1,30 +1,10 @@
 import React from 'react';
-
-const mockCareer = {
-  id: 1,
-  occupation_code: '15-1234',
-  occupation_name: 'Software Developer',
-  area_code: '99',
-  area_name: 'National',
-  annual_median_salary: '95000',
-  education_cost: '40000',
-  years_to_breakeven: 3,
-  roi_percentage: '137',
-  job_zone: 4,
-  education_level: "Bachelor's",
-  skills: ['programming', 'debugging'],
-  cost_of_living_index: '100',
-  adjusted_salary: '95000',
-  industry_code: '54',
-  industry_name: 'Professional Services',
-  demand_rank: 1,
-  avg_annual_openings: 50000,
-  projected_growth_percent: 15,
-};
+import { render } from '@testing-library/react-native';
+import { SwipeScreen } from '../SwipeScreen';
 
 jest.mock('../../hooks/useSwipe', () => ({
   useSwipe: () => ({
-    cards: [mockCareer],
+    cards: [],
     swipeLeft: jest.fn(),
     swipeRight: jest.fn(),
     undo: jest.fn(),
@@ -50,6 +30,7 @@ jest.mock('../../hooks/useTheme', () => ({
       background: '#FFFFFF',
       surface: '#F2F2F2',
       text: { primary: '#000000', secondary: '#666666' },
+      error: '#FF0000',
     },
   }),
 }));
@@ -79,25 +60,14 @@ jest.mock('../../constants/dataSources', () => ({
   API_URL: 'http://localhost:3000/api/roi',
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({
+    addListener: jest.fn(() => jest.fn()),
+  }),
+}));
+
 describe('SwipeScreen', () => {
-  it('should have useSwipe hook defined', () => {
-    const { useSwipe } = require('../../hooks/useSwipe');
-    const result = useSwipe([]);
-    expect(result).toHaveProperty('cards');
-    expect(result).toHaveProperty('swipeLeft');
-    expect(result).toHaveProperty('swipeRight');
-  });
-
-  it('should have useFilters hook defined', () => {
-    const { useFilters } = require('../../hooks/useFilters');
-    const result = useFilters();
-    expect(result).toHaveProperty('filters');
-    expect(result).toHaveProperty('setLocation');
-  });
-
-  it('should have mockCareer with required fields', () => {
-    expect(mockCareer).toHaveProperty('id');
-    expect(mockCareer).toHaveProperty('occupation_name');
-    expect(mockCareer).toHaveProperty('annual_median_salary');
+  it('should render SwipeScreen without errors', () => {
+    expect(() => render(<SwipeScreen />)).not.toThrow();
   });
 });

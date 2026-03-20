@@ -3,7 +3,12 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testMatch: ['**/__tests__/**/*.test.(ts|tsx)'],
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { isolatedModules: true }],
+    '^.+\\.(ts|tsx)$': ['ts-jest', { 
+      isolatedModules: true,
+      tsconfig: {
+        jsx: 'react-jsx',
+      }
+    }],
   },
   moduleNameMapper: {
     '^react-native$': '<rootDir>/__mocks__/react-native.js',
