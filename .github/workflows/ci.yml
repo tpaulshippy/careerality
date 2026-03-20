@@ -38,7 +38,7 @@ jobs:
         run: bundle exec rubocop -f github
 
       - name: Security scan
-        run: bundle exec brakeman --no-pager --ignore EOLRuby
+        run: bundle exec brakeman --no-pager --except EOLRuby
 
       - name: Run tests
         env:
