@@ -27,7 +27,18 @@ class Api::RoiController < ApplicationController
     when "demand"
         demand_query = base_query.where("demand_rank IS NOT NULL")
         if demand_query.count > 0
-          demand_query.order("demand_rank ASC NULLS LAST, projected_growth_percent DESC NULLS LAST")
+          # Use weighted random ordering that prioritizes high-demand careers
+          # but adds randomization for variety. Weights:
+          # - 50%: Inverse of demand_rank (lower rank = higher score)
+          # - 30%: Projected growth percentage
+          # - 20%: Pure randomness
+          demand_query.order(Arel.sql("
+            (1.0 / GREATEST(demand_rank, 1)) * 0.5 +
+            (COALESCE(projected_growth_percent, 0) / 100.0) * 0.3 +
+            RANDOM() * 0.2 DESC,
+            demand_rank ASC,
+            projected_growth_percent DESC
+          "))
         else
           base_query.order(roi_percentage: :desc)
         end
