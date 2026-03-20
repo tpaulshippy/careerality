@@ -1,6 +1,6 @@
 class Career < ApplicationRecord
-  self.table_name = 'salary_occupations'
-  self.primary_key = 'occupation_code'
+  self.table_name = "salary_occupations"
+  self.primary_key = "occupation_code"
 
   def as_json(options = {})
     {

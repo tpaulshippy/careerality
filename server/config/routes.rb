@@ -1,8 +1,8 @@
 Rails.application.routes.draw do
   namespace :api do
-    resources :careers, only: [:index, :show]
-    resources :swipes, only: [:index, :create]
-    resources :roi, only: [:index, :show] do
+    resources :careers, only: [ :index, :show ]
+    resources :swipes, only: [ :index, :create ]
+    resources :roi, only: [ :index, :show ] do
       collection do
         get :by_salary
         get :by_roi

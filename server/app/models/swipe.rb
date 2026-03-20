@@ -1,3 +1,3 @@
 class Swipe < ApplicationRecord
-  self.table_name = 'swipes'
+  self.table_name = "swipes"
 end
