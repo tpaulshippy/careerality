@@ -45,7 +45,8 @@ jobs:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/server_test
         run: |
-          bundle exec rails db:test:prepare
+          bundle exec rails db:create RAILS_ENV=test 2>/dev/null || true
+          bundle exec rails db:test:prepare --trace
           bundle exec test
 
   client:
