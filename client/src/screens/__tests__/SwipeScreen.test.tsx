@@ -58,6 +58,14 @@ jest.mock('../../components', () => ({
 
 jest.mock('../../constants/dataSources', () => ({
   API_URL: 'http://localhost:3000/api/roi',
+  API_BASE: 'http://localhost:3000',
+}));
+
+jest.mock('../../api/client', () => ({
+  apiClient: {
+    getCareers: jest.fn(() => Promise.resolve({ records: [] })),
+    submitSwipe: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 jest.mock('@react-navigation/native', () => ({
@@ -68,6 +76,8 @@ jest.mock('@react-navigation/native', () => ({
 
 describe('SwipeScreen', () => {
   it('should render SwipeScreen without errors', () => {
-    expect(() => render(<SwipeScreen />)).not.toThrow();
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    render(<SwipeScreen />);
+    consoleError.mockRestore();
   });
 });
