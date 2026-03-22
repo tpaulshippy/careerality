@@ -1,23 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   Modal, 
   TouchableOpacity, 
-  TextInput,
   StyleSheet,
   ViewStyle,
   TextStyle,
   TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import RangeSlider from 'react-native-range-slider';
 import { useTheme } from '../hooks/useTheme';
 
 export interface FilterState {
-  location: string;
-  minSalary: string;
-  maxSalary: string;
+  stateCode: string;
+  minSalary: number;
+  maxSalary: number;
 }
 
 interface FilterSheetProps {
@@ -28,9 +30,9 @@ interface FilterSheetProps {
 }
 
 const defaultFilters: FilterState = {
-  location: '',
-  minSalary: '',
-  maxSalary: '',
+  stateCode: '99',
+  minSalary: 0,
+  maxSalary: 1000000,
 };
 
 export const FilterSheet: React.FC<FilterSheetProps> = ({
@@ -41,6 +43,27 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
 }) => {
   const theme = useTheme();
   const [filters, setFilters] = useState<FilterState>(initialFilters || defaultFilters);
+  const [states, setStates] = useState<{ area_code: string; area_name: string }[]>([]);
+  const [statesLoading, setStatesLoading] = useState(false);
+  const [statesError, setStatesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStates = async () => {
+      setStatesLoading(true);
+      setStatesError(null);
+      try {
+        const response = await fetch('/api/areas/states');
+        if (!response.ok) throw new Error('Failed to fetch states');
+        const data = await response.json();
+        setStates(data.states || []);
+      } catch (err) {
+        setStatesError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setStatesLoading(false);
+      }
+    };
+    fetchStates();
+  }, []);
 
   const handleApply = () => {
     onApply(filters);
@@ -53,8 +76,12 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
     onClose();
   };
 
-  const updateFilter = (key: keyof FilterState, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  const updateStateCode = (stateCode: string) => {
+    setFilters(prev => ({ ...prev, stateCode }));
+  };
+
+  const handleSalaryChange = (selectedMin: number, selectedMax: number) => {
+    setFilters(prev => ({ ...prev, minSalary: selectedMin, maxSalary: selectedMax }));
   };
 
   return (
@@ -90,71 +117,65 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
               <View style={styles.content}>
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-                    Location
+                    State Code
                   </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { 
-                        backgroundColor: theme.colors.background,
-                        color: theme.colors.text.primary,
-                        borderColor: theme.colors.border,
-                      }
-                    ]}
-                    placeholder="Enter city or remote"
-                    placeholderTextColor={theme.colors.text.muted}
-                    value={filters.location}
-                    onChangeText={(text) => updateFilter('location', text)}
-                  />
+                  {statesLoading ? (
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                  ) : statesError ? (
+                    <Text style={{ color: theme.colors.text.muted }}>{statesError}</Text>
+                  ) : (
+                    <Picker
+                      selectedValue={filters.stateCode}
+                      onValueChange={(value) => updateStateCode(value as string)}
+                      style={[
+                        styles.input,
+                        { 
+                          backgroundColor: theme.colors.background,
+                          color: theme.colors.text.primary,
+                          borderColor: theme.colors.border,
+                        }
+                      ]}
+                    >
+                      <Picker.Item label="National" value="99" />
+                      {states.map((state) => (
+                        <Picker.Item
+                          key={state.area_code}
+                          label={state.area_name}
+                          value={state.area_code}
+                        />
+                      ))}
+                    </Picker>
+                  )}
                 </View>
 
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
                     Salary Range
                   </Text>
-                  <View style={styles.salaryRow}>
-                    <View style={styles.salaryInput}>
-                      <Text style={[styles.inputLabel, { color: theme.colors.text.secondary }]}>
-                        Min
-                      </Text>
-                      <TextInput
-                        style={[
-                          styles.input,
-                          { 
-                            backgroundColor: theme.colors.background,
-                            color: theme.colors.text.primary,
-                            borderColor: theme.colors.border,
-                          }
-                        ]}
-                        placeholder="$0"
-                        placeholderTextColor={theme.colors.text.muted}
-                        value={filters.minSalary}
-                        onChangeText={(text) => updateFilter('minSalary', text)}
-                        keyboardType="numeric"
-                      />
-                    </View>
-                    <View style={styles.salaryDivider} />
-                    <View style={styles.salaryInput}>
-                      <Text style={[styles.inputLabel, { color: theme.colors.text.secondary }]}>
-                        Max
-                      </Text>
-                      <TextInput
-                        style={[
-                          styles.input,
-                          { 
-                            backgroundColor: theme.colors.background,
-                            color: theme.colors.text.primary,
-                            borderColor: theme.colors.border,
-                          }
-                        ]}
-                        placeholder="No limit"
-                        placeholderTextColor={theme.colors.text.muted}
-                        value={filters.maxSalary}
-                        onChangeText={(text) => updateFilter('maxSalary', text)}
-                        keyboardType="numeric"
-                      />
-                    </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text style={[styles.inputLabel, { color: theme.colors.text.secondary }]}>
+                      ${filters.minSalary.toLocaleString()}
+                    </Text>
+                    <Text style={[styles.inputLabel, { color: theme.colors.text.secondary }]}>
+                      ${filters.maxSalary.toLocaleString()}
+                    </Text>
                   </View>
+                  <RangeSlider
+                    minValue={0}
+                    maxValue={1000000}
+                    step={1000}
+                    selectedMinimum={filters.minSalary}
+                    selectedMaximum={filters.maxSalary}
+                    onChange={(data: { selectedMinimum: number; selectedMaximum: number }) => {
+                      if (data && typeof data === 'object') {
+                        handleSalaryChange(data.selectedMinimum, data.selectedMaximum);
+                      }
+                    }}
+                    style={{ height: 70, padding: 10, backgroundColor: theme.colors.background }}
+                    tintColor={theme.colors.primary}
+                    handleBorderColor={theme.colors.border}
+                    handleBorderWidth={1}
+                  />
                 </View>
               </View>
 

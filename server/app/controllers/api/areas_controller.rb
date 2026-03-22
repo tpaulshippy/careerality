@@ -10,7 +10,8 @@ class Api::AreasController < ApplicationController
 
     # Add National option
     national = { area_code: "99", area_name: "National" }
+    states_array = states.map { |s| { area_code: s.area_code, area_name: s.area_name } }
 
-    render json: { states: [national] + states.as_json }
+    render json: { states: [national] + states_array }
   end
 end

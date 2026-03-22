@@ -107,7 +107,7 @@ pagy, records = pagy(roi_records, items: 50)
   def area_name
     area_code = params[:area_code] || params[:area] || params[:location]
     return nil unless area_code.present?
-    area = CareerRoi.where(area_code: area_code).select(:area_name).distinct.first
-    area&.area_name || "State #{area_code}"
+    area_name = CareerRoi.where(area_code: area_code).pick(:area_name)
+    area_name || "State #{area_code}"
   end
 end

@@ -51,7 +51,7 @@ export interface Swipe {
 }
 
 export interface FilterState {
-  location: string | null;
+  stateCode: string | null;
   salaryMin: number | null;
   salaryMax: number | null;
 }

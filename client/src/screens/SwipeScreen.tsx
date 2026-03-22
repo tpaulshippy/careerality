@@ -7,7 +7,7 @@ import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
 import { SwipeCard } from '../components/SwipeCard';
 import { SwipeControls } from '../components/SwipeControls';
-import { FilterSheet } from '../components/FilterSheet';
+import { FilterSheet, FilterState } from '../components/FilterSheet';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { useTheme } from '../hooks/useTheme';
 
@@ -24,7 +24,7 @@ export const SwipeScreen: React.FC = () => {
   const [cardReset, setCardReset] = useState(0);
   const fetchKeyRef = useRef(0);
 
-  const { filters, setLocation, setSalaryMin, setSalaryMax } = useFilters();
+  const { filters, setStateCode, setSalaryMin, setSalaryMax } = useFilters();
   const { cards, swipeLeft, swipeRight, undo, currentIndex, resetSwipes } = useSwipe(careers);
 
   const fetchCareers = useCallback(async () => {
@@ -34,7 +34,7 @@ export const SwipeScreen: React.FC = () => {
     
     try {
       const params: Record<string, string | number> = {};
-      if (filters.location) params.area_code = filters.location;
+      if (filters.stateCode) params.area_code = filters.stateCode;
       if (filters.salaryMin > 0) params.min_salary = filters.salaryMin;
       if (filters.salaryMax < 1000000) params.max_salary = filters.salaryMax;
 
@@ -55,7 +55,7 @@ export const SwipeScreen: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [filters.location, filters.salaryMin, filters.salaryMax, resetSwipes]);
+  }, [filters.stateCode, filters.salaryMin, filters.salaryMax, resetSwipes]);
 
   useEffect(() => {
     fetchCareers();
@@ -101,11 +101,11 @@ export const SwipeScreen: React.FC = () => {
     setCardReset(prev => prev + 1);
   }, []);
 
-  const handleFilterApply = useCallback((filterState: { location: string; minSalary: string; maxSalary: string }) => {
-    setLocation(filterState.location);
-    setSalaryMin(filterState.minSalary ? parseInt(filterState.minSalary, 10) : 0);
-    setSalaryMax(filterState.maxSalary ? parseInt(filterState.maxSalary, 10) : 1000000);
-  }, [setLocation, setSalaryMin, setSalaryMax]);
+  const handleFilterApply = useCallback((filterState: FilterState) => {
+    setStateCode(filterState.stateCode);
+    setSalaryMin(filterState.minSalary);
+    setSalaryMax(filterState.maxSalary);
+  }, [setStateCode, setSalaryMin, setSalaryMax]);
 
   const handleUndo = useCallback(() => {
     undo();

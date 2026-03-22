@@ -10,7 +10,7 @@ interface SwipeCardProps {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   cardKey?: string | number;
-  shouldReset?: boolean;
+  shouldReset?: number;
 }
 
 const SWIPE_THRESHOLD = 100;
