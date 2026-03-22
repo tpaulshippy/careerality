@@ -22,7 +22,8 @@ class CareerRoi < ApplicationRecord
       industry_name: industry_name,
       demand_rank: demand_rank,
       avg_annual_openings: avg_annual_openings,
-      projected_growth_percent: projected_growth_percent
+      projected_growth_percent: projected_growth_percent,
+      demand_score: demand_score
     }
   end
 end

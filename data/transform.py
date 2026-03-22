@@ -756,6 +756,11 @@ def transform_career_roi():
         demand_rank = demand_info['rank'] if demand_info else None
         avg_annual_openings = demand_info['avg_annual_openings'] if demand_info else None
         projected_growth_percent = demand_info['pct_change'] if demand_info else None
+        
+        # Pre-compute demand_score for efficient ordering in API
+        demand_score = None
+        if demand_rank is not None:
+            demand_score = (1.0 / demand_rank) * 0.5 + (projected_growth_percent or 0) / 100.0 * 0.3
 
         values.append((
             occ_code,
@@ -775,7 +780,8 @@ def transform_career_roi():
             float(adjusted_salary),
             demand_rank,
             int(avg_annual_openings) if avg_annual_openings else None,
-            float(projected_growth_percent) if projected_growth_percent else None
+            float(projected_growth_percent) if projected_growth_percent else None,
+            float(demand_score) if demand_score is not None else None
         ))
 
     query = """
@@ -783,8 +789,8 @@ def transform_career_roi():
         (occupation_code, occupation_name, area_code, area_name, industry_code, industry_name,
          annual_median_salary, education_cost, years_to_breakeven, roi_percentage, job_zone, 
          education_level, skills, cost_of_living_index, adjusted_salary, demand_rank, 
-         avg_annual_openings, projected_growth_percent, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+         avg_annual_openings, projected_growth_percent, demand_score, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         ON CONFLICT (occupation_code, area_code, industry_code) DO NOTHING
     """
 
