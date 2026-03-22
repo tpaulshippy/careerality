@@ -1,0 +1,16 @@
+class Api::AreasController < ApplicationController
+  def states
+    # Get state-level entries from career_roi (area codes are numeric, length <= 2, no comma in name)
+    states = CareerRoi.select(:area_code, :area_name)
+                      .distinct
+                      .where("area_code ~ '^[0-9]+$'")
+                      .where("length(area_code) <= 2")
+                      .where("area_name NOT LIKE '%,%'")
+                      .order(:area_code)
+
+    # Add National option
+    national = { area_code: "99", area_name: "National" }
+
+    render json: { states: [national] + states.as_json }
+  end
+end
