@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, act } from '@testing-library/react-native';
-import { SwipeScreen } from '../SwipeScreen';
+import { DiscoverScreen } from '../DiscoverScreen';
 
 jest.mock('../../hooks/useSwipe', () => ({
   useSwipe: () => ({
@@ -29,8 +29,13 @@ jest.mock('../../hooks/useTheme', () => ({
       primary: '#007AFF',
       background: '#FFFFFF',
       surface: '#F2F2F2',
-      text: { primary: '#000000', secondary: '#666666' },
+      text: { primary: '#000000', secondary: '#666666', muted: '#999999' },
       error: '#FF0000',
+      success: '#00CC00',
+    },
+    shadows: {
+      card: {},
+      subtle: {},
     },
   }),
 }));
@@ -51,14 +56,36 @@ jest.mock('../../components/FeedbackModal', () => ({
   FeedbackModal: () => null,
 }));
 
+jest.mock('../../components/CareerDetailView', () => ({
+  CareerDetailView: () => null,
+}));
+
+jest.mock('../../components/FilterChip', () => ({
+  FilterChip: () => null,
+}));
+
 jest.mock('../../components', () => ({
-  Loading: ({ message: _message }) => null,
+  Loading: () => null,
   ErrorView: () => null,
+  FilterChip: () => null,
+  SwipeCard: () => null,
+  SwipeControls: () => null,
+  FilterSheet: () => null,
+  FeedbackModal: () => null,
+  CareerDetailView: () => null,
 }));
 
 jest.mock('../../constants/dataSources', () => ({
   API_URL: 'http://localhost:3000/api/roi',
   API_BASE: 'http://localhost:3000',
+  LOCATION_OPTIONS: [
+    { label: 'All Locations', value: 'all' },
+    { label: 'Northeast', value: 'northeast' },
+  ],
+  SALARY_RANGES: [
+    { label: 'Any Salary', min: 0, max: Infinity },
+    { label: '$50,000+', min: 50000, max: Infinity },
+  ],
 }));
 
 jest.mock('../../api/client', () => ({
@@ -74,10 +101,10 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
-describe('SwipeScreen', () => {
-  it('should render SwipeScreen without errors', () => {
+describe('DiscoverScreen', () => {
+  it('should render DiscoverScreen without errors', () => {
     act(() => {
-      render(<SwipeScreen />);
+      render(<DiscoverScreen />);
     });
   });
 });

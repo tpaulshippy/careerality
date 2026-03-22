@@ -4,13 +4,11 @@ import {
   Text, 
   Modal, 
   TouchableOpacity, 
+  ActivityIndicator,
   StyleSheet,
   ViewStyle,
   TextStyle,
   TouchableWithoutFeedback,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import RangeSlider from 'react-native-range-slider';
@@ -94,13 +92,10 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <KeyboardAvoidingView 
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={[
-                styles.sheet,
-                { backgroundColor: theme.colors.surface }
-              ]}
-            >
+            <View style={[
+              styles.sheet,
+              { backgroundColor: theme.colors.surface }
+            ]}>
               <View style={styles.handle} />
               
               <View style={styles.header}>
@@ -207,7 +202,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                   </Text>
                 </TouchableOpacity>
               </View>
-            </KeyboardAvoidingView>
+            </View>
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
@@ -264,27 +259,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 12,
   } as TextStyle,
-  input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-  } as TextStyle,
-  salaryRow: {
+  chipRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'nowrap',
   } as ViewStyle,
-  salaryInput: {
-    flex: 1,
-  } as ViewStyle,
-  salaryDivider: {
-    width: 16,
-  } as ViewStyle,
-  inputLabel: {
-    fontSize: 13,
-    marginBottom: 6,
-  } as TextStyle,
   footer: {
     flexDirection: 'row',
     gap: 12,
