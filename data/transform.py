@@ -575,7 +575,7 @@ def transform_career_roi():
         'MS': '28', 'MO': '29', 'MT': '30', 'NE': '31', 'NV': '32', 'NH': '33', 'NJ': '34', 'NM': '35',
         'NY': '36', 'NC': '37', 'ND': '38', 'OH': '39', 'OK': '40', 'OR': '41', 'PA': '42', 'RI': '44',
         'SC': '45', 'SD': '46', 'TN': '47', 'TX': '48', 'UT': '49', 'VT': '50', 'VA': '51', 'WA': '53',
-        'WV': '54', 'WI': '55', 'WY': '56', 'PR': '72'
+        'WV': '54', 'WI': '55', 'WY': '56', 'PR': '72', 'US': '00'
     }
     cursor.execute("""
         SELECT area_code, col_index FROM career_cost_of_living
@@ -759,8 +759,10 @@ def transform_career_roi():
         
         # Pre-compute demand_score for efficient ordering in API
         demand_score = None
-        if demand_rank is not None:
-            demand_score = (1.0 / demand_rank) * 0.5 + (projected_growth_percent or 0) / 100.0 * 0.3
+        if demand_rank is not None or projected_growth_percent is not None:
+            rank_component = (1.0 / demand_rank) * 0.5 if demand_rank else 0
+            growth_component = float(projected_growth_percent or 0) / 100.0 * 0.3
+            demand_score = rank_component + growth_component
 
         values.append((
             occ_code,
