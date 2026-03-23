@@ -34,12 +34,12 @@ class Api::RoiController < ApplicationController
           # Use pre-computed demand_score (weighted combination of demand_rank and growth)
           # plus small random component for variety
           demand_query.order(Arel.sql("
-            demand_score + RANDOM() * 0.2 DESC,
+            demand_score + RANDOM() * 2.0 DESC,
             demand_rank ASC,
             projected_growth_percent DESC
           "))
         else
-          base_query.order(roi_percentage: :desc)
+          demand_query.order(roi_percentage: :desc)
         end
     else base_query.order(roi_percentage: :desc)
     end
