@@ -6,12 +6,12 @@ class Api::SwipesController < ApplicationController
 
   def liked
     records = Swipe
-      .where(user_id: params[:user_id], direction: 'right')
+      .where(user_id: params[:user_id], direction: "right")
       .joins("INNER JOIN career_roi ON career_roi.id = swipes.career_id")
       .select("swipes.id AS swipe_id, swipes.created_at AS swiped_at, career_roi.id, career_roi.occupation_code, career_roi.occupation_name, career_roi.area_code, career_roi.area_name, career_roi.annual_median_salary, career_roi.education_cost, career_roi.years_to_breakeven, career_roi.roi_percentage, career_roi.job_zone, career_roi.education_level, career_roi.skills, career_roi.cost_of_living_index, career_roi.adjusted_salary, career_roi.industry_code, career_roi.industry_name, career_roi.demand_rank, career_roi.avg_annual_openings, career_roi.projected_growth_percent, career_roi.demand_score")
       .order("swipes.created_at DESC")
 
-    render json: { records: records.map { |r| 
+    render json: { records: records.map { |r|
       {
         id: r.id,
         occupation_code: r.occupation_code,
@@ -54,7 +54,7 @@ class Api::SwipesController < ApplicationController
       swipe.destroy
       render json: { success: true }
     else
-      render json: { error: 'Swipe not found' }, status: :not_found
+      render json: { error: "Swipe not found" }, status: :not_found
     end
   end
 
