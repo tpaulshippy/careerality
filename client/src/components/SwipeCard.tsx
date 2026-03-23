@@ -45,8 +45,8 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
     return `$${num.toLocaleString()}`;
   };
 
-  const roiValue = parseFloat(career.roi_percentage.replace(/[^0-9.-]/g, ''));
-  const roiColor = roiValue >= 100 ? theme.colors.success : roiValue >= 50 ? theme.colors.warning : theme.colors.error;
+  const demandRank = career.demand_rank;
+  const demandColor = demandRank && demandRank <= 3 ? theme.colors.success : demandRank && demandRank <= 6 ? theme.colors.warning : theme.colors.error;
 
   const handleSwipeLeft = () => {
     onSwipeLeft?.();
@@ -111,9 +111,11 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
           </Text>
         </View>
 
-        <View style={styles.roiContainer}>
-          <Text style={[styles.roiValue, { color: roiColor }]}>{career.roi_percentage}</Text>
-          <Text style={[styles.roiLabel, { color: theme.colors.text.secondary }]}>ROI</Text>
+        <View style={styles.demandContainer}>
+          <Text style={[styles.demandValue, { color: demandColor }]}>
+            {demandRank ? `#${demandRank}` : 'N/A'}
+          </Text>
+          <Text style={[styles.demandLabel, { color: theme.colors.text.secondary }]}>Demand Rank</Text>
         </View>
 
         <View style={styles.statsGrid}>
@@ -168,18 +170,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   } as TextStyle,
-  roiContainer: {
+  demandContainer: {
     alignItems: 'center',
     marginBottom: 20,
     paddingVertical: 16,
     backgroundColor: '#F9FAFB',
     borderRadius: 12,
   } as ViewStyle,
-  roiValue: {
+  demandValue: {
     fontSize: 36,
     fontWeight: 'bold',
   } as TextStyle,
-  roiLabel: {
+  demandLabel: {
     fontSize: 14,
     marginTop: 4,
   } as TextStyle,

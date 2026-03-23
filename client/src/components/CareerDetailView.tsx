@@ -35,10 +35,9 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, onCl
           )}
         </Section>
 
-        <Section title="Investment & ROI">
+        <Section title="Investment">
           <InfoRow label="Education Cost" value={formatCurrency(career.education_cost)} />
           <InfoRow label="Years to Breakeven" value={`${career.years_to_breakeven} years`} />
-          <InfoRow label="ROI" value={formatPercent(career.roi_percentage)} highlight />
         </Section>
 
         <Section title="Location">
