@@ -15,21 +15,35 @@
       }
     },
     "ios": {
+      "bundleIdentifier": "app.careerality.app",
+      "buildNumber": "1",
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.Careerality"
+      "infoPlist": {
+        "NSCameraUsageDescription": "We need camera access for profile photos",
+        "NSPhotoLibraryUsageDescription": "We need photo library access for profile photos"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#1E3A5F",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.Careerality"
+      "package": "app.careerality.app",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1f9cb470-a9c4-44d7-aa40-4f6e3f02641d"
+      }
     }
   }
 }
