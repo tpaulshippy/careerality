@@ -5,6 +5,7 @@ import {
   Modal, 
   TouchableOpacity, 
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
   ViewStyle,
   TextStyle,
@@ -108,7 +109,12 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.content}>
+              <ScrollView
+                style={styles.content}
+                contentContainerStyle={styles.contentInner}
+                showsVerticalScrollIndicator
+                bounces={false}
+              >
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
                     State Code
@@ -121,14 +127,12 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                     <Picker
                       selectedValue={filters.stateCode}
                       onValueChange={(value) => updateStateCode(value as string)}
-                      style={[
-                        styles.input,
-                        { 
-                          backgroundColor: theme.colors.background,
-                          color: theme.colors.text.primary,
-                          borderColor: theme.colors.border,
-                        }
-                      ]}
+                      style={{
+                        backgroundColor: theme.colors.background,
+                        color: theme.colors.text.primary,
+                        borderColor: theme.colors.border,
+                      }}
+                      itemStyle={{ fontSize: 14, height: 100 }}
                     >
                       {states.map((state) => (
                         <Picker.Item
@@ -165,7 +169,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                     markerStyle={{ borderColor: theme.colors.border, borderWidth: 1 }}
                   />
                 </View>
-              </View>
+              </ScrollView>
 
               <View style={styles.footer}>
                 <TouchableOpacity
@@ -210,6 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   } as ViewStyle,
   sheet: {
+    flex: 1,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
@@ -240,7 +245,10 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   } as TextStyle,
   content: {
-    marginBottom: 24,
+    flex: 1,
+  } as ViewStyle,
+  contentInner: {
+    paddingBottom: 24,
   } as ViewStyle,
   section: {
     marginBottom: 24,
