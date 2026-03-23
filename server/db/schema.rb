@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_20_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_20_054857) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -119,6 +119,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_20_000000) do
     t.integer "demand_rank"
     t.integer "avg_annual_openings"
     t.decimal "projected_growth_percent"
+    t.decimal "demand_score", precision: 10, scale: 4
     t.index ["annual_median_salary"], name: "index_career_roi_on_annual_median_salary"
     t.index ["occupation_code", "area_code", "industry_code"], name: "index_career_roi_on_unique_key", unique: true
     t.index ["roi_percentage"], name: "index_career_roi_on_roi_percentage"

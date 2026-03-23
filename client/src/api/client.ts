@@ -1,7 +1,9 @@
 import { API_BASE } from '../constants/dataSources';
+import { getUserId } from '../utils/userId';
 
 export interface SwipePayload {
   career_id: number;
+  user_id: string;
   direction: 'left' | 'right';
 }
 
@@ -44,15 +46,14 @@ class ApiClient {
   }
 
   async submitSwipe(careerId: number, direction: 'left' | 'right'): Promise<void> {
-    await this.post('/api/swipes', { career_id: careerId, direction });
+    await this.post('/api/swipes', { career_id: careerId, user_id: getUserId(), direction });
   }
 
   async getCareers(params?: Record<string, string | number>): Promise<unknown> {
-    const queryString = params
-      ? '?' + new URLSearchParams(
-          Object.entries(params).map(([k, v]) => [k, String(v)])
-        ).toString()
-      : '';
+    const allParams = { ...params, user_id: getUserId() };
+    const queryString = '?' + new URLSearchParams(
+      Object.entries(allParams).map(([k, v]) => [k, String(v)])
+    ).toString();
     return this.get(`/api/roi${queryString}`);
   }
 }

@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Card, Section, InfoRow, SkillBadge } from '../components';
+import { Card } from './Card';
+import { Section } from './Section';
+import { InfoRow } from './InfoRow';
+import { SkillBadge } from './SkillBadge';
 import { CareerROI } from '../types';
-import { formatCurrency, formatPercent } from '../hooks/useFormatters';
+import { formatCurrency } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
 
 interface CareerDetailViewProps {
@@ -32,10 +35,9 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, onCl
           )}
         </Section>
 
-        <Section title="Investment & ROI">
+        <Section title="Investment">
           <InfoRow label="Education Cost" value={formatCurrency(career.education_cost)} />
           <InfoRow label="Years to Breakeven" value={`${career.years_to_breakeven} years`} />
-          <InfoRow label="ROI" value={formatPercent(career.roi_percentage)} highlight />
         </Section>
 
         <Section title="Location">

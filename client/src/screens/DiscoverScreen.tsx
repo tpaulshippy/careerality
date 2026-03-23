@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
 import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
-import { SwipeCard, SwipeControls, FeedbackModal, CareerDetailView } from '../components';
+import { SwipeCard, SwipeControls, CareerDetailView } from '../components';
+import { FilterSheet, FilterState } from '../components/FilterSheet';
 import { useTheme } from '../hooks/useTheme';
 
 export const DiscoverScreen: React.FC = () => {
@@ -15,14 +16,12 @@ export const DiscoverScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
-  const [feedbackVisible, setFeedbackVisible] = useState(false);
-  const [currentCareerName, setCurrentCareerName] = useState('');
   const [dataKey, setDataKey] = useState(0);
-  const [cardReset, setCardReset] = useState(0);
+  const [cardReset] = useState(0);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const fetchKeyRef = useRef(0);
 
-  const { filters, setLocation, setSalaryMin, setSalaryMax, resetFilters } = useFilters();
+  const { filters, setStateCode, setSalaryMin, setSalaryMax } = useFilters();
   const { cards, swipeLeft, swipeRight, undo, currentIndex, resetSwipes } = useSwipe(careers);
 
   const fetchCareers = useCallback(async () => {
@@ -32,7 +31,7 @@ export const DiscoverScreen: React.FC = () => {
 
     try {
       const params: Record<string, string | number> = {};
-      if (filters.location) params.area_code = filters.location;
+      if (filters.stateCode) params.area_code = filters.stateCode;
       if (filters.salaryMin > 0) params.min_salary = filters.salaryMin;
       if (filters.salaryMax < 1000000) params.max_salary = filters.salaryMax;
 
@@ -53,7 +52,7 @@ export const DiscoverScreen: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [filters.location, filters.salaryMin, filters.salaryMax, resetSwipes]);
+  }, [filters.stateCode, filters.salaryMin, filters.salaryMax, resetSwipes]);
 
   useEffect(() => {
     fetchCareers();
@@ -71,8 +70,6 @@ export const DiscoverScreen: React.FC = () => {
   const handleSwipeLeft = useCallback(() => {
     const career = swipeLeft();
     if (career) {
-      setCurrentCareerName(career.occupation_name);
-      setFeedbackVisible(true);
       submitSwipe(career.id, 'left');
     }
   }, [swipeLeft]);
@@ -80,8 +77,6 @@ export const DiscoverScreen: React.FC = () => {
   const handleSwipeRight = useCallback(() => {
     const career = swipeRight();
     if (career) {
-      setCurrentCareerName(career.occupation_name);
-      setFeedbackVisible(true);
       submitSwipe(career.id, 'right');
     }
   }, [swipeRight]);
@@ -94,10 +89,11 @@ export const DiscoverScreen: React.FC = () => {
     }
   };
 
-  const handleFeedbackSubmit = useCallback(() => {
-    setFeedbackVisible(false);
-    setCardReset(prev => prev + 1);
-  }, []);
+  const handleFilterApply = useCallback((filterState: FilterState) => {
+    setStateCode(filterState.stateCode);
+    setSalaryMin(filterState.minSalary);
+    setSalaryMax(filterState.maxSalary);
+  }, [setStateCode, setSalaryMin, setSalaryMax]);
 
   const handleUndo = useCallback(() => {
     undo();
@@ -152,6 +148,9 @@ export const DiscoverScreen: React.FC = () => {
             {currentIndex} of {cards.length} reviewed
           </Text>
         )}
+        <TouchableOpacity onPress={() => setFilterSheetVisible(true)}>
+          <Text style={{ color: theme.colors.primary }}>Filter</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.cardContainer}>
@@ -192,11 +191,15 @@ export const DiscoverScreen: React.FC = () => {
         disabled={!currentCard}
       />
 
-      <FeedbackModal
-        visible={feedbackVisible}
-        careerName={currentCareerName}
-        onSubmit={handleFeedbackSubmit}
-        onClose={() => setFeedbackVisible(false)}
+      <FilterSheet
+        visible={filterSheetVisible}
+        onClose={() => setFilterSheetVisible(false)}
+        onApply={handleFilterApply}
+        initialFilters={{
+          stateCode: filters.stateCode,
+          minSalary: filters.salaryMin,
+          maxSalary: filters.salaryMax,
+        }}
       />
     </View>
   );
@@ -260,4 +263,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   } as TextStyle,
+  headerBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+  } as ViewStyle,
 });

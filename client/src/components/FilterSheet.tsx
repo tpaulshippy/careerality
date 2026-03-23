@@ -1,23 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   Modal, 
   TouchableOpacity, 
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   ViewStyle,
   TextStyle,
   TouchableWithoutFeedback,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useTheme } from '../hooks/useTheme';
-import { FilterChip } from './FilterChip';
-import { LOCATION_OPTIONS, SALARY_RANGES } from '../constants/dataSources';
+import { apiClient } from '../api/client';
 
 export interface FilterState {
-  location: string;
-  minSalary: string;
-  maxSalary: string;
+  stateCode: string;
+  minSalary: number;
+  maxSalary: number;
 }
 
 interface FilterSheetProps {
@@ -28,9 +30,9 @@ interface FilterSheetProps {
 }
 
 const defaultFilters: FilterState = {
-  location: '',
-  minSalary: '',
-  maxSalary: '',
+  stateCode: '99',
+  minSalary: 0,
+  maxSalary: 1000000,
 };
 
 export const FilterSheet: React.FC<FilterSheetProps> = ({
@@ -41,6 +43,25 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
 }) => {
   const theme = useTheme();
   const [filters, setFilters] = useState<FilterState>(initialFilters || defaultFilters);
+  const [states, setStates] = useState<{ area_code: string; area_name: string }[]>([]);
+  const [statesLoading, setStatesLoading] = useState(false);
+  const [statesError, setStatesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStates = async () => {
+      setStatesLoading(true);
+      setStatesError(null);
+      try {
+        const data = await apiClient.get<{ states: { area_code: string; area_name: string }[] }>('/api/areas/states');
+        setStates(data.states || []);
+      } catch (err) {
+        setStatesError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setStatesLoading(false);
+      }
+    };
+    fetchStates();
+  }, []);
 
   const handleApply = () => {
     onApply(filters);
@@ -53,27 +74,12 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
     onClose();
   };
 
-  const handleLocationSelect = (value: string) => {
-    setFilters(prev => ({ ...prev, location: value === 'all' ? '' : value }));
+  const updateStateCode = (stateCode: string) => {
+    setFilters(prev => ({ ...prev, stateCode }));
   };
 
-  const handleSalarySelect = (min: number, max: number) => {
-    setFilters(prev => ({
-      ...prev,
-      minSalary: min === 0 ? '' : String(min),
-      maxSalary: max === Infinity ? '' : String(max),
-    }));
-  };
-
-  const isLocationSelected = (value: string) => {
-    if (value === 'all') return filters.location === '';
-    return filters.location === value;
-  };
-
-  const isSalarySelected = (min: number, max: number) => {
-    const currentMin = filters.minSalary === '' ? 0 : parseInt(filters.minSalary, 10);
-    const currentMax = filters.maxSalary === '' ? Infinity : parseInt(filters.maxSalary, 10);
-    return currentMin === min && currentMax === max;
+  const handleSalaryChange = (selectedMin: number, selectedMax: number) => {
+    setFilters(prev => ({ ...prev, minSalary: selectedMin, maxSalary: selectedMax }));
   };
 
   return (
@@ -103,47 +109,67 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.content}>
+              <ScrollView
+                style={styles.content}
+                contentContainerStyle={styles.contentInner}
+                showsVerticalScrollIndicator
+                bounces={false}
+              >
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-                    Location
+                    State Code
                   </Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipRow}
-                  >
-                    {LOCATION_OPTIONS.map((option) => (
-                      <FilterChip
-                        key={option.value}
-                        label={option.label}
-                        selected={isLocationSelected(option.value)}
-                        onPress={() => handleLocationSelect(option.value)}
-                      />
-                    ))}
-                  </ScrollView>
+                  {statesLoading ? (
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                  ) : statesError ? (
+                    <Text style={{ color: theme.colors.text.muted }}>{statesError}</Text>
+                  ) : (
+                    <Picker
+                      selectedValue={filters.stateCode}
+                      onValueChange={(value) => updateStateCode(value as string)}
+                      style={{
+                        backgroundColor: theme.colors.background,
+                        color: theme.colors.text.primary,
+                        borderColor: theme.colors.border,
+                      }}
+                      itemStyle={{ fontSize: 14, height: 100 }}
+                    >
+                      {states.map((state) => (
+                        <Picker.Item
+                          key={state.area_code}
+                          label={state.area_name}
+                          value={state.area_code}
+                        />
+                      ))}
+                    </Picker>
+                  )}
                 </View>
 
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
                     Salary Range
                   </Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipRow}
-                  >
-                    {SALARY_RANGES.map((range) => (
-                      <FilterChip
-                        key={range.label}
-                        label={range.label}
-                        selected={isSalarySelected(range.min, range.max)}
-                        onPress={() => handleSalarySelect(range.min, range.max)}
-                      />
-                    ))}
-                  </ScrollView>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text style={[styles.inputLabel, { color: theme.colors.text.secondary }]}>
+                      ${filters.minSalary.toLocaleString()}
+                    </Text>
+                    <Text style={[styles.inputLabel, { color: theme.colors.text.secondary }]}>
+                      ${filters.maxSalary.toLocaleString()}
+                    </Text>
+                  </View>
+                  <MultiSlider
+                    values={[filters.minSalary, filters.maxSalary]}
+                    min={0}
+                    max={1000000}
+                    step={1000}
+                    onValuesChange={(values) => handleSalaryChange(values[0], values[1])}
+                    selectedStyle={{ backgroundColor: theme.colors.primary }}
+                    containerStyle={{ height: 70, padding: 10 }}
+                    trackStyle={{ backgroundColor: theme.colors.background }}
+                    markerStyle={{ borderColor: theme.colors.border, borderWidth: 1 }}
+                  />
                 </View>
-              </View>
+              </ScrollView>
 
               <View style={styles.footer}>
                 <TouchableOpacity
@@ -188,6 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   } as ViewStyle,
   sheet: {
+    flex: 1,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
@@ -218,7 +245,10 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   } as TextStyle,
   content: {
-    marginBottom: 24,
+    flex: 1,
+  } as ViewStyle,
+  contentInner: {
+    paddingBottom: 24,
   } as ViewStyle,
   section: {
     marginBottom: 24,

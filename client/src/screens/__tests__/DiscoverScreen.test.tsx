@@ -15,8 +15,8 @@ jest.mock('../../hooks/useSwipe', () => ({
 
 jest.mock('../../hooks/useFilters', () => ({
   useFilters: () => ({
-    filters: { location: '', salaryMin: 0, salaryMax: 1000000 },
-    setLocation: jest.fn(),
+    filters: { stateCode: '99', salaryMin: 0, salaryMax: 1000000 },
+    setStateCode: jest.fn(),
     setSalaryMin: jest.fn(),
     setSalaryMax: jest.fn(),
     resetFilters: jest.fn(),

@@ -2,20 +2,24 @@ class Api::RoiController < ApplicationController
   def index
     sort_by = params[:sort] || "demand"
 
-    base_query = if params[:area].present?
-      CareerRoi.where(area_code: params[:area])
+    # Determine area code from various parameter names
+    area = params[:area_code] || params[:area] || params[:location]
+    base_query = if area.present?
+      CareerRoi.where(area_code: area)
     else
       CareerRoi.all
     end
 
-    if params[:location].present?
-      base_query = base_query.where(area_code: params[:location])
+    # Salary filters (support both new and old param names)
+    if params[:min_salary].present?
+      base_query = base_query.where("annual_median_salary >= ?", params[:min_salary].to_f)
     end
-
     if params[:salary_min].present?
       base_query = base_query.where("annual_median_salary >= ?", params[:salary_min].to_f)
     end
-
+    if params[:max_salary].present?
+      base_query = base_query.where("annual_median_salary <= ?", params[:max_salary].to_f)
+    end
     if params[:salary_max].present?
       base_query = base_query.where("annual_median_salary <= ?", params[:salary_max].to_f)
     end
@@ -30,14 +34,19 @@ class Api::RoiController < ApplicationController
           # Use pre-computed demand_score (weighted combination of demand_rank and growth)
           # plus small random component for variety
           demand_query.order(Arel.sql("
-            demand_score + RANDOM() * 0.2 DESC,
+            demand_score + RANDOM() * 2.0 DESC,
             demand_rank ASC,
             projected_growth_percent DESC
           "))
         else
-          base_query.order(roi_percentage: :desc)
+          demand_query.order(roi_percentage: :desc)
         end
     else base_query.order(roi_percentage: :desc)
+    end
+
+    if params[:user_id].present?
+      swiped_ids = Swipe.where(user_id: params[:user_id]).select(:career_id)
+      roi_records = roi_records.where.not(id: swiped_ids)
     end
 
     pagy, records = pagy(roi_records, items: 20)
@@ -47,8 +56,8 @@ class Api::RoiController < ApplicationController
       pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages }
     }
 
-    if params[:area].present?
-      render_response[:area_code] = params[:area]
+    if area.present?
+      render_response[:area_code] = area
       render_response[:area_name] = area_name
     end
 
@@ -101,8 +110,9 @@ pagy, records = pagy(roi_records, items: 50)
   private
 
   def area_name
-    return nil unless params[:area].present?
-    area = CareerRoi.where(area_code: params[:area]).select(:area_name).distinct.first
-    area&.area_name || "State #{params[:area]}"
+    area_code = params[:area_code] || params[:area] || params[:location]
+    return nil unless area_code.present?
+    area_name = CareerRoi.where(area_code: area_code).pick(:area_name)
+    area_name || "State #{area_code}"
   end
 end
