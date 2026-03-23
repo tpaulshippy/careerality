@@ -24,21 +24,7 @@ const mockCareer: CareerROI = {
   projected_growth_percent: 15,
 };
 
-Object.defineProperty(window, 'localStorage', {
-  value: {
-    getItem: jest.fn(() => '[]'),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
-  },
-  writable: true,
-});
-
 describe('useSwipe', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (window.localStorage.getItem as jest.Mock).mockReturnValue('[]');
-  });
-
   it('should return initial cards and index', () => {
     const { result } = renderHook(() => useSwipe([mockCareer]));
     expect(result.current.cards).toHaveLength(1);

@@ -18,32 +18,8 @@ interface UseSwipeResult {
   resetSwipes: () => void;
 }
 
-const STORAGE_KEY = 'careerality_swipes';
-
-const getStoredHistory = (): SwipeRecord[] => {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
-};
-
-const setStoredHistory = (history: SwipeRecord[]) => {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-    } catch {
-      // ignore
-    }
-  }
-};
-
 export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
-  const [swipeHistory, setSwipeHistory] = useState<SwipeRecord[]>(() => getStoredHistory());
+  const [swipeHistory, setSwipeHistory] = useState<SwipeRecord[]>([]);
   const historyRef = useRef<SwipeRecord[]>(swipeHistory);
 
   historyRef.current = swipeHistory;
@@ -59,7 +35,6 @@ export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
     
     historyRef.current = newHistory;
     setSwipeHistory(newHistory);
-    setStoredHistory(newHistory);
     return card;
   }, [cards, currentIndex]);
 
@@ -72,7 +47,6 @@ export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
     
     historyRef.current = newHistory;
     setSwipeHistory(newHistory);
-    setStoredHistory(newHistory);
     return card;
   }, [cards, currentIndex]);
 
@@ -84,7 +58,6 @@ export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
     
     historyRef.current = newHistory;
     setSwipeHistory(newHistory);
-    setStoredHistory(newHistory);
     return lastRecord;
   }, []);
 
@@ -95,7 +68,6 @@ export const useSwipe = (initialCards: CareerROI[] = []): UseSwipeResult => {
   const resetSwipes = useCallback(() => {
     historyRef.current = [];
     setSwipeHistory([]);
-    setStoredHistory([]);
   }, []);
 
   return {

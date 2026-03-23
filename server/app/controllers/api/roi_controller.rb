@@ -44,6 +44,11 @@ class Api::RoiController < ApplicationController
     else base_query.order(roi_percentage: :desc)
     end
 
+    if params[:user_id].present?
+      swiped_ids = Swipe.where(user_id: params[:user_id]).select(:career_id)
+      roi_records = roi_records.where.not(id: swiped_ids)
+    end
+
     pagy, records = pagy(roi_records, items: 20)
 
     render_response = {
