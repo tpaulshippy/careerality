@@ -56,6 +56,16 @@ class ApiClient {
     ).toString();
     return this.get(`/api/roi${queryString}`);
   }
+
+  async getLikedCareers(): Promise<unknown> {
+    const queryString = '?' + new URLSearchParams({ user_id: getUserId() }).toString();
+    return this.get(`/api/swipes/liked${queryString}`);
+  }
+
+  async removeSwipe(swipeId: number): Promise<void> {
+    const queryString = '?' + new URLSearchParams({ user_id: getUserId() }).toString();
+    await this.request(`/api/swipes/${swipeId}${queryString}`, { method: 'DELETE' });
+  }
 }
 
 export const apiClient = new ApiClient();

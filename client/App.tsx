@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, StyleSheet, TextStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DiscoverScreen, DataSourcesScreen } from './src/screens';
+import { DiscoverScreen, DataSourcesScreen, LikedScreen } from './src/screens';
 import { CustomDrawerContent } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
 import { lightColors, darkColors } from './src/constants/theme';
@@ -59,6 +59,16 @@ export default function App() {
             title: 'Discover',
             drawerIcon: () => (
               <Text style={styles.icon}>🔍</Text>
+            ),
+          }}
+        />
+        <Drawer.Screen 
+          name="Liked" 
+          component={LikedScreen}
+          options={{
+            title: 'Liked Careers',
+            drawerIcon: () => (
+              <Text style={styles.icon}>❤️</Text>
             ),
           }}
         />
