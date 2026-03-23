@@ -5,7 +5,7 @@ import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
 import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
-import { SwipeCard, SwipeControls, FeedbackModal, CareerDetailView } from '../components';
+import { SwipeCard, SwipeControls, CareerDetailView } from '../components';
 import { FilterSheet, FilterState } from '../components/FilterSheet';
 import { useTheme } from '../hooks/useTheme';
 
@@ -16,8 +16,6 @@ export const DiscoverScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
-  const [feedbackVisible, setFeedbackVisible] = useState(false);
-  const [currentCareerName, setCurrentCareerName] = useState('');
   const [dataKey, setDataKey] = useState(0);
   const [cardReset, setCardReset] = useState(0);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
@@ -72,8 +70,6 @@ export const DiscoverScreen: React.FC = () => {
   const handleSwipeLeft = useCallback(() => {
     const career = swipeLeft();
     if (career) {
-      setCurrentCareerName(career.occupation_name);
-      setFeedbackVisible(true);
       submitSwipe(career.id, 'left');
     }
   }, [swipeLeft]);
@@ -81,8 +77,6 @@ export const DiscoverScreen: React.FC = () => {
   const handleSwipeRight = useCallback(() => {
     const career = swipeRight();
     if (career) {
-      setCurrentCareerName(career.occupation_name);
-      setFeedbackVisible(true);
       submitSwipe(career.id, 'right');
     }
   }, [swipeRight]);
@@ -94,11 +88,6 @@ export const DiscoverScreen: React.FC = () => {
       // Swipe submission failed silently - user can retry
     }
   };
-
-  const handleFeedbackSubmit = useCallback(() => {
-    setFeedbackVisible(false);
-    setCardReset(prev => prev + 1);
-  }, []);
 
   const handleFilterApply = useCallback((filterState: FilterState) => {
     setStateCode(filterState.stateCode);
@@ -202,12 +191,6 @@ export const DiscoverScreen: React.FC = () => {
         disabled={!currentCard}
       />
 
-      <FeedbackModal
-        visible={feedbackVisible}
-        careerName={currentCareerName}
-        onSubmit={handleFeedbackSubmit}
-        onClose={() => setFeedbackVisible(false)}
-      />
       <FilterSheet
         visible={filterSheetVisible}
         onClose={() => setFilterSheetVisible(false)}
