@@ -17,11 +17,11 @@ export const DiscoverScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [dataKey, setDataKey] = useState(0);
-  const [cardReset, setCardReset] = useState(0);
+  const [cardReset] = useState(0);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const fetchKeyRef = useRef(0);
 
-  const { filters, setStateCode, setSalaryMin, setSalaryMax, resetFilters } = useFilters();
+  const { filters, setStateCode, setSalaryMin, setSalaryMax } = useFilters();
   const { cards, swipeLeft, swipeRight, undo, currentIndex, resetSwipes } = useSwipe(careers);
 
   const fetchCareers = useCallback(async () => {

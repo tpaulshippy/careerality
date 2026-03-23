@@ -5,7 +5,7 @@ import { Section } from './Section';
 import { InfoRow } from './InfoRow';
 import { SkillBadge } from './SkillBadge';
 import { CareerROI } from '../types';
-import { formatCurrency, formatPercent } from '../hooks/useFormatters';
+import { formatCurrency } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
 
 interface CareerDetailViewProps {
