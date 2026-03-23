@@ -20,7 +20,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "We need camera access for profile photos",
-        "NSPhotoLibraryUsageDescription": "We need photo library access for profile photos"
+        "NSPhotoLibraryUsageDescription": "We need photo library access for profile photos",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
