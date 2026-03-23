@@ -1,3 +1,6 @@
+# Database dumps
+*.dump
+
 # Data downloads (raw data files)
 data/careers/
 data/salary/
