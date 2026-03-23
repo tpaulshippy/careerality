@@ -6,12 +6,8 @@ class Api::AreasController < ApplicationController
                       .where("area_code ~ '^[0-9]+$'")
                       .where("length(area_code) <= 2")
                       .where("area_name NOT LIKE '%,%'")
-                      .order(:area_code)
+                      .order(:area_name)
 
-    # Add National option
-    national = { area_code: "99", area_name: "National" }
-    states_array = states.map { |s| { area_code: s.area_code, area_name: s.area_name } }
-
-    render json: { states: [ national ] + states_array }
+    render json: { states: states.map { |s| { area_code: s.area_code, area_name: s.area_name } } }
   end
 end

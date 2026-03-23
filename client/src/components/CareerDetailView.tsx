@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Card, Section, InfoRow, SkillBadge } from '../components';
+import { Card } from './Card';
+import { Section } from './Section';
+import { InfoRow } from './InfoRow';
+import { SkillBadge } from './SkillBadge';
 import { CareerROI } from '../types';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';

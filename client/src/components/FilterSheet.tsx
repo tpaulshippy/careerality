@@ -11,8 +11,9 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import RangeSlider from 'react-native-range-slider';
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useTheme } from '../hooks/useTheme';
+import { apiClient } from '../api/client';
 
 export interface FilterState {
   stateCode: string;
@@ -50,9 +51,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
       setStatesLoading(true);
       setStatesError(null);
       try {
-        const response = await fetch('/api/areas/states');
-        if (!response.ok) throw new Error('Failed to fetch states');
-        const data = await response.json();
+        const data = await apiClient.get<{ states: { area_code: string; area_name: string }[] }>('/api/areas/states');
         setStates(data.states || []);
       } catch (err) {
         setStatesError(err instanceof Error ? err.message : 'Unknown error');
@@ -131,7 +130,6 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                         }
                       ]}
                     >
-                      <Picker.Item label="National" value="99" />
                       {states.map((state) => (
                         <Picker.Item
                           key={state.area_code}
@@ -155,21 +153,16 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                       ${filters.maxSalary.toLocaleString()}
                     </Text>
                   </View>
-                  <RangeSlider
-                    minValue={0}
-                    maxValue={1000000}
+                  <MultiSlider
+                    values={[filters.minSalary, filters.maxSalary]}
+                    min={0}
+                    max={1000000}
                     step={1000}
-                    selectedMinimum={filters.minSalary}
-                    selectedMaximum={filters.maxSalary}
-                    onChange={(data: { selectedMinimum: number; selectedMaximum: number }) => {
-                      if (data && typeof data === 'object') {
-                        handleSalaryChange(data.selectedMinimum, data.selectedMaximum);
-                      }
-                    }}
-                    style={{ height: 70, padding: 10, backgroundColor: theme.colors.background }}
-                    tintColor={theme.colors.primary}
-                    handleBorderColor={theme.colors.border}
-                    handleBorderWidth={1}
+                    onValuesChange={(values) => handleSalaryChange(values[0], values[1])}
+                    selectedStyle={{ backgroundColor: theme.colors.primary }}
+                    containerStyle={{ height: 70, padding: 10 }}
+                    trackStyle={{ backgroundColor: theme.colors.background }}
+                    markerStyle={{ borderColor: theme.colors.border, borderWidth: 1 }}
                   />
                 </View>
               </View>
