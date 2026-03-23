@@ -4,9 +4,11 @@ import { Card } from './Card';
 import { Section } from './Section';
 import { InfoRow } from './InfoRow';
 import { SkillBadge } from './SkillBadge';
+import { OccupationIconBadge } from './OccupationIconBadge';
 import { CareerROI } from '../types';
 import { formatCurrency } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
+import { getOccupationGroup } from '../utils/occupationGroup';
 
 interface CareerDetailViewProps {
   career: CareerROI;
@@ -25,8 +27,13 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, onCl
       )}
 
       <Card>
-        <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>{career.occupation_name}</Text>
-        <Text style={[styles.occupationCode, { color: theme.colors.text.secondary }]}>{career.occupation_code}</Text>
+        <View style={styles.headerRow}>
+          <OccupationIconBadge groupName={getOccupationGroup(career.occupation_code)} size={48} />
+          <View style={styles.headerText}>
+            <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>{career.occupation_name}</Text>
+            <Text style={[styles.occupationCode, { color: theme.colors.text.secondary }]}>{career.occupation_code}</Text>
+          </View>
+        </View>
 
         <Section title="Salary Information">
           <InfoRow label="Median Salary" value={formatCurrency(career.annual_median_salary)} />
@@ -98,6 +105,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 20,
   } as TextStyle,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  } as ViewStyle,
+  headerText: {
+    flex: 1,
+  } as ViewStyle,
   skillsContainer: {
     marginTop: 8,
   } as ViewStyle,

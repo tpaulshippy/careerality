@@ -13,3 +13,4 @@ export { Section } from './Section';
 export { SkillBadge } from './SkillBadge';
 export { SwipeCard } from './SwipeCard';
 export { SwipeControls } from './SwipeControls';
+export { OccupationIconBadge } from './OccupationIconBadge';

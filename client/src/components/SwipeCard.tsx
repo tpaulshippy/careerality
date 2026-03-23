@@ -4,6 +4,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
 import { CareerROI } from '../types';
+import { OccupationIconBadge } from './OccupationIconBadge';
+import { getOccupationGroup } from '../utils/occupationGroup';
 
 interface SwipeCardProps {
   career: CareerROI;
@@ -103,12 +105,17 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
     <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.shadows.card, cardStyle]}>
         <View style={styles.header}>
-          <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>
-            {career.occupation_name}
-          </Text>
-          <Text style={[styles.areaName, { color: theme.colors.text.secondary }]}>
-            {career.area_name}
-          </Text>
+          <View style={styles.headerRow}>
+            <OccupationIconBadge groupName={getOccupationGroup(career.occupation_code)} size={44} />
+            <View style={styles.headerText}>
+              <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>
+                {career.occupation_name}
+              </Text>
+              <Text style={[styles.areaName, { color: theme.colors.text.secondary }]}>
+                {career.area_name}
+              </Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.demandContainer}>
@@ -161,6 +168,14 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   header: {
     marginBottom: 16,
+  } as ViewStyle,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  } as ViewStyle,
+  headerText: {
+    flex: 1,
   } as ViewStyle,
   occupationName: {
     fontSize: 22,
