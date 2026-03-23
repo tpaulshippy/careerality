@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
@@ -22,6 +22,14 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
+
+  const resetPosition = useCallback(() => {
+    'worklet';
+    translateX.value = 0;
+    translateY.value = 0;
+    scale.value = 1;
+    opacity.value = 1;
+  }, []);
 
   useEffect(() => {
     if (shouldReset) {
@@ -64,11 +72,15 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
     })
     .onEnd((event) => {
       if (event.translationX > SWIPE_THRESHOLD) {
-        translateX.value = withSpring(300);
-        runOnJS(handleSwipeRight)();
+        translateX.value = withSpring(300, {}, () => {
+          resetPosition();
+          runOnJS(handleSwipeRight)();
+        });
       } else if (event.translationX < -SWIPE_THRESHOLD) {
-        translateX.value = withSpring(-300);
-        runOnJS(handleSwipeLeft)();
+        translateX.value = withSpring(-300, {}, () => {
+          resetPosition();
+          runOnJS(handleSwipeLeft)();
+        });
       } else {
         translateX.value = withSpring(0);
         translateY.value = withSpring(0);
