@@ -46,11 +46,13 @@ class ApiClient {
   }
 
   async submitSwipe(careerId: number, direction: 'left' | 'right'): Promise<void> {
-    await this.post('/api/swipes', { career_id: careerId, user_id: getUserId(), direction });
+    const userId = await getUserId();
+    await this.post('/api/swipes', { career_id: careerId, user_id: userId, direction });
   }
 
   async getCareers(params?: Record<string, string | number>): Promise<unknown> {
-    const allParams = { ...params, user_id: getUserId() };
+    const userId = await getUserId();
+    const allParams = { ...params, user_id: userId };
     const queryString = '?' + new URLSearchParams(
       Object.entries(allParams).map(([k, v]) => [k, String(v)])
     ).toString();
@@ -58,12 +60,14 @@ class ApiClient {
   }
 
   async getLikedCareers(): Promise<unknown> {
-    const queryString = '?' + new URLSearchParams({ user_id: getUserId() }).toString();
+    const userId = await getUserId();
+    const queryString = '?' + new URLSearchParams({ user_id: userId }).toString();
     return this.get(`/api/swipes/liked${queryString}`);
   }
 
   async removeSwipe(swipeId: number): Promise<void> {
-    const queryString = '?' + new URLSearchParams({ user_id: getUserId() }).toString();
+    const userId = await getUserId();
+    const queryString = '?' + new URLSearchParams({ user_id: userId }).toString();
     await this.request(`/api/swipes/${swipeId}${queryString}`, { method: 'DELETE' });
   }
 }

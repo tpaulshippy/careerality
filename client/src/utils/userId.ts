@@ -1,3 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
 const USER_ID_KEY = 'careerality_user_id';
 
 function generateUUID(): string {
@@ -8,15 +11,37 @@ function generateUUID(): string {
   });
 }
 
-export function getUserId(): string {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return generateUUID();
+let cachedUserId: string | null = null;
+
+export async function getUserId(): Promise<string> {
+  if (cachedUserId) {
+    return cachedUserId;
   }
 
-  let userId = localStorage.getItem(USER_ID_KEY);
-  if (!userId) {
-    userId = generateUUID();
-    localStorage.setItem(USER_ID_KEY, userId);
+  if (Platform.OS === 'web') {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      cachedUserId = generateUUID();
+      return cachedUserId;
+    }
+    let userId = localStorage.getItem(USER_ID_KEY);
+    if (!userId) {
+      userId = generateUUID();
+      localStorage.setItem(USER_ID_KEY, userId);
+    }
+    cachedUserId = userId;
+    return cachedUserId;
   }
-  return userId;
+
+  try {
+    let userId = await AsyncStorage.getItem(USER_ID_KEY);
+    if (!userId) {
+      userId = generateUUID();
+      await AsyncStorage.setItem(USER_ID_KEY, userId);
+    }
+    cachedUserId = userId;
+    return cachedUserId;
+  } catch {
+    cachedUserId = generateUUID();
+    return cachedUserId;
+  }
 }
