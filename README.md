@@ -219,26 +219,28 @@ Please read our [Contributing Guide](CONTRIBUTING.md) before submitting pull req
 ### Phase 1 — MVP (Current)
 
 - [x] Swipe interface for career cards
-- [x] ROI data display
-- [ ] Basic filtering (location, salary range)
-- [ ] Post-swipe feedback collection
-- [ ] Local storage persistence
+- [x] Demand based data display
+- [x] Basic filtering (location, salary range)
+- [x] Screen to show which careers you liked
 
-### Phase 2 — Engagement
+### Phase 2 - Career presentation
+- [ ] Describe day in the life of this career
+- [ ] Images of what working in the career looks like
+- [ ] Add career videos from careeronestop.org
 
-- [ ] Virtual career counselor (AI-powered chat)
+### Phase 3 - Advanced filtering and customization
+- [ ] Multiple state filters
+- [ ] Metro areas
 - [ ] Map-based career exploration
+- [ ] Sort based on interests
+- [ ] Sort based on previous swipes
+
+### Phase 4 — Engagement
+
 - [ ] Gamification system (points, streaks, leaderboards)
 - [ ] Task tracking for career readiness
 - [ ] User accounts and progress saving
-
-### Phase 3 — Scale
-
-- [ ] Real-time job posting integration
-- [ ] Professional mentorship matching
-- [ ] Community features (forums, career stories)
-- [ ] Multilingual support
-- [ ] International data coverage
+- [ ] Virtual career counselor (AI-powered chat)
 
 ---
 
