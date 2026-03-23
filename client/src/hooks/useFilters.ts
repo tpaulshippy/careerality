@@ -26,23 +26,23 @@ export const useFilters = (): UseFiltersResult => {
 
   const setStateCode = useCallback(
     (stateCode: string) => {
-      setFilters({ ...filters, stateCode });
+      setFilters(prev => ({ ...prev, stateCode }));
     },
-    [setFilters, filters],
+    [setFilters],
   );
 
   const setSalaryMin = useCallback(
     (salary: number) => {
-      setFilters({ ...filters, salaryMin: salary });
+      setFilters(prev => ({ ...prev, salaryMin: salary }));
     },
-    [setFilters, filters],
+    [setFilters],
   );
 
   const setSalaryMax = useCallback(
     (salary: number) => {
-      setFilters({ ...filters, salaryMax: salary });
+      setFilters(prev => ({ ...prev, salaryMax: salary }));
     },
-    [setFilters, filters],
+    [setFilters],
   );
 
   const resetFilters = useCallback(() => {

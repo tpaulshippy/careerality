@@ -48,28 +48,21 @@ export const useLocalStorage = <T>(key: string, initialValue: T): [T, (value: Se
 
   const setValue = useCallback(
     async (value: SetValue<T>) => {
-      if (Platform.OS === 'web') {
-        try {
-          const valueToStore = value instanceof Function ? value(storedValue) : value;
-          setStoredValue(valueToStore);
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        } catch {
-          // Silently ignore storage errors
+      setStoredValue(prev => {
+        const valueToStore = value instanceof Function ? value(prev) : value;
+        if (Platform.OS === 'web') {
+          try {
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          } catch {
+            // Silently ignore storage errors
+          }
+        } else if (isAsyncStorageAvailable()) {
+          AsyncStorage.setItem(key, JSON.stringify(valueToStore)).catch(() => {});
         }
-        return;
-      }
-      if (!isAsyncStorageAvailable()) {
-        return;
-      }
-      try {
-        const valueToStore = value instanceof Function ? value(storedValue) : value;
-        setStoredValue(valueToStore);
-        await AsyncStorage.setItem(key, JSON.stringify(valueToStore));
-      } catch {
-        // Silently ignore storage errors - falls back to initial value
-      }
+        return valueToStore;
+      });
     },
-    [key, storedValue],
+    [key],
   );
 
   const removeValue = useCallback(async () => {
