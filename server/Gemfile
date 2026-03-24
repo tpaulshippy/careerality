@@ -42,3 +42,6 @@ group :development, :test do
 end
 
 gem "minitest", "~> 5.20"
+
+gem 'dotenv-rails'
+
