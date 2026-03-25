@@ -5,6 +5,7 @@
   "build": {
     "preview": {
       "android": {
+        "image": "latest",
         "buildType": "apk"
       },
       "ios": {
@@ -13,6 +14,7 @@
     },
     "production": {
       "android": {
+        "image": "latest",
         "buildType": "app-bundle"
       },
       "ios": {
