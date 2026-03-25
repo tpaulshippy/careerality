@@ -31,7 +31,7 @@ export const DATA_SOURCES: DataSource[] = [
   },
 ];
 
-export const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000';
+export const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://careerality.app';
 export const API_URL = `${API_BASE}/api/roi`;
 
 export const LOCATION_OPTIONS = [
