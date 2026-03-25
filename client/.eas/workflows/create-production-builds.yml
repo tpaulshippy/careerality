@@ -4,12 +4,12 @@ on:
   push:
     branches: ['main']
 
-  jobs:
-    build_android:
-      type: build
-      params:
-        platform: android
-    build_ios:
-      type: build
-      params:
-        platform: ios
+jobs:
+  build_android:
+    type: build
+    params:
+      platform: android
+  build_ios:
+    type: build
+    params:
+      platform: ios
