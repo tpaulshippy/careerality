@@ -19,8 +19,6 @@
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "We need camera access for profile photos",
-        "NSPhotoLibraryUsageDescription": "We need photo library access for profile photos",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -32,11 +30,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "app.careerality.app",
       "versionCode": 1,
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
-      ]
+      "permissions": []
     },
     "web": {
       "favicon": "./assets/favicon.png"
