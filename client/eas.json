@@ -10,7 +10,8 @@
       },
       "ios": {
         "simulator": true
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "android": {
@@ -19,7 +20,8 @@
       },
       "ios": {
         "distribution": "store"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
@@ -27,14 +29,6 @@
       "ios": {
         "ascAppId": "6760988670"
       }
-    }
-  },
-  "updates": {
-    "production": {
-      "channel": "production"
-    },
-    "preview": {
-      "channel": "preview"
     }
   }
 }
