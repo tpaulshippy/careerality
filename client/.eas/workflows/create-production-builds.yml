@@ -31,14 +31,14 @@ jobs:
   #     build_id: ${{ needs.build_ios.outputs.build_id }}
   #     profile: production
 
-  testflight:
-    name: Distribute to TestFlight
-    type: testflight
-    needs: [build_ios]
-    params:
-      build_id: ${{ needs.build_ios.outputs.build_id }}
-      internal_groups: ['Testers']
-      changelog: |
-        What's new in this release:
-        - New features
-        - Bug fixes
+  # testflight:
+  #   name: Distribute to TestFlight
+  #   type: testflight
+  #   needs: [build_ios]
+  #   params:
+  #     build_id: ${{ needs.build_ios.outputs.build_id }}
+  #     internal_groups: ['Testers']
+  #     changelog: |
+  #       What's new in this release:
+  #       - New features
+  #       - Bug fixes
