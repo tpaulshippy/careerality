@@ -7,7 +7,7 @@ class CreateCareerImages < ActiveRecord::Migration[8.0]
       t.integer :order
 
       t.timestamps
+    end
     add_index :career_images, :occupation_code
-  end
   end
 end
