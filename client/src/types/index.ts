@@ -18,6 +18,24 @@ export interface CareerROI {
   demand_rank: number | null;
   avg_annual_openings: number | null;
   projected_growth_percent: number | null;
+  day_in_life_summary?: string;
+  day_in_life_full?: string;
+  video_url?: string;
+}
+
+export interface CareerImage {
+  id: number;
+  occupation_code: string;
+  image_url: string;
+  prompt_used: string;
+  order: number;
+}
+
+export interface CareerContent {
+  occupation_code: string;
+  day_in_life_summary: string | null;
+  day_in_life_full: string | null;
+  video_url: string | null;
 }
 
 export interface DataSource {

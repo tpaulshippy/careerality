@@ -118,6 +118,14 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
           </View>
         </View>
 
+        {career.day_in_life_summary && (
+          <View style={styles.dayInLifeContainer}>
+            <Text style={[styles.dayInLifeText, { color: theme.colors.text.secondary }]} numberOfLines={2}>
+              {career.day_in_life_summary}
+            </Text>
+          </View>
+        )}
+
         <View style={styles.demandContainer}>
           <Text style={[styles.demandValue, { color: demandColor }]}>
             {demandRank ? `#${demandRank}` : 'N/A'}
@@ -184,6 +192,15 @@ const styles = StyleSheet.create({
   areaName: {
     fontSize: 14,
     marginTop: 4,
+  } as TextStyle,
+  dayInLifeContainer: {
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  } as ViewStyle,
+  dayInLifeText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    textAlign: 'center',
   } as TextStyle,
   demandContainer: {
     alignItems: 'center',
