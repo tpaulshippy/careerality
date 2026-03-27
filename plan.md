@@ -3,8 +3,8 @@
 ## Goal
 Enhance career cards with richer visual and descriptive content:
 1. Day-in-the-life narratives
-2. Career images
-3. Career videos (links)
+2. Career images (multiple per career)
+3. Career videos (embedded)
 
 ---
 
@@ -14,79 +14,101 @@ Enhance career cards with richer visual and descriptive content:
 
 **Data Flow:**
 1. Fetch career context from CareerOneStop API (tasks, skills, work environment)
-2. Generate narrative using local LLM (Llama/Mistral)
+2. Generate narrative using RubyLLM (local Ollama with Llama/Mistral)
 3. Store static content per occupation in database
 4. Display summary on swipe card
 
 **Database Changes:**
-- Add `day_in_life` column to `career_roi` or create `career_content` table
+- Create `career_contents` table with `day_in_life` text
 
 **UI:**
 - Show 1-2 sentence summary on swipe card
 - Full narrative in detail view
 
-### 2. Career Images
+### 2. Career Images (Multiple)
 
 **Data Flow:**
 1. Build prompt from CareerOneStop data + occupation metadata
-2. Generate image using local image model (FLUX/Stable Diffusion)
+2. Generate images using local image model (FLUX.1-schnell)
 3. Upload to Cloudflare R2
-4. Store URL in database
+4. Store URLs in database (multiple per occupation)
 
-**Storage:**
-- Cloudflare R2 (easiest: presigned URLs or API upload)
-- Store image URL in database
+**Data Model:**
+- `career_images` table: occupation_code, image_url, prompt_used, order
 
 **UI:**
-- Display on swipe card below narrative summary
+- Display primary image on swipe card
+- Gallery in detail view
 
 ### 3. Career Videos
 
-- Embed links to CareerOneStop videos
-- Show in detail view as clickable thumbnail/link
+- Fetch video URLs from CareerOneStop API
+- Embed in detail view (WebView or video player)
+- Fallback to link if embedding fails
 
 ---
 
 ## Technical Implementation
 
-### Backend (Rails)
+### Data Scripts (Ruby in data/)
 
-| Task | Notes |
-|------|-------|
-| Add CareerOneStop API integration | Fetch occupation details for prompt context |
-| Create content generation service | Interface for local LLM + image generation |
-| Add `career_contents` table | Store day_in_life, image_url, video_url per occupation |
-| Create `/api/careers/:id/content` endpoint | Return enriched career with new fields |
-| Create `/api/generate/content` admin endpoint | Trigger generation for careers |
+| Script | Purpose |
+|--------|---------|
+| `fetch_careeronestop.rb` | Fetch occupation details from CareerOneStop API |
+| `generate_narratives.rb` | Generate day-in-life using RubyLLM (Ollama) |
+| `generate_images.rb` | Generate and upload images to R2 |
+| `populate_career_contents.rb` | Run all generation and save to database |
+
+### Database Schema
+
+```ruby
+# career_contents table
+t.string :occupation_code
+t.text :day_in_life_summary      # 1-2 sentences for swipe card
+t.text :day_in_life_full         # full narrative for detail view
+t.string :video_url             # CareerOneStop video URL
+t.timestamps
+
+# career_images table
+t.string :occupation_code
+t.string :image_url             # R2 URL
+t.text :prompt_used
+t.integer :order                # for multiple images
+t.timestamps
+```
 
 ### Frontend (React Native)
 
 | Task | Notes |
 |------|-------|
-| Update `CareerROI` type | Add day_in_life, image_url, video_url |
-| Update SwipeCard | Display narrative + image |
-| Update CareerDetailView | Display full content + video link |
+| Update `CareerROI` type | Add day_in_life_summary, day_in_life_full, video_url |
+| Update types | Add CareerImage array |
+| Update SwipeCard | Display day_in_life_summary + primary image |
+| Update CareerDetailView | Full narrative, image gallery, embedded video |
 
-### Data Pipeline
+---
 
-| Task | Notes |
-|------|-------|
-| Set up local LLM server | Ollama or similar for Llama/Mistral |
-| Set up image generation | FLUX.1-schnell or Stable Diffusion |
-| Set up Cloudflare R2 | Storage for generated images |
+## Data Pipeline
+
+1. Run `fetch_careeronestop.rb` - get occupation details
+2. Run `generate_narratives.rb` - generate day-in-life via RubyLLM
+3. Run `generate_images.rb` - generate images, upload to R2
+4. Import results to database via Rails
 
 ---
 
 ## Decisions
 
-- **LLM**: Local (Ollama with Llama/Mistral)
-- **Image Generation**: Local (FLUX.1-schnell or Stable Diffusion)
+- **LLM**: Local (Ollama with Llama/Mistral via RubyLLM)
+- **Image Generation**: Local (FLUX.1-schnell)
 - **Generation Timing**: Upfront for all careers
 - **CareerOneStop API**: User has credentials
+- **Storage**: Cloudflare R2 for images
+- **No API endpoints**: Ruby scripts only for generation
 
 ---
 
 ## Out of Scope
-- Video playback (links only for Phase 2)
-- User-generated content
 - Real-time generation during swipe (pre-generate only)
+- User-generated content
+- Video generation (just fetch from CareerOneStop)
