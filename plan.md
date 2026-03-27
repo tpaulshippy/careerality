@@ -1,48 +1,92 @@
-# Plan: Add Missing Data Sources for Indeed-Style Rankings
+# Phase 2 Plan: Career Presentation
 
-## Background
+## Goal
+Enhance career cards with richer visual and descriptive content:
+1. Day-in-the-life narratives
+2. Career images
+3. Career videos (links)
 
-The Indeed 2026 Best Jobs rankings use 5 metrics:
-1. Median annual salary - ✅ Have BLS data
-2. Job postings per million - ❌ Missing
-3. Remote work % - ❌ Missing
-4. Wage growth (3-year) - ❌ Missing
-5. Job posting growth (3-year) - ❌ Missing
+---
 
-## Missing Data Sources
+## Features
 
-| Metric | Source | Free? | Status |
-|--------|--------|-------|--------|
-| Job posting volume | CareerOneStop API | Yes | Not integrated |
-| Remote work % | None free | No | No source |
-| Wage growth | BLS Historical OES | Yes | Need 3+ years |
-| Posting growth | CareerOneStop + time-series | Yes | Not implemented |
+### 1. Day-in-the-Life Narratives
 
-## Implementation
+**Data Flow:**
+1. Fetch career context from CareerOneStop API (tasks, skills, work environment)
+2. Generate narrative using local LLM (Llama/Mistral)
+3. Store static content per occupation in database
+4. Display summary on swipe card
 
-### 1. CareerOneStop Job Postings API (Free)
-- Register at https://careeronestop.org/Developers/
-- Use `/jobs/list-jobs-v2` to get posting counts by occupation (O*NET SOC code)
-- Store results for volume metrics
-- Query monthly to track growth over time
+**Database Changes:**
+- Add `day_in_life` column to `career_roi` or create `career_content` table
 
-**Endpoint**: `https://api.careeronestop.org/v2/jobsearch/{userId}/{keyword}/{location}...`
+**UI:**
+- Show 1-2 sentence summary on swipe card
+- Full narrative in detail view
 
-### 2. BLS Historical Wage Data (Free)
-- BLS Public API: https://data.bls.gov/developer/
-- Query OES historical data by occupation
-- Store 3+ years to compute wage growth trends
-- Expand existing schema for time-series storage
+### 2. Career Images
 
-**API limits**: 500 queries/day, 20 years, 50 series per request
+**Data Flow:**
+1. Build prompt from CareerOneStop data + occupation metadata
+2. Generate image using local image model (FLUX/Stable Diffusion)
+3. Upload to Cloudflare R2
+4. Store URL in database
 
-### 3. Remote Work Data
-- No free comprehensive source
-- Workaround: Use "telecommute" keyword frequency in job postings as proxy
+**Storage:**
+- Cloudflare R2 (easiest: presigned URLs or API upload)
+- Store image URL in database
 
-### 4. Data Pipeline Changes
-- Add table: `job_postings` (occupation, area, count, date)
-- Add table: `historical_salaries` (occ_code, year, median_wage)
-- Create: `data/fetch_careeronestop.py`
-- Create: `data/fetch_bls_history.py`
-- Update ranking algorithm
+**UI:**
+- Display on swipe card below narrative summary
+
+### 3. Career Videos
+
+- Embed links to CareerOneStop videos
+- Show in detail view as clickable thumbnail/link
+
+---
+
+## Technical Implementation
+
+### Backend (Rails)
+
+| Task | Notes |
+|------|-------|
+| Add CareerOneStop API integration | Fetch occupation details for prompt context |
+| Create content generation service | Interface for local LLM + image generation |
+| Add `career_contents` table | Store day_in_life, image_url, video_url per occupation |
+| Create `/api/careers/:id/content` endpoint | Return enriched career with new fields |
+| Create `/api/generate/content` admin endpoint | Trigger generation for careers |
+
+### Frontend (React Native)
+
+| Task | Notes |
+|------|-------|
+| Update `CareerROI` type | Add day_in_life, image_url, video_url |
+| Update SwipeCard | Display narrative + image |
+| Update CareerDetailView | Display full content + video link |
+
+### Data Pipeline
+
+| Task | Notes |
+|------|-------|
+| Set up local LLM server | Ollama or similar for Llama/Mistral |
+| Set up image generation | FLUX.1-schnell or Stable Diffusion |
+| Set up Cloudflare R2 | Storage for generated images |
+
+---
+
+## Decisions
+
+- **LLM**: Local (Ollama with Llama/Mistral)
+- **Image Generation**: Local (FLUX.1-schnell or Stable Diffusion)
+- **Generation Timing**: Upfront for all careers
+- **CareerOneStop API**: User has credentials
+
+---
+
+## Out of Scope
+- Video playback (links only for Phase 2)
+- User-generated content
+- Real-time generation during swipe (pre-generate only)
