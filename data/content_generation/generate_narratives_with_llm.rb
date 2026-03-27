@@ -1,0 +1,85 @@
+require 'json'
+require 'ruby_llm'
+
+class GenerateNarratives
+  def initialize(model: 'llama3.2', uri: 'http://localhost:11434')
+    @model = model
+    @uri = uri
+  end
+
+  def load_data
+    JSON.parse(File.read(@data_file))
+  end
+
+  def generate(occupation_data, occupation_name)
+    details = occupation_data['details'] || {}
+    tasks = details.dig('Tasks', 0, 'Task') || []
+    skills = details.dig('Skills', 0, 'Skill') || []
+    work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
+
+    task_list = tasks.take(10).map { |t| t['TaskDescription'] }.compact.join("\n- ")
+    skill_list = skills.map { |s| "#{s['SkillName']} (#{s['Importance']})" }.compact.join("\n- ")
+    work_context = work_env['WorkContextDescription'] || ''
+
+    prompt = <<~PROMPT
+      Write content for a career exploration app about being a #{occupation_name}.
+      
+      Write two things:
+      1. DAY IN LIFE SUMMARY: A brief 1-2 sentence summary suitable for a swipe card.
+      2. FULL NARRATIVE: A detailed "day in the life" narrative (2-3 paragraphs) in a compelling style.
+      
+      Occupation details:
+      - Typical tasks: - #{task_list}
+      - Required skills: - #{skill_list}
+      - Work environment: #{work_context}
+      
+      Format as JSON with keys "day_in_life_summary" and "full_narrative".
+    PROMPT
+
+    chat = RubyLLM.chat(model: @model, uri: @uri)
+    response = chat.ask(prompt.strip)
+    JSON.parse(response.content)
+  rescue JSON::ParserError
+    { "day_in_life_summary" => "Failed to generate", "full_narrative" => "Failed to generate" }
+  end
+
+  def process_all(data_file)
+    @data_file = data_file
+    data = load_data
+    
+    results = {}
+    
+    data.each do |code, occupation_data|
+      puts "Generating for #{code}..."
+      
+      name = occupation_data.dig('details', 'OnetTitle') || code
+      
+      content = generate(occupation_data, name)
+      
+      results[code] = {
+        occupation_name: name,
+        day_in_life_summary: content['day_in_life_summary'],
+        full_narrative: content['full_narrative'],
+        video_url: occupation_data['video_url']
+      }
+    end
+    
+    results
+  end
+  
+  def save_results(data_file, output_file)
+    results = process_all(data_file)
+    File.write(output_file, JSON.pretty_generate(results))
+    puts "Saved narratives to #{output_file}"
+  end
+end
+
+if __FILE__ == $0
+  data_file = ARGV[0] || '../careeronestop_data.json'
+  output = ARGV[1] || 'generated_narratives.json'
+  model = ARGV[2] || 'llama3.2'
+  uri = ARGV[3] || 'http://localhost:11434'
+  
+  generator = GenerateNarratives.new(model: model, uri: uri)
+  generator.save_results(data_file, output)
+end
