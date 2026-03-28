@@ -151,7 +151,7 @@ class GenerateImages
 
       image_data = generate_with_flux(prompt)
 
-      if image_data
+      if image_data && @r2_config['bucket_url']
         filename = "#{code.gsub('-', '_')}_#{Time.now.to_i}.png"
         url = upload_to_r2(image_data, filename)
 
@@ -160,6 +160,9 @@ class GenerateImages
           image_url: url
         }
       else
+        if @r2_config['bucket_url'].nil?
+          puts "Skipping image storage - R2 not configured"
+        end
         results[code] = {
           prompt: prompt,
           image_url: nil
