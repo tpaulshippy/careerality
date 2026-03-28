@@ -9,6 +9,7 @@ data/cost_of_living/
 data/cost-of-living/
 
 # Generated files
+data/content_generation/narrative_prompts.json
 data/content_generation/generated_narratives
 
 # Python cache
