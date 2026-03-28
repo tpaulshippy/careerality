@@ -4,7 +4,7 @@ class CreateCareerImages < ActiveRecord::Migration[8.0]
       t.string :occupation_code, null: false
       t.text :image_url
       t.text :prompt_used
-      t.integer :position
+      t.integer :position, null: false
 
       t.timestamps
     end

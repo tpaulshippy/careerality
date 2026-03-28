@@ -41,6 +41,7 @@ class GenerateImages
       '-d', JSON.dump({
                         model: 'flux',
                         prompt: prompt,
+                        stream: false,
                         options: { num_ctx: 2048 }
                       })
     ]

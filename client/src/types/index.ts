@@ -28,7 +28,7 @@ export interface CareerImage {
   occupation_code: string;
   image_url: string;
   prompt_used: string;
-  order: number;
+  position: number;
 }
 
 export interface CareerContent {

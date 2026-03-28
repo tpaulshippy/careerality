@@ -37,10 +37,11 @@ class GenerateNarratives
     details = occupation_data['details'] || {}
     tasks = details.dig('Tasks', 0, 'Task') || []
     skills = details.dig('Skills', 0, 'Skill') || []
-    details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
+    work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
 
     task_list = tasks.map { |t| t['TaskDescription'] }.compact.join("\n- ")
     skill_list = skills.map { |s| "#{s['SkillName']} (#{s['Importance']})" }.compact.join("\n- ")
+    work_context = work_env['WorkContextDescription'] || ''
 
     prompt = <<~PROMPT
       Write a detailed "day in the life" narrative (2-3 paragraphs) for a #{occupation_name}.
@@ -48,7 +49,7 @@ class GenerateNarratives
       Include:
       - Typical tasks: - #{task_list}
       - Required skills: - #{skill_list}
-      - Work environment details
+      - Work environment details: #{work_context}
       - What makes this career rewarding
 
       Write in a compelling, narrative style.
