@@ -1,94 +1,21 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'active_record'
+require_relative 'narrative_generation'
 
 class GenerateNarratives
-  DB_CONFIG = {
-    adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
-    database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
-    user: ENV['DB_USER'] || ENV['PGUSER'] || 'postgres',
-    password: ENV['DB_PASSWORD'] || ENV['PGPASSWORD'] || 'postgres',
-    host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost'
-  }
-
   def initialize
-    establish_connection
-  end
-
-  def establish_connection
-    ActiveRecord::Base.establish_connection(DB_CONFIG)
-  end
-
-  def load_occupation_data(occupation_code)
-    profile = ActiveRecord::Base.connection.exec_query(
-      "SELECT occupation_code, occupation_name, occupation_description, onet_data, skills, tasks, work_activities FROM career_profiles WHERE occupation_code = $1",
-      nil,
-      [occupation_code]
-    ).first
-
-    return nil unless profile
-
-    # Load top tasks by importance from onet_tasks table
-    tasks_data = ActiveRecord::Base.connection.exec_query(
-      <<~SQL,
-        SELECT task_description, importance, frequency, task_type
-        FROM onet_tasks
-        WHERE occupation_code = $1
-        ORDER BY importance DESC NULLS LAST, frequency DESC NULLS LAST
-        LIMIT 7
-      SQL
-      nil,
-      [occupation_code]
-    ).to_a
-
-    # Fallback to legacy tasks if onet_tasks table is empty
-    if tasks_data.empty?
-      legacy_tasks = profile['tasks']
-      legacy_tasks = JSON.parse(legacy_tasks) if legacy_tasks.is_a?(String)
-      tasks_data = legacy_tasks || []
-    end
-
-    skills = profile['skills']
-    skills = JSON.parse(skills) if skills.is_a?(String)
-
-    work_activities = profile['work_activities']
-    work_activities = JSON.parse(work_activities) if work_activities.is_a?(String)
-
-    onet_data = profile['onet_data']
-    onet_data = JSON.parse(onet_data) if onet_data.is_a?(String)
-
-    {
-      'OnetTitle' => profile['occupation_name'],
-      'OnetCode' => profile['occupation_code'],
-      'OnetDescription' => profile['occupation_description'],
-      'Tasks' => tasks_data || [],
-      'Skills' => skills || [],
-      'WorkEnvironment' => [{ 'WorkEnvironment' => profile['occupation_description'] || '' }],
-      'InterestDataList' => onet_data&.dig('interests') || []
-    }
-  end
-
-  def load_all_occupation_codes
-    ActiveRecord::Base.connection.exec_query(
-      "SELECT occupation_code FROM career_profiles"
-    ).map { |row| row['occupation_code'] }
+    NarrativeGeneration.establish_connection
   end
 
   def generate_day_in_life(occupation_data, occupation_name)
-    tasks = occupation_data['Tasks'] || []
-    skills = occupation_data['Skills'] || []
+    singular_name = NarrativeGeneration.singularize_occupation(occupation_name)
     occupation_description = occupation_data['OnetDescription'] || ''
 
-    # Format tasks - handle both hash (from onet_tasks) and string formats
-    task_list = tasks.map { |t|
-      t.is_a?(Hash) ? t['task_description'] : t
-    }.compact.take(5).join('. ')
-
-    skill_list = skills.take(5).map { |s| s.is_a?(Hash) ? s['ElementName'] : s }.compact.join(', ')
+    task_list = NarrativeGeneration.format_task_list(occupation_data['Tasks'] || [], '. ', 5)
+    skill_list = NarrativeGeneration.format_skill_list(occupation_data['Skills'] || [])
 
     prompt = <<~PROMPT
-      Write a brief 1-2 sentence summary suitable for a swipe card about what a #{occupation_name} does daily.
+      Write a brief 1-2 sentence summary suitable for a swipe card about what a #{singular_name} does daily.
       
       Occupation overview: #{occupation_description}
       The role involves: #{task_list}.
@@ -101,19 +28,14 @@ class GenerateNarratives
   end
 
   def generate_full_narrative(occupation_data, occupation_name)
-    tasks = occupation_data['Tasks'] || []
-    skills = occupation_data['Skills'] || []
+    singular_name = NarrativeGeneration.singularize_occupation(occupation_name)
     occupation_description = occupation_data['OnetDescription'] || ''
 
-    # Format tasks - handle both hash (from onet_tasks) and string formats
-    task_list = tasks.map { |t|
-      t.is_a?(Hash) ? t['task_description'] : t
-    }.compact.join("\n- ")
-
-    skill_list = skills.map { |s| s.is_a?(Hash) ? "#{s['ElementName']} (#{s['Importance']})" : s }.compact.join("\n- ")
+    task_list = NarrativeGeneration.format_task_list(occupation_data['Tasks'] || [], "\n- ", 7)
+    skill_list = NarrativeGeneration.format_skill_list_multiline(occupation_data['Skills'] || [], true)
 
     prompt = <<~PROMPT
-      Write a detailed "day in the life" narrative (2-3 paragraphs) for a #{occupation_name}.
+      Write a detailed "day in the life" narrative (2-3 paragraphs) for a #{singular_name}.
       
       Occupation definition (canonical O*NET description): #{occupation_description}
 
@@ -129,14 +51,14 @@ class GenerateNarratives
   end
 
   def process_all(occupation_codes = nil)
-    codes = occupation_codes || load_all_occupation_codes
+    codes = occupation_codes || NarrativeGeneration.load_all_occupation_codes
 
     results = {}
 
     codes.each do |code|
       puts "Generating prompts for #{code}..."
 
-      occupation_data = load_occupation_data(code)
+      occupation_data = NarrativeGeneration.load_occupation_data(code)
       unless occupation_data
         puts "No data found for #{code}, skipping"
         next

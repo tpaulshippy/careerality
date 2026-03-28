@@ -1,26 +1,22 @@
 # frozen_string_literal: true
 
-require 'json'
 require 'ruby_llm'
-require 'active_record'
+require_relative 'narrative_generation'
 
 class GenerateNarrativesWithLLM
-  DB_CONFIG = {
-    adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
-    database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
-    user: ENV['DB_USER'] || ENV['PGUSER'] || 'postgres',
-    password: ENV['DB_PASSWORD'] || ENV['PGPASSWORD'] || 'postgres',
-    host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost'
-  }
-
   def initialize(model: 'llama3.2', uri: 'http://localhost:11434')
     @model = model
     @uri = uri
-    establish_connection
+    NarrativeGeneration.establish_connection
   end
 
-  def establish_connection
-    ActiveRecord::Base.establish_connection(DB_CONFIG)
+  def load_all_data
+    data = {}
+    Dir.glob(File.join(@data_dir, '*.json')).each do |file|
+      code = File.basename(file, '.json').gsub('_', '.')
+      data[code] = JSON.parse(File.read(file))
+    end
+    data
   end
 
   def load_occupation_from_db(onet_code)
@@ -52,26 +48,17 @@ class GenerateNarrativesWithLLM
     }
   end
 
-  def load_all_data
-    data = {}
-    Dir.glob(File.join(@data_dir, '*.json')).each do |file|
-      code = File.basename(file, '.json').gsub('_', '.')
-      data[code] = JSON.parse(File.read(file))
-    end
-    data
-  end
-
   def generate(occupation_data, occupation_name)
+    singular_name = NarrativeGeneration.singularize_occupation(occupation_name)
     occupation_description = occupation_data['occupation_description'] || ''
     tasks = occupation_data['tasks'] || []
     skills = occupation_data['Skills'] || []
 
-    # Format tasks - they come from onet_tasks table with importance/frequency
-    task_list = tasks.map { |t| t['task_description'] || t }.compact.take(7).join("\n- ")
-    skill_list = skills.map { |s| "#{s['ElementName']} (#{s['Importance']})" }.compact.join("\n- ")
+    task_list = NarrativeGeneration.format_task_list(tasks, "\n- ", 7)
+    skill_list = NarrativeGeneration.format_skill_list_multiline(skills, true)
 
     prompt = <<~PROMPT
-      Write content for a career exploration app about being a #{occupation_name}.
+      Write content for a career exploration app about being a #{singular_name}.
 
       Write two things:
       1. DAY IN LIFE SUMMARY: A brief 1-2 sentence summary suitable for a swipe card.
