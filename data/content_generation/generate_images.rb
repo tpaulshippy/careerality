@@ -104,7 +104,7 @@ class GenerateImages
       'curl', '--silent',
       '-X', 'PUT',
       '-H', 'Content-Type: image/png',
-      '-d', image_data,
+      '--data-binary', image_data,
       "#{@r2_config['bucket_url']}/#{filename}"
     ]
 

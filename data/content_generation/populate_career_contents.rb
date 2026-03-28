@@ -1,12 +1,16 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'open3'
 require 'active_record'
 
 require_relative 'generate_narratives'
 require_relative 'generate_images'
 
 class PopulateCareerContents
+  LLM_MODEL = ENV.fetch('LLM_MODEL', 'llama3.2')
+  LLM_URI = ENV.fetch('LLM_URI', 'http://localhost:11434')
+
   DB_CONFIG = {
     adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
     database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
@@ -26,6 +30,53 @@ class PopulateCareerContents
     establish_connection
   end
 
+  def generate_with_llm(prompt)
+    cmd = [
+      'curl', '--silent',
+      '-X', 'POST',
+      LLM_URI + '/api/generate',
+      '-d', JSON.dump({
+        model: LLM_MODEL,
+        prompt: prompt,
+        stream: false,
+        format: 'json'
+      })
+    ]
+
+    begin
+      stdout, _stderr, status = Open3.capture3(*cmd)
+      if status.success?
+        JSON.parse(stdout)['response']
+      else
+        nil
+      end
+    rescue StandardError => e
+      puts "LLM error: #{e.message}"
+      nil
+    end
+  end
+
+  def generate_narratives(prompts)
+    results = {}
+
+    prompts.each do |code, data|
+      puts "Generating narrative for #{code}..."
+
+      summary_result = generate_with_llm(data[:summary_prompt])
+      full_result = generate_with_llm(data[:full_prompt])
+
+      results[code] = {
+        summary: summary_result || "Failed to generate summary",
+        full: full_result || "Failed to generate narrative",
+        video_url: data[:video_url] || ''
+      }
+
+      sleep(1)
+    end
+
+    results
+  end
+
   def establish_connection
     ActiveRecord::Base.establish_connection(DB_CONFIG)
   end
@@ -43,12 +94,7 @@ class PopulateCareerContents
             updated_at = NOW()
         SQL
         nil,
-        {
-          occupation_code: code,
-          day_in_life_summary: data[:summary],
-          day_in_life_full: data[:full],
-          video_url: data[:video_url]
-        }
+        [code, data[:summary], data[:full], data[:video_url]]
       )
     end
   end
@@ -67,11 +113,7 @@ class PopulateCareerContents
             updated_at = NOW()
         SQL
         nil,
-        {
-          occupation_code: code,
-          image_url: data[:image_url],
-          prompt_used: data[:prompt]
-        }
+        [code, data[:image_url], data[:prompt]]
       )
     end
   end
@@ -84,29 +126,22 @@ if __FILE__ == $PROGRAM_NAME
   narrative_gen = GenerateNarratives.new
   prompts = narrative_gen.process_all(occupation_codes)
 
-  puts 'Step 2: Saving to database...'
+  puts 'Step 2: Generating narratives with LLM...'
   populator = PopulateCareerContents.new
+  results = populator.generate_narratives(prompts)
 
-  results = {}
-  prompts.each do |code, data|
-    results[code] = {
-      summary: "[LLM Generated Summary for #{code}]",
-      full: "[LLM Generated Full Narrative for #{code}]",
-      video_url: data[:video_url] || ''
-    }
-  end
-
+  puts 'Step 3: Saving to database...'
   populator.save_to_database(results)
 
   r2_config = {
     'bucket_url' => ENV['R2_BUCKET_URL']
   }
 
-  puts 'Step 3: Generating career images...'
+  puts 'Step 4: Generating career images...'
   image_gen = GenerateImages.new(r2_config)
   image_results = image_gen.process_all(occupation_codes)
 
-  puts 'Step 4: Saving images to database...'
+  puts 'Step 5: Saving images to database...'
   populator.save_images_to_database(image_results)
 
   puts 'Done!'
