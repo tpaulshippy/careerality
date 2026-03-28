@@ -1,136 +1,84 @@
 # frozen_string_literal: true
 
+require 'json'
 require 'ruby_llm'
-require_relative 'narrative_generation'
 
 class GenerateNarrativesWithLLM
   def initialize(model: 'llama3.2', uri: 'http://localhost:11434')
     @model = model
     @uri = uri
-    NarrativeGeneration.establish_connection
   end
 
-  def load_all_data
-    data = {}
-    Dir.glob(File.join(@data_dir, '*.json')).each do |file|
-      code = File.basename(file, '.json').gsub('_', '.')
-      data[code] = JSON.parse(File.read(file))
+  def load_prompts(prompts_file)
+    unless File.exist?(prompts_file)
+      raise "Prompts file not found: #{prompts_file}"
     end
-    data
+
+    JSON.parse(File.read(prompts_file))
   end
 
-  def load_occupation_from_db(onet_code)
-    profile = ActiveRecord::Base.connection.exec_query(
-      "SELECT occupation_code, occupation_name, occupation_description FROM career_profiles WHERE occupation_code = $1",
-      nil,
-      [onet_code]
-    ).first
-
-    return nil unless profile
-
-    # Load top tasks by importance from onet_tasks table
-    tasks_data = ActiveRecord::Base.connection.exec_query(
-      <<~SQL,
-        SELECT task_description, importance, frequency, task_type
-        FROM onet_tasks
-        WHERE occupation_code = $1
-        ORDER BY importance DESC NULLS LAST, frequency DESC NULLS LAST
-        LIMIT 7
-      SQL
-      nil,
-      [onet_code]
-    ).to_a
-
-    {
-      'occupation_name' => profile['occupation_name'],
-      'occupation_description' => profile['occupation_description'],
-      'tasks' => tasks_data
-    }
-  end
-
-  def generate(occupation_data, occupation_name)
-    singular_name = NarrativeGeneration.singularize_occupation(occupation_name)
-    occupation_description = occupation_data['occupation_description'] || ''
-    tasks = occupation_data['tasks'] || []
-    skills = occupation_data['Skills'] || []
-
-    task_list = NarrativeGeneration.format_task_list(tasks, "\n- ", 7)
-    skill_list = NarrativeGeneration.format_skill_list_multiline(skills, true)
-
-    prompt = <<~PROMPT
-      Write content for a career exploration app about being a #{singular_name}.
-
-      Write two things:
-      1. DAY IN LIFE SUMMARY: A brief 1-2 sentence summary suitable for a swipe card.
-      2. FULL NARRATIVE: A detailed "day in the life" narrative (2-3 paragraphs) in a compelling style.
-
-      Use this canonical occupation definition as your anchor/grounding signal:
-      Occupation Definition: #{occupation_description}
-
-      Occupation details (filtered by relevance):
-      - Typical tasks: - #{task_list}
-      - Required skills: - #{skill_list}
-
-      Keep the narrative grounded in the occupation definition. Avoid over-rotating on unusual tasks.
-      Format as JSON with keys "day_in_life_summary" and "full_narrative".
-    PROMPT
-
-    chat = RubyLLM.chat(model: @model, uri: @uri)
-    response = chat.ask(prompt.strip)
-    JSON.parse(response.content)
-  rescue JSON::ParserError, StandardError => e
-    warn "Error generating narrative for #{occupation_name}: #{e.class} - #{e.message}"
-    {
-      'day_in_life_summary' => "Failed to generate: #{e.class}",
-      'full_narrative' => "Failed to generate: #{e.class}"
-    }
-  end
-
-  def process_all(data_dir)
-    @data_dir = data_dir
-    data = load_all_data
-
+  def generate_from_prompts(prompts_data)
     results = {}
 
-    data.each do |code, occupation_data|
-      puts "Generating for #{code}..."
+    prompts_data.each do |code, prompt_info|
+      puts "Generating narrative for #{code}..."
 
-      # Try to load from database first (newer path with proper task filtering)
-      db_data = load_occupation_from_db(code)
-      if db_data
-        name = db_data['occupation_name']
-        occupation_data = db_data.merge('Skills' => occupation_data['details']&.dig('Skills') || [])
-      else
-        name = occupation_data.dig('details', 'OnetTitle') || code
+      summary_prompt = prompt_info['summary_prompt']
+      full_prompt = prompt_info['full_prompt']
+      occupation_name = prompt_info['occupation_name']
+
+      unless summary_prompt && full_prompt
+        puts "Skipping #{code}: missing prompts"
+        next
       end
 
-      content = generate(occupation_data, name)
+      # Generate both summary and full narrative from LLM
+      summary_content = generate_from_prompt(summary_prompt, occupation_name)
+      full_content = generate_from_prompt(full_prompt, occupation_name)
 
       results[code] = {
-        occupation_name: name,
-        day_in_life_summary: content['day_in_life_summary'],
-        full_narrative: content['full_narrative'],
-        video_url: occupation_data['video_url']
+        occupation_name: occupation_name,
+        day_in_life_summary: summary_content,
+        full_narrative: full_content,
+        video_url: prompt_info['video_url']
+      }
+    rescue StandardError => e
+      warn "Error processing #{code}: #{e.class} - #{e.message}"
+      results[code] = {
+        occupation_name: occupation_name,
+        day_in_life_summary: "Failed to generate: #{e.class}",
+        full_narrative: "Failed to generate: #{e.class}",
+        video_url: prompt_info['video_url']
       }
     end
 
     results
   end
 
-  def save_results(data_file, output_file)
-    results = process_all(data_file)
+  def generate_from_prompt(prompt, occupation_name)
+    chat = RubyLLM.chat(model: @model, uri: @uri)
+    response = chat.ask(prompt)
+    response.content
+  rescue JSON::ParserError, StandardError => e
+    warn "Error generating narrative for #{occupation_name}: #{e.class} - #{e.message}"
+    "Failed to generate: #{e.class}"
+  end
+
+  def save_results(prompts_file, output_file)
+    prompts_data = load_prompts(prompts_file)
+    results = generate_from_prompts(prompts_data)
     File.write(output_file, JSON.pretty_generate(results))
     puts "Saved narratives to #{output_file}"
   end
 end
 
 if __FILE__ == $PROGRAM_NAME
-  data_dir = ARGV[0] || File.expand_path('careers', __dir__)
+  prompts_file = ARGV[0] || File.expand_path('narrative_prompts.json', __dir__)
   output = ARGV[1] || File.expand_path('generated_narratives.json', __dir__)
   model = ARGV[2] || 'llama3.2'
   uri = ARGV[3] || 'http://localhost:11434'
 
   generator = GenerateNarrativesWithLLM.new(model: model, uri: uri)
-  generator.save_results(data_dir, output)
+  generator.save_results(prompts_file, output)
 end
 
