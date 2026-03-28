@@ -25,7 +25,7 @@ class GenerateNarrativesWithLLM
 
       summary_prompt = prompt_info['summary_prompt']
       full_prompt = prompt_info['full_prompt']
-      occupation_name = prompt_info['occupation_name']
+      occupation_name = prompt_info['occupation_name'] || code
 
       unless summary_prompt && full_prompt
         puts "Skipping #{code}: missing prompts"
@@ -45,7 +45,7 @@ class GenerateNarrativesWithLLM
     rescue StandardError => e
       warn "Error processing #{code}: #{e.class} - #{e.message}"
       results[code] = {
-        occupation_name: occupation_name,
+        occupation_name: occupation_name || code,
         day_in_life_summary: "Failed to generate: #{e.class}",
         full_narrative: "Failed to generate: #{e.class}",
         video_url: prompt_info['video_url']

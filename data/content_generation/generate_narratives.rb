@@ -70,6 +70,7 @@ class GenerateNarratives
       full_prompt = generate_full_narrative(occupation_data, name)
 
       results[code] = {
+        occupation_name: name,
         summary_prompt: summary_prompt,
         full_prompt: full_prompt,
         video_url: nil
