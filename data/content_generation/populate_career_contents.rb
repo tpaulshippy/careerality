@@ -3,7 +3,6 @@
 require 'json'
 require 'active_record'
 
-require_relative 'fetch_careeronestop'
 require_relative 'generate_narratives'
 require_relative 'generate_images'
 
@@ -79,30 +78,13 @@ class PopulateCareerContents
 end
 
 if __FILE__ == $PROGRAM_NAME
-  api_key = ENV['CAREERONESTOP_API_KEY']
+  occupation_codes = ARGV.empty? ? nil : ARGV
 
-  unless api_key
-    puts 'Error: Set CAREERONESTOP_API_KEY environment variable'
-    exit 1
-  end
+  puts 'Step 1: Generating narrative prompts from database...'
+  narrative_gen = GenerateNarratives.new
+  prompts = narrative_gen.process_all(occupation_codes)
 
-  puts 'Step 1: Fetching CareerOneStop data...'
-  fetcher = FetchCareerOneStop.new(api_key)
-
-  occupation_codes = ARGV.empty? ? [] : ARGV
-  if occupation_codes.empty?
-    puts 'Usage: ruby populate_career_contents.rb <occupation_code1> [occupation_code2] ...'
-    exit 1
-  end
-
-  temp_file = 'temp_careeronestop.json'
-  fetcher.fetch_all_for_occupations(occupation_codes, temp_file)
-
-  puts 'Step 2: Generating narrative prompts...'
-  narrative_gen = GenerateNarratives.new(temp_file)
-  prompts = narrative_gen.process_all
-
-  puts 'Step 3: Saving to database...'
+  puts 'Step 2: Saving to database...'
   populator = PopulateCareerContents.new
 
   results = {}
@@ -116,14 +98,16 @@ if __FILE__ == $PROGRAM_NAME
 
   populator.save_to_database(results)
 
-  puts 'Step 4: Generating career images...'
-  image_gen = GenerateImages.new(temp_file)
-  image_results = image_gen.process_all
+  r2_config = {
+    'bucket_url' => ENV['R2_BUCKET_URL']
+  }
 
-  puts 'Step 5: Saving images to database...'
+  puts 'Step 3: Generating career images...'
+  image_gen = GenerateImages.new(r2_config)
+  image_results = image_gen.process_all(occupation_codes)
+
+  puts 'Step 4: Saving images to database...'
   populator.save_images_to_database(image_results)
 
   puts 'Done!'
-
-  File.delete(temp_file) if File.exist?(temp_file)
 end

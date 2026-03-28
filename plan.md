@@ -13,7 +13,7 @@ Enhance career cards with richer visual and descriptive content:
 ### 1. Day-in-the-Life Narratives
 
 **Data Flow:**
-1. Fetch career context from CareerOneStop API (tasks, skills, work environment)
+1. Fetch career context from database (career_profiles table with O*NET data)
 2. Generate narrative using RubyLLM (local Ollama with Llama/Mistral)
 3. Store static content per occupation in database
 4. Display summary on swipe card
@@ -28,7 +28,7 @@ Enhance career cards with richer visual and descriptive content:
 ### 2. Career Images (Multiple)
 
 **Data Flow:**
-1. Build prompt from CareerOneStop data + occupation metadata
+1. Build prompt from database O*NET data + occupation metadata
 2. Generate images using local image model (FLUX.1-schnell)
 3. Upload to Cloudflare R2
 4. Store URLs in database (multiple per occupation)
@@ -42,7 +42,7 @@ Enhance career cards with richer visual and descriptive content:
 
 ### 3. Career Videos
 
-- Fetch video URLs from CareerOneStop API
+- Fetch video URLs from O*NET database (if available)
 - Embed in detail view (WebView or video player)
 - Fallback to link if embedding fails
 
@@ -54,7 +54,7 @@ Enhance career cards with richer visual and descriptive content:
 
 | Script | Purpose |
 |--------|---------|
-| `fetch_careeronestop.rb` | Fetch occupation details from CareerOneStop API |
+| (removed) | Data now loaded from career_profiles table |
 | `generate_narratives.rb` | Generate day-in-life using RubyLLM (Ollama) |
 | `generate_images.rb` | Generate and upload images to R2 |
 | `populate_career_contents.rb` | Run all generation and save to database |
@@ -90,7 +90,7 @@ t.timestamps
 
 ## Data Pipeline
 
-1. Run `fetch_careeronestop.rb` - get occupation details
+1. Ensure career_profiles table has O*NET data (tasks, skills, work_activities)
 2. Run `generate_narratives.rb` - generate day-in-life via RubyLLM
 3. Run `generate_images.rb` - generate images, upload to R2
 4. Import results to database via Rails
@@ -102,7 +102,7 @@ t.timestamps
 - **LLM**: Local (Ollama with Llama/Mistral via RubyLLM)
 - **Image Generation**: Local (FLUX.1-schnell)
 - **Generation Timing**: Upfront for all careers
-- **CareerOneStop API**: User has credentials
+- **Data source**: career_profiles table in database
 - **Storage**: Cloudflare R2 for images
 - **No API endpoints**: Ruby scripts only for generation
 
@@ -111,4 +111,4 @@ t.timestamps
 ## Out of Scope
 - Real-time generation during swipe (pre-generate only)
 - User-generated content
-- Video generation (just fetch from CareerOneStop)
+- Video generation (fetch from O*NET or external source)
