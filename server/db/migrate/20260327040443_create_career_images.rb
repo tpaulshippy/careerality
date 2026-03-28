@@ -8,6 +8,6 @@ class CreateCareerImages < ActiveRecord::Migration[8.0]
 
       t.timestamps
     end
-    add_index :career_images, [:occupation_code, :position], unique: true
+    add_index :career_images, [ :occupation_code, :position ], unique: true
   end
 end
