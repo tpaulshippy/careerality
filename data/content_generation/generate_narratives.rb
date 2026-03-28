@@ -29,8 +29,25 @@ class GenerateNarratives
 
     return nil unless profile
 
-    tasks = profile['tasks']
-    tasks = JSON.parse(tasks) if tasks.is_a?(String)
+    # Load top tasks by importance from onet_tasks table
+    tasks_data = ActiveRecord::Base.connection.exec_query(
+      <<~SQL,
+        SELECT task_description, importance, frequency, task_type
+        FROM onet_tasks
+        WHERE occupation_code = $1
+        ORDER BY importance DESC NULLS LAST, frequency DESC NULLS LAST
+        LIMIT 7
+      SQL
+      nil,
+      [occupation_code]
+    ).to_a
+
+    # Fallback to legacy tasks if onet_tasks table is empty
+    if tasks_data.empty?
+      legacy_tasks = profile['tasks']
+      legacy_tasks = JSON.parse(legacy_tasks) if legacy_tasks.is_a?(String)
+      tasks_data = legacy_tasks || []
+    end
 
     skills = profile['skills']
     skills = JSON.parse(skills) if skills.is_a?(String)
@@ -45,7 +62,7 @@ class GenerateNarratives
       'OnetTitle' => profile['occupation_name'],
       'OnetCode' => profile['occupation_code'],
       'OnetDescription' => profile['occupation_description'],
-      'Tasks' => tasks || [],
+      'Tasks' => tasks_data || [],
       'Skills' => skills || [],
       'WorkEnvironment' => [{ 'WorkEnvironment' => profile['occupation_description'] || '' }],
       'InterestDataList' => onet_data&.dig('interests') || []
@@ -61,16 +78,21 @@ class GenerateNarratives
   def generate_day_in_life(occupation_data, occupation_name)
     tasks = occupation_data['Tasks'] || []
     skills = occupation_data['Skills'] || []
-    work_context = occupation_data.dig('WorkEnvironment', 0)&.dig('WorkEnvironment') || ''
+    occupation_description = occupation_data['OnetDescription'] || ''
 
-    task_list = tasks.take(5).map { |t| t.is_a?(Hash) ? t['TaskDescription'] : t }.compact.join('. ')
+    # Format tasks - handle both hash (from onet_tasks) and string formats
+    task_list = tasks.map { |t|
+      t.is_a?(Hash) ? t['task_description'] : t
+    }.compact.take(5).join('. ')
+
     skill_list = skills.take(5).map { |s| s.is_a?(Hash) ? s['ElementName'] : s }.compact.join(', ')
 
     prompt = <<~PROMPT
       Write a brief 1-2 sentence summary suitable for a swipe card about what a #{occupation_name} does daily.
+      
+      Occupation overview: #{occupation_description}
       The role involves: #{task_list}.
       Key skills needed: #{skill_list}.
-      Work context: #{work_context}.
 
       Format as a single engaging sentence suitable for a quick career overview.
     PROMPT
@@ -81,21 +103,26 @@ class GenerateNarratives
   def generate_full_narrative(occupation_data, occupation_name)
     tasks = occupation_data['Tasks'] || []
     skills = occupation_data['Skills'] || []
-    work_context = occupation_data.dig('WorkEnvironment', 0)&.dig('WorkEnvironment') || ''
+    occupation_description = occupation_data['OnetDescription'] || ''
 
-    task_list = tasks.map { |t| t.is_a?(Hash) ? t['TaskDescription'] : t }.compact.join("\n- ")
+    # Format tasks - handle both hash (from onet_tasks) and string formats
+    task_list = tasks.map { |t|
+      t.is_a?(Hash) ? t['task_description'] : t
+    }.compact.join("\n- ")
+
     skill_list = skills.map { |s| s.is_a?(Hash) ? "#{s['ElementName']} (#{s['Importance']})" : s }.compact.join("\n- ")
 
     prompt = <<~PROMPT
       Write a detailed "day in the life" narrative (2-3 paragraphs) for a #{occupation_name}.
+      
+      Occupation definition (canonical O*NET description): #{occupation_description}
 
       Include:
       - Typical tasks: - #{task_list}
       - Required skills: - #{skill_list}
-      - Work environment details: #{work_context}
       - What makes this career rewarding
 
-      Write in a compelling, narrative style.
+      Write in a compelling, narrative style that's grounded in the occupation definition above.
     PROMPT
 
     prompt.strip

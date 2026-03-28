@@ -2,11 +2,54 @@
 
 require 'json'
 require 'ruby_llm'
+require 'active_record'
 
 class GenerateNarrativesWithLLM
+  DB_CONFIG = {
+    adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
+    database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
+    user: ENV['DB_USER'] || ENV['PGUSER'] || 'postgres',
+    password: ENV['DB_PASSWORD'] || ENV['PGPASSWORD'] || 'postgres',
+    host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost'
+  }
+
   def initialize(model: 'llama3.2', uri: 'http://localhost:11434')
     @model = model
     @uri = uri
+    establish_connection
+  end
+
+  def establish_connection
+    ActiveRecord::Base.establish_connection(DB_CONFIG)
+  end
+
+  def load_occupation_from_db(onet_code)
+    profile = ActiveRecord::Base.connection.exec_query(
+      "SELECT occupation_code, occupation_name, occupation_description FROM career_profiles WHERE occupation_code = $1",
+      nil,
+      [onet_code]
+    ).first
+
+    return nil unless profile
+
+    # Load top tasks by importance from onet_tasks table
+    tasks_data = ActiveRecord::Base.connection.exec_query(
+      <<~SQL,
+        SELECT task_description, importance, frequency, task_type
+        FROM onet_tasks
+        WHERE occupation_code = $1
+        ORDER BY importance DESC NULLS LAST, frequency DESC NULLS LAST
+        LIMIT 7
+      SQL
+      nil,
+      [onet_code]
+    ).to_a
+
+    {
+      'occupation_name' => profile['occupation_name'],
+      'occupation_description' => profile['occupation_description'],
+      'tasks' => tasks_data
+    }
   end
 
   def load_all_data
@@ -19,14 +62,13 @@ class GenerateNarrativesWithLLM
   end
 
   def generate(occupation_data, occupation_name)
-    details = occupation_data['details'] || {}
-    tasks = details['Tasks'] || []
-    skills = details['Skills'] || []
-    work_env = details.dig('WorkEnvironment', 0) || {}
+    occupation_description = occupation_data['occupation_description'] || ''
+    tasks = occupation_data['tasks'] || []
+    skills = occupation_data['Skills'] || []
 
-    task_list = tasks.take(10).map { |t| t['TaskDescription'] }.compact.join("\n- ")
+    # Format tasks - they come from onet_tasks table with importance/frequency
+    task_list = tasks.map { |t| t['task_description'] || t }.compact.take(7).join("\n- ")
     skill_list = skills.map { |s| "#{s['ElementName']} (#{s['Importance']})" }.compact.join("\n- ")
-    work_context = work_env['WorkEnvironment'] || ''
 
     prompt = <<~PROMPT
       Write content for a career exploration app about being a #{occupation_name}.
@@ -35,11 +77,14 @@ class GenerateNarrativesWithLLM
       1. DAY IN LIFE SUMMARY: A brief 1-2 sentence summary suitable for a swipe card.
       2. FULL NARRATIVE: A detailed "day in the life" narrative (2-3 paragraphs) in a compelling style.
 
-      Occupation details:
+      Use this canonical occupation definition as your anchor/grounding signal:
+      Occupation Definition: #{occupation_description}
+
+      Occupation details (filtered by relevance):
       - Typical tasks: - #{task_list}
       - Required skills: - #{skill_list}
-      - Work environment: #{work_context}
 
+      Keep the narrative grounded in the occupation definition. Avoid over-rotating on unusual tasks.
       Format as JSON with keys "day_in_life_summary" and "full_narrative".
     PROMPT
 
@@ -63,7 +108,14 @@ class GenerateNarrativesWithLLM
     data.each do |code, occupation_data|
       puts "Generating for #{code}..."
 
-      name = occupation_data.dig('details', 'OnetTitle') || code
+      # Try to load from database first (newer path with proper task filtering)
+      db_data = load_occupation_from_db(code)
+      if db_data
+        name = db_data['occupation_name']
+        occupation_data = db_data.merge('Skills' => occupation_data['details']&.dig('Skills') || [])
+      else
+        name = occupation_data.dig('details', 'OnetTitle') || code
+      end
 
       content = generate(occupation_data, name)
 
@@ -94,3 +146,4 @@ if __FILE__ == $PROGRAM_NAME
   generator = GenerateNarrativesWithLLM.new(model: model, uri: uri)
   generator.save_results(data_dir, output)
 end
+

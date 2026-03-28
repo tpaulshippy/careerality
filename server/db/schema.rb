@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_20_054857) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_28_192409) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -47,6 +47,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_20_054857) do
     t.unique_constraint ["occ_code", "area", "naics", "own_code"], name: "bls_state_wages_occ_code_area_naics_own_code_key"
   end
 
+  create_table "career_contents", force: :cascade do |t|
+    t.string "occupation_code", null: false
+    t.text "day_in_life_summary"
+    t.text "day_in_life_full"
+    t.string "video_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["occupation_code"], name: "index_career_contents_on_occupation_code", unique: true
+  end
+
   create_table "career_cost_of_living", id: :serial, force: :cascade do |t|
     t.string "area_code", limit: 10
     t.string "area_name", limit: 255
@@ -79,6 +89,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_20_054857) do
     t.jsonb "financial_aid"
     t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
     t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
+  end
+
+  create_table "career_images", force: :cascade do |t|
+    t.string "occupation_code", null: false
+    t.text "image_url"
+    t.text "prompt_used"
+    t.integer "position", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["occupation_code", "position"], name: "index_career_images_on_occupation_code_and_position", unique: true
   end
 
   create_table "career_profiles", id: :serial, force: :cascade do |t|
@@ -246,6 +266,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_20_054857) do
     t.boolean "is_primary", default: true
   end
 
+  create_table "onet_tasks", force: :cascade do |t|
+    t.string "occupation_code", limit: 20, null: false
+    t.integer "task_id", null: false
+    t.text "task_description", null: false
+    t.decimal "importance", precision: 5, scale: 2
+    t.decimal "frequency", precision: 5, scale: 2
+    t.string "task_type", limit: 50
+    t.datetime "created_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.index ["occupation_code", "importance"], name: "index_onet_tasks_on_occupation_code_and_importance", order: { importance: :desc }
+    t.index ["occupation_code", "task_id"], name: "index_onet_tasks_on_occupation_code_and_task_id", unique: true
+  end
+
   create_table "salaries", id: :serial, force: :cascade do |t|
     t.string "area"
     t.text "area_title"
@@ -381,4 +414,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_20_054857) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
+
+  add_foreign_key "onet_tasks", "career_profiles", column: "occupation_code", primary_key: "occupation_code"
 end
