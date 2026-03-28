@@ -116,6 +116,13 @@ if __FILE__ == $PROGRAM_NAME
 
   populator.save_to_database(results)
 
+  puts 'Step 4: Generating career images...'
+  image_gen = GenerateImages.new(temp_file)
+  image_results = image_gen.process_all
+
+  puts 'Step 5: Saving images to database...'
+  populator.save_images_to_database(image_results)
+
   puts 'Done!'
 
   File.delete(temp_file) if File.exist?(temp_file)
