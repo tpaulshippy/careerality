@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'ruby_llm'
+require 'net/http'
+require 'uri'
 
 class GenerateNarrativesWithLLM
   def initialize(model: 'llama3.2', uri: 'http://localhost:11434')
@@ -56,11 +57,34 @@ class GenerateNarrativesWithLLM
   end
 
   def generate_from_prompt(prompt, occupation_name)
-    chat = RubyLLM.chat(model: @model, uri: @uri)
-    response = chat.ask(prompt)
-    response.content
-  rescue JSON::ParserError, StandardError => e
+    response = call_ollama(prompt)
+    response if response && response != "Failed to generate"
+  rescue StandardError => e
     warn "Error generating narrative for #{occupation_name}: #{e.class} - #{e.message}"
+    "Failed to generate: #{e.class}"
+  end
+
+  def call_ollama(prompt)
+    uri = URI("#{@uri}/api/generate")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.read_timeout = 300
+
+    request = Net::HTTP::Post.new(uri.path, { 'Content-Type' => 'application/json' })
+    request.body = JSON.generate({
+      model: @model,
+      prompt: prompt,
+      stream: false
+    })
+
+    response = http.request(request)
+    if response.is_a?(Net::HTTPSuccess)
+      data = JSON.parse(response.body)
+      data['response'] || "No response from model"
+    else
+      "Failed to generate"
+    end
+  rescue StandardError => e
+    warn "Ollama API error: #{e.class} - #{e.message}"
     "Failed to generate: #{e.class}"
   end
 
@@ -75,8 +99,8 @@ end
 if __FILE__ == $PROGRAM_NAME
   prompts_file = ARGV[0] || File.expand_path('narrative_prompts.json', __dir__)
   output = ARGV[1] || File.expand_path('generated_narratives.json', __dir__)
-  model = ARGV[2] || 'llama3.2'
-  uri = ARGV[3] || 'http://localhost:11434'
+  model = ARGV[2] || ENV['LLM_MODEL'] || 'llama3.2'
+  uri = ARGV[3] || ENV['LLM_URI'] || 'http://localhost:11434'
 
   generator = GenerateNarrativesWithLLM.new(model: model, uri: uri)
   generator.save_results(prompts_file, output)
