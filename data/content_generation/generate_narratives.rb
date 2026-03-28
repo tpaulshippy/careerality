@@ -3,12 +3,17 @@
 require 'json'
 
 class GenerateNarratives
-  def initialize(data_file)
-    @data_file = data_file
+  def initialize(data_dir)
+    @data_dir = data_dir
   end
 
-  def load_data
-    JSON.parse(File.read(@data_file))
+  def load_all_data
+    data = {}
+    Dir.glob(File.join(@data_dir, '*.json')).each do |file|
+      code = File.basename(file, '.json').gsub('_', '.')
+      data[code] = JSON.parse(File.read(file))
+    end
+    data
   end
 
   def generate_day_in_life(occupation_data, occupation_name)
@@ -59,7 +64,7 @@ class GenerateNarratives
   end
 
   def process_all
-    data = load_data
+    data = load_all_data
 
     results = {}
 
@@ -89,9 +94,9 @@ class GenerateNarratives
 end
 
 if __FILE__ == $PROGRAM_NAME
-  data_file = ARGV[0] || File.expand_path('../careeronestop_data.json', __dir__)
+  data_dir = ARGV[0] || File.expand_path('careers', __dir__)
   output = ARGV[1] || File.expand_path('narrative_prompts.json', __dir__)
 
-  generator = GenerateNarratives.new(data_file)
+  generator = GenerateNarratives.new(data_dir)
   generator.save_prompts(output)
 end

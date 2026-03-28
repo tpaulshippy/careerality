@@ -1,0 +1,477 @@
+{
+  "details": {
+    "OnetTitle": "Software Quality Assurance Analysts and Testers",
+    "OnetCode": "15-1253.00",
+    "OnetDescription": "Develop and execute software tests to identify software problems and their causes. Test system modifications to prepare for implementation. Document software and application defects using a bug tracking system and report defects to software or web developers. Create and maintain databases of known defects. May participate in software design reviews to provide input on functional requirements, operational characteristics, product designs, and schedules.",
+    "Tasks": [
+      {
+        "TaskDescription": "Identify, analyze, and document problems with program function, output, online screen, or content.",
+        "TaskId": "14642",
+        "DataValue": "4.7"
+      },
+      {
+        "TaskDescription": "Document software defects, using a bug tracking system, and report defects to software developers.",
+        "TaskId": "14641",
+        "DataValue": "4.68"
+      },
+      {
+        "TaskDescription": "Conduct software compatibility tests with programs, hardware, operating systems, or network environments.",
+        "TaskId": "14655",
+        "DataValue": "3.88"
+      },
+      {
+        "TaskDescription": "Plan test schedules or strategies in accordance with project scope or delivery dates.",
+        "TaskId": "14645",
+        "DataValue": "4"
+      },
+      {
+        "TaskDescription": "Monitor program performance to ensure efficient and problem-free operations.",
+        "TaskId": "14654",
+        "DataValue": "3.97"
+      },
+      {
+        "TaskDescription": "Evaluate or recommend software for testing or bug tracking.",
+        "TaskId": "14663",
+        "DataValue": "3.25"
+      },
+      {
+        "TaskDescription": "Coordinate user or third-party testing.",
+        "TaskId": "14660",
+        "DataValue": "3.34"
+      },
+      {
+        "TaskDescription": "Visit beta testing sites to evaluate software performance.",
+        "TaskId": "14662",
+        "DataValue": "3.33"
+      },
+      {
+        "TaskDescription": "Install and configure recreations of software production environments to allow testing of software performance.",
+        "TaskId": "14656",
+        "DataValue": "3.45"
+      },
+      {
+        "TaskDescription": "Review software documentation to ensure technical accuracy, compliance, or completeness, or to mitigate risks.",
+        "TaskId": "14647",
+        "DataValue": "3.71"
+      },
+      {
+        "TaskDescription": "Collaborate with field staff or customers to evaluate or diagnose problems and recommend possible solutions.",
+        "TaskId": "14657",
+        "DataValue": "3.34"
+      },
+      {
+        "TaskDescription": "Conduct historical analyses of test results.",
+        "TaskId": "14664",
+        "DataValue": "3.29"
+      },
+      {
+        "TaskDescription": "Monitor bug resolution efforts and track successes.",
+        "TaskId": "14643",
+        "DataValue": "4.12"
+      },
+      {
+        "TaskDescription": "Monitor bug resolution efforts and track successes.",
+        "TaskId": "14643",
+        "DataValue": "4.12"
+      },
+      {
+        "TaskDescription": "Update automated test scripts to ensure currency.",
+        "TaskId": "14650",
+        "DataValue": "4.09"
+      },
+      {
+        "TaskDescription": "Document software defects, using a bug tracking system, and report defects to software developers.",
+        "TaskId": "14641",
+        "DataValue": "4.68"
+      },
+      {
+        "TaskDescription": "Develop testing programs that address areas such as database impacts, software scenarios, regression testing, negative testing, error or bug retests, or usability.",
+        "TaskId": "14640",
+        "DataValue": "4.52"
+      },
+      {
+        "TaskDescription": "Develop or specify standards, methods, or procedures to determine product quality or release readiness.",
+        "TaskId": "14649",
+        "DataValue": "4.12"
+      },
+      {
+        "TaskDescription": "Provide feedback and recommendations to developers on software usability and functionality.",
+        "TaskId": "14653",
+        "DataValue": "4.27"
+      },
+      {
+        "TaskDescription": "Investigate customer problems referred by technical support.",
+        "TaskId": "14651",
+        "DataValue": "3.81"
+      },
+      {
+        "TaskDescription": "Identify program deviance from standards, and suggest modifications to ensure compliance.",
+        "TaskId": "14658",
+        "DataValue": "3.7"
+      },
+      {
+        "TaskDescription": "Perform initial debugging procedures by reviewing configuration files, logs, or code pieces to determine breakdown source.",
+        "TaskId": "14661",
+        "DataValue": "3.66"
+      },
+      {
+        "TaskDescription": "Perform initial debugging procedures by reviewing configuration files, logs, or code pieces to determine breakdown source.",
+        "TaskId": "14661",
+        "DataValue": "3.66"
+      },
+      {
+        "TaskDescription": "Create or maintain databases of known test defects.",
+        "TaskId": "14644",
+        "DataValue": "4.15"
+      },
+      {
+        "TaskDescription": "Conduct software compatibility tests with programs, hardware, operating systems, or network environments.",
+        "TaskId": "14655",
+        "DataValue": "3.88"
+      },
+      {
+        "TaskDescription": "Identify, analyze, and document problems with program function, output, online screen, or content.",
+        "TaskId": "14642",
+        "DataValue": "4.7"
+      },
+      {
+        "TaskDescription": "Test system modifications to prepare for implementation.",
+        "TaskId": "14639",
+        "DataValue": "4.21"
+      },
+      {
+        "TaskDescription": "Plan test schedules or strategies in accordance with project scope or delivery dates.",
+        "TaskId": "14645",
+        "DataValue": "4"
+      },
+      {
+        "TaskDescription": "Design or develop automated testing tools.",
+        "TaskId": "14659",
+        "DataValue": "3.6"
+      },
+      {
+        "TaskDescription": "Identify program deviance from standards, and suggest modifications to ensure compliance.",
+        "TaskId": "14658",
+        "DataValue": "3.7"
+      },
+      {
+        "TaskDescription": "Document test procedures to ensure replicability and compliance with standards.",
+        "TaskId": "14648",
+        "DataValue": "4.3"
+      },
+      {
+        "TaskDescription": "Design test plans, scenarios, scripts, or procedures.",
+        "TaskId": "14638",
+        "DataValue": "4.35"
+      },
+      {
+        "TaskDescription": "Identify, analyze, and document problems with program function, output, online screen, or content.",
+        "TaskId": "14642",
+        "DataValue": "4.7"
+      },
+      {
+        "TaskDescription": "Participate in product design reviews to provide input on functional requirements, product designs, schedules, or potential problems.",
+        "TaskId": "14646",
+        "DataValue": "4.03"
+      },
+      {
+        "TaskDescription": "Collaborate with field staff or customers to evaluate or diagnose problems and recommend possible solutions.",
+        "TaskId": "14657",
+        "DataValue": "3.34"
+      },
+      {
+        "TaskDescription": "Evaluate or recommend software for testing or bug tracking.",
+        "TaskId": "14663",
+        "DataValue": "3.25"
+      },
+      {
+        "TaskDescription": "Install, maintain, or use software testing programs.",
+        "TaskId": "14652",
+        "DataValue": "4.26"
+      }
+    ],
+    "Skills": [
+      {
+        "ElementId": "2.B.1.c",
+        "ElementName": "Persuasion",
+        "ElementDescription": "Talking people into changing their minds or their behavior.",
+        "DataValue": "2.5",
+        "Importance": "38"
+      },
+      {
+        "ElementId": "2.B.3.d",
+        "ElementName": "Installation",
+        "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+        "DataValue": "2",
+        "Importance": "25"
+      },
+      {
+        "ElementId": "2.B.4.e",
+        "ElementName": "Judgment and Decision Making",
+        "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.A.1.a",
+        "ElementName": "Reading Comprehension",
+        "ElementDescription": "Reading work-related information.",
+        "DataValue": "4",
+        "Importance": "75"
+      },
+      {
+        "ElementId": "2.B.1.e",
+        "ElementName": "Instructing",
+        "ElementDescription": "Teaching people how to do something.",
+        "DataValue": "2.62",
+        "Importance": "41"
+      },
+      {
+        "ElementId": "2.A.1.f",
+        "ElementName": "Science",
+        "ElementDescription": "Using scientific rules and strategies to solve problems.",
+        "DataValue": "2.75",
+        "Importance": "44"
+      },
+      {
+        "ElementId": "2.B.3.b",
+        "ElementName": "Technology Design",
+        "ElementDescription": "Making equipment and technology useful for customers.",
+        "DataValue": "2.62",
+        "Importance": "41"
+      },
+      {
+        "ElementId": "2.A.1.b",
+        "ElementName": "Active Listening",
+        "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+        "DataValue": "3.88",
+        "Importance": "72"
+      },
+      {
+        "ElementId": "2.A.2.d",
+        "ElementName": "Monitoring",
+        "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+        "DataValue": "3.62",
+        "Importance": "66"
+      },
+      {
+        "ElementId": "2.B.3.a",
+        "ElementName": "Operations Analysis",
+        "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.B.5.d",
+        "ElementName": "Management of Personnel Resources",
+        "ElementDescription": "Selecting and managing the best workers for a job.",
+        "DataValue": "2.12",
+        "Importance": "28"
+      },
+      {
+        "ElementId": "2.B.1.b",
+        "ElementName": "Coordination",
+        "ElementDescription": "Changing what is done based on other people's actions.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.3.c",
+        "ElementName": "Equipment Selection",
+        "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+        "DataValue": "1.75",
+        "Importance": "19"
+      },
+      {
+        "ElementId": "2.A.1.e",
+        "ElementName": "Mathematics",
+        "ElementDescription": "Using math to solve problems.",
+        "DataValue": "2.75",
+        "Importance": "44"
+      },
+      {
+        "ElementId": "2.A.2.c",
+        "ElementName": "Learning Strategies",
+        "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+        "DataValue": "2.88",
+        "Importance": "47"
+      },
+      {
+        "ElementId": "2.B.3.j",
+        "ElementName": "Equipment Maintenance",
+        "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.4.g",
+        "ElementName": "Systems Analysis",
+        "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.A.1.c",
+        "ElementName": "Writing",
+        "ElementDescription": "Writing things for co-workers or customers.",
+        "DataValue": "3.75",
+        "Importance": "69"
+      },
+      {
+        "ElementId": "2.B.1.a",
+        "ElementName": "Social Perceptiveness",
+        "ElementDescription": "Understanding people's reactions.",
+        "DataValue": "2.88",
+        "Importance": "47"
+      },
+      {
+        "ElementId": "2.A.2.b",
+        "ElementName": "Active Learning",
+        "ElementDescription": "Figuring out how to use new ideas or things.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.B.3.h",
+        "ElementName": "Operation and Control",
+        "ElementDescription": "Using equipment or systems.",
+        "DataValue": "1.88",
+        "Importance": "22"
+      },
+      {
+        "ElementId": "2.B.5.a",
+        "ElementName": "Time Management",
+        "ElementDescription": "Managing your time and the time of other people.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.3.k",
+        "ElementName": "Troubleshooting",
+        "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+        "DataValue": "2.88",
+        "Importance": "47"
+      },
+      {
+        "ElementId": "2.A.2.a",
+        "ElementName": "Critical Thinking",
+        "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+        "DataValue": "3.88",
+        "Importance": "72"
+      },
+      {
+        "ElementId": "2.B.3.g",
+        "ElementName": "Operations Monitoring",
+        "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.4.h",
+        "ElementName": "Systems Evaluation",
+        "ElementDescription": "Measuring how well a system is working and how to improve it.",
+        "DataValue": "3.25",
+        "Importance": "56"
+      },
+      {
+        "ElementId": "2.B.1.d",
+        "ElementName": "Negotiation",
+        "ElementDescription": "Bringing people together to solve differences.",
+        "DataValue": "2.12",
+        "Importance": "28"
+      },
+      {
+        "ElementId": "2.B.3.e",
+        "ElementName": "Programming",
+        "ElementDescription": "Writing computer programs.",
+        "DataValue": "3.62",
+        "Importance": "66"
+      },
+      {
+        "ElementId": "2.B.3.l",
+        "ElementName": "Repairing",
+        "ElementDescription": "Repairing machines or systems using the right tools.",
+        "DataValue": "1.12",
+        "Importance": "3"
+      },
+      {
+        "ElementId": "2.A.1.d",
+        "ElementName": "Speaking",
+        "ElementDescription": "Talking to others.",
+        "DataValue": "3.88",
+        "Importance": "72"
+      },
+      {
+        "ElementId": "2.B.3.m",
+        "ElementName": "Quality Control Analysis",
+        "ElementDescription": "Testing how well a product or service works.",
+        "DataValue": "3.38",
+        "Importance": "60"
+      },
+      {
+        "ElementId": "2.B.5.c",
+        "ElementName": "Management of Material Resources",
+        "ElementDescription": "Managing equipment and materials.",
+        "DataValue": "1.5",
+        "Importance": "13"
+      },
+      {
+        "ElementId": "2.B.2.i",
+        "ElementName": "Complex Problem Solving",
+        "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+        "DataValue": "3.38",
+        "Importance": "60"
+      },
+      {
+        "ElementId": "2.B.5.b",
+        "ElementName": "Management of Financial Resources",
+        "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+        "DataValue": "1.5",
+        "Importance": "13"
+      },
+      {
+        "ElementId": "2.B.1.f",
+        "ElementName": "Service Orientation",
+        "ElementDescription": "Looking for ways to help people.",
+        "DataValue": "2.5",
+        "Importance": "38"
+      }
+    ],
+    "WorkEnvironment": [
+      {
+        "WorkEnvironment": "Develop and execute software tests to identify software problems and their causes. Test system modifications to prepare for implementation. Document software and application defects using a bug tracking system and report defects to software or web developers. Create and maintain databases of known defects. May participate in software design reviews to provide input on functional requirements, operational characteristics, product designs, and schedules."
+      }
+    ],
+    "Video": [
+      {
+        "VideoCode": "15-1253.00",
+        "VideoTitle": "Software Quality Assurance Engineers and Testers",
+        "VideoType": "flv"
+      }
+    ],
+    "InterestDataList": [
+      {
+        "ElementId": "1.B.1.g",
+        "ElementName": "Investigative",
+        "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+        "DataValue": "2",
+        "Importance": null
+      },
+      {
+        "ElementId": "1.B.1.h",
+        "ElementName": "Conventional",
+        "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+        "DataValue": "6",
+        "Importance": null
+      },
+      {
+        "ElementId": "1.B.1.i",
+        "ElementName": "Realistic",
+        "ElementDescription": "Designing, building, or repairing equipment, materials, or structures, engaging in physical activity, or working outdoors.",
+        "DataValue": "1",
+        "Importance": null
+      }
+    ]
+  },
+  "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=15-1253.00&op=y"
+}

@@ -1,0 +1,372 @@
+{
+  "details": {
+    "OnetTitle": "Customer Service Representatives",
+    "OnetCode": "43-4051.00",
+    "OnetDescription": "Interact with customers to provide basic or scripted information in response to routine inquiries about products and services. May handle and resolve general complaints. Excludes individuals whose duties are primarily installation, sales, repair, and technical support.",
+    "Tasks": [
+      {
+        "TaskDescription": "Check to ensure that appropriate changes were made to resolve customers' problems.",
+        "TaskId": "2580",
+        "DataValue": "4.39"
+      },
+      {
+        "TaskDescription": "Compare disputed merchandise with original requisitions and information from invoices and prepare invoices for returned goods.",
+        "TaskId": "2589",
+        "DataValue": "3.64"
+      },
+      {
+        "TaskDescription": "Obtain and examine all relevant information to assess validity of complaints and to determine possible causes, such as extreme weather conditions that could increase utility bills.",
+        "TaskId": "2585",
+        "DataValue": "3.63"
+      },
+      {
+        "TaskDescription": "Resolve customers' service or billing complaints by performing activities such as exchanging merchandise, refunding money, or adjusting bills.",
+        "TaskId": "2579",
+        "DataValue": "4.19"
+      },
+      {
+        "TaskDescription": "Refer unresolved customer grievances to designated departments for further investigation.",
+        "TaskId": "2582",
+        "DataValue": "4.07"
+      },
+      {
+        "TaskDescription": "Complete contract forms, prepare change of address records, or issue service discontinuance orders, using computers.",
+        "TaskId": "2584",
+        "DataValue": "4.1"
+      },
+      {
+        "TaskDescription": "Resolve customers' service or billing complaints by performing activities such as exchanging merchandise, refunding money, or adjusting bills.",
+        "TaskId": "2579",
+        "DataValue": "4.19"
+      },
+      {
+        "TaskDescription": "Solicit sales of new or additional services or products.",
+        "TaskId": "2586",
+        "DataValue": "3.87"
+      },
+      {
+        "TaskDescription": "Keep records of customer interactions or transactions, recording details of inquiries, complaints, or comments, as well as actions taken.",
+        "TaskId": "2578",
+        "DataValue": "4.53"
+      },
+      {
+        "TaskDescription": "Determine charges for services requested, collect deposits or payments, or arrange for billing.",
+        "TaskId": "2583",
+        "DataValue": "4.18"
+      },
+      {
+        "TaskDescription": "Compare disputed merchandise with original requisitions and information from invoices and prepare invoices for returned goods.",
+        "TaskId": "2589",
+        "DataValue": "3.64"
+      },
+      {
+        "TaskDescription": "Confer with customers by telephone or in person to provide information about products or services, take or enter orders, cancel accounts, or obtain details of complaints.",
+        "TaskId": "18565",
+        "DataValue": "4.67"
+      },
+      {
+        "TaskDescription": "Recommend improvements in products, packaging, shipping, service, or billing methods and procedures to prevent future problems.",
+        "TaskId": "2591",
+        "DataValue": "3.16"
+      },
+      {
+        "TaskDescription": "Contact customers to respond to inquiries or to notify them of claim investigation results or any planned adjustments.",
+        "TaskId": "2581",
+        "DataValue": "4.22"
+      },
+      {
+        "TaskDescription": "Review insurance policy terms to determine whether a particular loss is covered by insurance.",
+        "TaskId": "2587",
+        "DataValue": "4.05"
+      },
+      {
+        "TaskDescription": "Determine charges for services requested, collect deposits or payments, or arrange for billing.",
+        "TaskId": "2583",
+        "DataValue": "4.18"
+      }
+    ],
+    "Skills": [
+      {
+        "ElementId": "2.A.1.d",
+        "ElementName": "Speaking",
+        "ElementDescription": "Talking to others.",
+        "DataValue": "3.88",
+        "Importance": "72"
+      },
+      {
+        "ElementId": "2.A.1.e",
+        "ElementName": "Mathematics",
+        "ElementDescription": "Using math to solve problems.",
+        "DataValue": "2.25",
+        "Importance": "31"
+      },
+      {
+        "ElementId": "2.B.3.a",
+        "ElementName": "Operations Analysis",
+        "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+        "DataValue": "1.62",
+        "Importance": "16"
+      },
+      {
+        "ElementId": "2.B.3.m",
+        "ElementName": "Quality Control Analysis",
+        "ElementDescription": "Testing how well a product or service works.",
+        "DataValue": "1.12",
+        "Importance": "3"
+      },
+      {
+        "ElementId": "2.B.4.h",
+        "ElementName": "Systems Evaluation",
+        "ElementDescription": "Measuring how well a system is working and how to improve it.",
+        "DataValue": "2.25",
+        "Importance": "31"
+      },
+      {
+        "ElementId": "2.B.3.g",
+        "ElementName": "Operations Monitoring",
+        "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+        "DataValue": "1.75",
+        "Importance": "19"
+      },
+      {
+        "ElementId": "2.B.5.b",
+        "ElementName": "Management of Financial Resources",
+        "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+        "DataValue": "1.38",
+        "Importance": "10"
+      },
+      {
+        "ElementId": "2.B.3.e",
+        "ElementName": "Programming",
+        "ElementDescription": "Writing computer programs.",
+        "DataValue": "1.5",
+        "Importance": "13"
+      },
+      {
+        "ElementId": "2.A.1.b",
+        "ElementName": "Active Listening",
+        "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+        "DataValue": "4",
+        "Importance": "75"
+      },
+      {
+        "ElementId": "2.B.1.b",
+        "ElementName": "Coordination",
+        "ElementDescription": "Changing what is done based on other people's actions.",
+        "DataValue": "2.88",
+        "Importance": "47"
+      },
+      {
+        "ElementId": "2.A.2.d",
+        "ElementName": "Monitoring",
+        "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.A.1.a",
+        "ElementName": "Reading Comprehension",
+        "ElementDescription": "Reading work-related information.",
+        "DataValue": "3.38",
+        "Importance": "60"
+      },
+      {
+        "ElementId": "2.A.2.b",
+        "ElementName": "Active Learning",
+        "ElementDescription": "Figuring out how to use new ideas or things.",
+        "DataValue": "2.88",
+        "Importance": "47"
+      },
+      {
+        "ElementId": "2.B.3.b",
+        "ElementName": "Technology Design",
+        "ElementDescription": "Making equipment and technology useful for customers.",
+        "DataValue": "1.88",
+        "Importance": "22"
+      },
+      {
+        "ElementId": "2.B.4.g",
+        "ElementName": "Systems Analysis",
+        "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+        "DataValue": "2.25",
+        "Importance": "31"
+      },
+      {
+        "ElementId": "2.B.1.c",
+        "ElementName": "Persuasion",
+        "ElementDescription": "Talking people into changing their minds or their behavior.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.A.2.a",
+        "ElementName": "Critical Thinking",
+        "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+        "DataValue": "3.25",
+        "Importance": "56"
+      },
+      {
+        "ElementId": "2.B.1.d",
+        "ElementName": "Negotiation",
+        "ElementDescription": "Bringing people together to solve differences.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.3.j",
+        "ElementName": "Equipment Maintenance",
+        "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.3.d",
+        "ElementName": "Installation",
+        "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.5.d",
+        "ElementName": "Management of Personnel Resources",
+        "ElementDescription": "Selecting and managing the best workers for a job.",
+        "DataValue": "2.38",
+        "Importance": "35"
+      },
+      {
+        "ElementId": "2.B.1.f",
+        "ElementName": "Service Orientation",
+        "ElementDescription": "Looking for ways to help people.",
+        "DataValue": "4",
+        "Importance": "75"
+      },
+      {
+        "ElementId": "2.B.3.c",
+        "ElementName": "Equipment Selection",
+        "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.1.e",
+        "ElementName": "Instructing",
+        "ElementDescription": "Teaching people how to do something.",
+        "DataValue": "2.75",
+        "Importance": "44"
+      },
+      {
+        "ElementId": "2.B.2.i",
+        "ElementName": "Complex Problem Solving",
+        "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.A.2.c",
+        "ElementName": "Learning Strategies",
+        "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+        "DataValue": "2.62",
+        "Importance": "41"
+      },
+      {
+        "ElementId": "2.A.1.f",
+        "ElementName": "Science",
+        "ElementDescription": "Using scientific rules and strategies to solve problems.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.A.1.c",
+        "ElementName": "Writing",
+        "ElementDescription": "Writing things for co-workers or customers.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.1.a",
+        "ElementName": "Social Perceptiveness",
+        "ElementDescription": "Understanding people's reactions.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.3.h",
+        "ElementName": "Operation and Control",
+        "ElementDescription": "Using equipment or systems.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.3.k",
+        "ElementName": "Troubleshooting",
+        "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.4.e",
+        "ElementName": "Judgment and Decision Making",
+        "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+        "DataValue": "2.88",
+        "Importance": "47"
+      },
+      {
+        "ElementId": "2.B.3.l",
+        "ElementName": "Repairing",
+        "ElementDescription": "Repairing machines or systems using the right tools.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.5.c",
+        "ElementName": "Management of Material Resources",
+        "ElementDescription": "Managing equipment and materials.",
+        "DataValue": "1.38",
+        "Importance": "10"
+      },
+      {
+        "ElementId": "2.B.5.a",
+        "ElementName": "Time Management",
+        "ElementDescription": "Managing your time and the time of other people.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      }
+    ],
+    "WorkEnvironment": [
+      {
+        "WorkEnvironment": "Interact with customers to provide basic or scripted information in response to routine inquiries about products and services. May handle and resolve general complaints. Excludes individuals whose duties are primarily installation, sales, repair, and technical support."
+      }
+    ],
+    "Video": [
+      {
+        "VideoCode": "43-4051.00",
+        "VideoTitle": "Customer Service Representatives",
+        "VideoType": "flv"
+      }
+    ],
+    "InterestDataList": [
+      {
+        "ElementId": "1.B.1.g",
+        "ElementName": "Conventional",
+        "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+        "DataValue": "6",
+        "Importance": null
+      },
+      {
+        "ElementId": "1.B.1.h",
+        "ElementName": "Enterprising",
+        "ElementDescription": "Managing, negotiating, marketing, or selling, typically in a business setting, or leading or advising people in political and legal situations.",
+        "DataValue": "5",
+        "Importance": null
+      },
+      {
+        "ElementId": "1.B.1.i",
+        "ElementName": "Social",
+        "ElementDescription": "Helping, teaching, advising, assisting, or providing service to others.",
+        "DataValue": "4",
+        "Importance": null
+      }
+    ]
+  },
+  "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=43-4051.00&op=y"
+}

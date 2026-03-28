@@ -1,0 +1,367 @@
+{
+  "details": {
+    "OnetTitle": "Home Health Aides",
+    "OnetCode": "31-1121.00",
+    "OnetDescription": "Monitor the health status of an individual with disabilities or illness, and address their health-related needs, such as changing bandages, dressing wounds, or administering medication. Work is performed under the direction of offsite or intermittent onsite licensed nursing staff. Provide assistance with routine healthcare tasks or activities of daily living, such as feeding, bathing, toileting, or ambulation. May also help with tasks such as preparing meals, doing light housekeeping, and doing laundry depending on the patient's abilities.",
+    "Tasks": [
+      {
+        "TaskDescription": "Administer prescribed oral medications, under the written direction of physician or as directed by home care nurse or aide, and ensure patients take their medicine.",
+        "TaskId": "18695",
+        "DataValue": "4.27"
+      },
+      {
+        "TaskDescription": "Accompany clients to doctors' offices or on other trips outside the home, providing transportation, assistance, and companionship.",
+        "TaskId": "4250",
+        "DataValue": "3.76"
+      },
+      {
+        "TaskDescription": "Provide patients and families with emotional support and instruction in areas such as caring for infants, preparing healthy meals, living independently, or adapting to disability or illness.",
+        "TaskId": "4242",
+        "DataValue": "3.9"
+      },
+      {
+        "TaskDescription": "Change dressings.",
+        "TaskId": "4248",
+        "DataValue": "3.6"
+      },
+      {
+        "TaskDescription": "Care for patients by changing bed linens, washing and ironing laundry, cleaning, or assisting with their personal care.",
+        "TaskId": "18694",
+        "DataValue": "4.16"
+      },
+      {
+        "TaskDescription": "Provide patients with help moving in and out of beds, baths, wheelchairs, or automobiles and with dressing and grooming.",
+        "TaskId": "4241",
+        "DataValue": "4.38"
+      },
+      {
+        "TaskDescription": "Direct patients in simple prescribed exercises or in the use of braces or artificial limbs.",
+        "TaskId": "4246",
+        "DataValue": "3.49"
+      },
+      {
+        "TaskDescription": "Care for children with disabilities or who have sick parents or parents with disabilities.",
+        "TaskId": "4252",
+        "DataValue": "3.95"
+      },
+      {
+        "TaskDescription": "Massage patients or apply preparations or treatments, such as liniment, alcohol rubs, or heat-lamp stimulation.",
+        "TaskId": "4253",
+        "DataValue": "3.31"
+      },
+      {
+        "TaskDescription": "Perform a variety of duties as requested by client, such as obtaining household supplies or running errands.",
+        "TaskId": "4249",
+        "DataValue": "3.71"
+      },
+      {
+        "TaskDescription": "Maintain records of patient care, condition, progress, or problems to report and discuss observations with supervisor or case manager.",
+        "TaskId": "4240",
+        "DataValue": "4.46"
+      },
+      {
+        "TaskDescription": "Plan, purchase, prepare, or serve meals to patients or other family members, according to prescribed diets.",
+        "TaskId": "4245",
+        "DataValue": "4.04"
+      },
+      {
+        "TaskDescription": "Check patients' pulse, temperature, and respiration.",
+        "TaskId": "4247",
+        "DataValue": "3.92"
+      },
+      {
+        "TaskDescription": "Entertain, converse with, or read aloud to patients to keep them mentally healthy and alert.",
+        "TaskId": "4244",
+        "DataValue": "4.06"
+      },
+      {
+        "TaskDescription": "Bathe patients.",
+        "TaskId": "20577",
+        "DataValue": "4.29"
+      }
+    ],
+    "Skills": [
+      {
+        "ElementId": "2.A.1.e",
+        "ElementName": "Mathematics",
+        "ElementDescription": "Using math to solve problems.",
+        "DataValue": "2.25",
+        "Importance": "31"
+      },
+      {
+        "ElementId": "2.A.1.d",
+        "ElementName": "Speaking",
+        "ElementDescription": "Talking to others.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.B.3.m",
+        "ElementName": "Quality Control Analysis",
+        "ElementDescription": "Testing how well a product or service works.",
+        "DataValue": "2",
+        "Importance": "25"
+      },
+      {
+        "ElementId": "2.B.1.e",
+        "ElementName": "Instructing",
+        "ElementDescription": "Teaching people how to do something.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.B.1.f",
+        "ElementName": "Service Orientation",
+        "ElementDescription": "Looking for ways to help people.",
+        "DataValue": "3.62",
+        "Importance": "66"
+      },
+      {
+        "ElementId": "2.B.5.b",
+        "ElementName": "Management of Financial Resources",
+        "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+        "DataValue": "2",
+        "Importance": "25"
+      },
+      {
+        "ElementId": "2.A.2.c",
+        "ElementName": "Learning Strategies",
+        "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.5.d",
+        "ElementName": "Management of Personnel Resources",
+        "ElementDescription": "Selecting and managing the best workers for a job.",
+        "DataValue": "2.25",
+        "Importance": "31"
+      },
+      {
+        "ElementId": "2.B.3.g",
+        "ElementName": "Operations Monitoring",
+        "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+        "DataValue": "2.12",
+        "Importance": "28"
+      },
+      {
+        "ElementId": "2.A.1.b",
+        "ElementName": "Active Listening",
+        "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+        "DataValue": "3.75",
+        "Importance": "69"
+      },
+      {
+        "ElementId": "2.A.2.d",
+        "ElementName": "Monitoring",
+        "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+        "DataValue": "3.25",
+        "Importance": "56"
+      },
+      {
+        "ElementId": "2.B.3.d",
+        "ElementName": "Installation",
+        "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.3.c",
+        "ElementName": "Equipment Selection",
+        "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.A.1.c",
+        "ElementName": "Writing",
+        "ElementDescription": "Writing things for co-workers or customers.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.B.1.a",
+        "ElementName": "Social Perceptiveness",
+        "ElementDescription": "Understanding people's reactions.",
+        "DataValue": "3.5",
+        "Importance": "63"
+      },
+      {
+        "ElementId": "2.B.3.e",
+        "ElementName": "Programming",
+        "ElementDescription": "Writing computer programs.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.A.2.a",
+        "ElementName": "Critical Thinking",
+        "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+        "DataValue": "3.38",
+        "Importance": "60"
+      },
+      {
+        "ElementId": "2.B.3.h",
+        "ElementName": "Operation and Control",
+        "ElementDescription": "Using equipment or systems.",
+        "DataValue": "1.38",
+        "Importance": "10"
+      },
+      {
+        "ElementId": "2.B.1.d",
+        "ElementName": "Negotiation",
+        "ElementDescription": "Bringing people together to solve differences.",
+        "DataValue": "2.88",
+        "Importance": "47"
+      },
+      {
+        "ElementId": "2.A.2.b",
+        "ElementName": "Active Learning",
+        "ElementDescription": "Figuring out how to use new ideas or things.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.5.a",
+        "ElementName": "Time Management",
+        "ElementDescription": "Managing your time and the time of other people.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.B.5.c",
+        "ElementName": "Management of Material Resources",
+        "ElementDescription": "Managing equipment and materials.",
+        "DataValue": "2",
+        "Importance": "25"
+      },
+      {
+        "ElementId": "2.B.1.b",
+        "ElementName": "Coordination",
+        "ElementDescription": "Changing what is done based on other people's actions.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.4.h",
+        "ElementName": "Systems Evaluation",
+        "ElementDescription": "Measuring how well a system is working and how to improve it.",
+        "DataValue": "2",
+        "Importance": "25"
+      },
+      {
+        "ElementId": "2.A.1.a",
+        "ElementName": "Reading Comprehension",
+        "ElementDescription": "Reading work-related information.",
+        "DataValue": "3.25",
+        "Importance": "56"
+      },
+      {
+        "ElementId": "2.A.1.f",
+        "ElementName": "Science",
+        "ElementDescription": "Using scientific rules and strategies to solve problems.",
+        "DataValue": "1.62",
+        "Importance": "16"
+      },
+      {
+        "ElementId": "2.B.3.j",
+        "ElementName": "Equipment Maintenance",
+        "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.3.k",
+        "ElementName": "Troubleshooting",
+        "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+        "DataValue": "1.75",
+        "Importance": "19"
+      },
+      {
+        "ElementId": "2.B.3.l",
+        "ElementName": "Repairing",
+        "ElementDescription": "Repairing machines or systems using the right tools.",
+        "DataValue": "1",
+        "Importance": "0"
+      },
+      {
+        "ElementId": "2.B.4.e",
+        "ElementName": "Judgment and Decision Making",
+        "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.4.g",
+        "ElementName": "Systems Analysis",
+        "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+        "DataValue": "2",
+        "Importance": "25"
+      },
+      {
+        "ElementId": "2.B.2.i",
+        "ElementName": "Complex Problem Solving",
+        "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+        "DataValue": "3",
+        "Importance": "50"
+      },
+      {
+        "ElementId": "2.B.3.b",
+        "ElementName": "Technology Design",
+        "ElementDescription": "Making equipment and technology useful for customers.",
+        "DataValue": "1.25",
+        "Importance": "6"
+      },
+      {
+        "ElementId": "2.B.1.c",
+        "ElementName": "Persuasion",
+        "ElementDescription": "Talking people into changing their minds or their behavior.",
+        "DataValue": "3.12",
+        "Importance": "53"
+      },
+      {
+        "ElementId": "2.B.3.a",
+        "ElementName": "Operations Analysis",
+        "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+        "DataValue": "1.12",
+        "Importance": "3"
+      }
+    ],
+    "WorkEnvironment": [
+      {
+        "WorkEnvironment": "Monitor the health status of an individual with disabilities or illness, and address their health-related needs, such as changing bandages, dressing wounds, or administering medication. Work is performed under the direction of offsite or intermittent onsite licensed nursing staff. Provide assistance with routine healthcare tasks or activities of daily living, such as feeding, bathing, toileting, or ambulation. May also help with tasks such as preparing meals, doing light housekeeping, and doing laundry depending on the patient's abilities."
+      }
+    ],
+    "Video": [
+      {
+        "VideoCode": "31-1122.00",
+        "VideoTitle": "Personal Care Aides",
+        "VideoType": "flv"
+      }
+    ],
+    "InterestDataList": [
+      {
+        "ElementId": "1.B.1.g",
+        "ElementName": "Social",
+        "ElementDescription": "Helping, teaching, advising, assisting, or providing service to others.",
+        "DataValue": "4",
+        "Importance": null
+      },
+      {
+        "ElementId": "1.B.1.h",
+        "ElementName": "Realistic",
+        "ElementDescription": "Designing, building, or repairing equipment, materials, or structures, engaging in physical activity, or working outdoors.",
+        "DataValue": "1",
+        "Importance": null
+      },
+      {
+        "ElementId": "1.B.1.i",
+        "ElementName": "Conventional",
+        "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+        "DataValue": "6",
+        "Importance": null
+      }
+    ]
+  },
+  "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=31-1122.00&op=y"
+}

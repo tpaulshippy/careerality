@@ -4,13 +4,18 @@ require 'json'
 require 'open3'
 
 class GenerateImages
-  def initialize(api_data_file, r2_config = {})
-    @api_data_file = api_data_file
+  def initialize(api_data_dir, r2_config = {})
+    @api_data_dir = api_data_dir
     @r2_config = r2_config
   end
 
-  def load_data
-    JSON.parse(File.read(@api_data_file))
+  def load_all_data
+    data = {}
+    Dir.glob(File.join(@api_data_dir, '*.json')).each do |file|
+      code = File.basename(file, '.json').gsub('_', '.')
+      data[code] = JSON.parse(File.read(file))
+    end
+    data
   end
 
   def generate_image_prompt(occupation_data, occupation_name)
@@ -85,7 +90,7 @@ class GenerateImages
   end
 
   def process_all
-    data = load_data
+    data = load_all_data
 
     results = {}
 
@@ -127,13 +132,13 @@ class GenerateImages
 end
 
 if __FILE__ == $PROGRAM_NAME
-  data_file = ARGV[0] || File.expand_path('../careeronestop_data.json', __dir__)
+  data_dir = ARGV[0] || File.expand_path('careers', __dir__)
   output = ARGV[1] || File.expand_path('image_results.json', __dir__)
 
   r2_config = {
     'bucket_url' => ENV['R2_BUCKET_URL']
   }
 
-  generator = GenerateImages.new(data_file, r2_config)
+  generator = GenerateImages.new(data_dir, r2_config)
   generator.save_results(output)
 end

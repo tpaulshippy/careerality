@@ -3,6 +3,7 @@
 require 'json'
 require 'net/http'
 require 'uri'
+require 'fileutils'
 
 class FetchCareerOneStop
   BASE_URL = 'https://api.careeronestop.org/v1'
@@ -57,8 +58,8 @@ class FetchCareerOneStop
     nil
   end
 
-  def fetch_all_for_occupations(occupation_codes, output_file)
-    results = {}
+  def fetch_all_for_occupations(occupation_codes, output_dir)
+    FileUtils.mkdir_p(output_dir)
 
     occupation_codes.each do |code|
       puts "Fetching #{code}..."
@@ -66,23 +67,24 @@ class FetchCareerOneStop
       details = fetch_occupation_details(code)
       video_url = nil
 
-      work_env = details && details['OnetDescription'] ? { 'WorkContextDescription' => details['OnetDescription'] } : nil
-
       if details && details['Video'] && details['Video'].any?
         video_code = details['Video'].first['VideoCode']
         video_url = "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=#{video_code}&op=y"
       end
 
-      results[code] = {
+      data = {
         details: details,
         video_url: video_url
       }
 
+      safe_name = code.gsub('.', '_')
+      File.write("#{output_dir}/#{safe_name}.json", JSON.pretty_generate(data))
+      puts "Saved #{safe_name}.json"
+
       sleep(0.5)
     end
 
-    File.write(output_file, JSON.pretty_generate(results))
-    puts "Saved to #{output_file}"
+    puts "Saved #{occupation_codes.size} files to #{output_dir}"
   end
 end
 
@@ -91,7 +93,7 @@ if __FILE__ == $PROGRAM_NAME
   api_token = ENV['CAREERONESTOP_API_KEY'] || ARGV[1]
 
   if user_id.nil? || user_id.empty? || api_token.nil? || api_token.empty?
-    puts 'Usage: ruby fetch_careeronestop.rb <user_id> <api_token> [output_file]'
+    puts 'Usage: ruby fetch_careeronestop.rb <user_id> <api_token> [output_dir]'
     puts '       Or set CAREERONESTOP_USER_ID and CAREERONESTOP_API_KEY environment variables'
     exit 1
   end
@@ -111,6 +113,6 @@ if __FILE__ == $PROGRAM_NAME
     43-4051.00
   ]
 
-  output = ARGV[2] || File.expand_path('../careeronestop_data.json', __dir__)
-  fetcher.fetch_all_for_occupations(occupation_codes, output)
+  output_dir = ARGV[2] || File.expand_path('careers', __dir__)
+  fetcher.fetch_all_for_occupations(occupation_codes, output_dir)
 end

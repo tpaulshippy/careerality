@@ -9,8 +9,13 @@ class GenerateNarrativesWithLLM
     @uri = uri
   end
 
-  def load_data
-    JSON.parse(File.read(@data_file))
+  def load_all_data
+    data = {}
+    Dir.glob(File.join(@data_dir, '*.json')).each do |file|
+      code = File.basename(file, '.json').gsub('_', '.')
+      data[code] = JSON.parse(File.read(file))
+    end
+    data
   end
 
   def generate(occupation_data, occupation_name)
@@ -49,9 +54,9 @@ class GenerateNarrativesWithLLM
     }
   end
 
-  def process_all(data_file)
-    @data_file = data_file
-    data = load_data
+  def process_all(data_dir)
+    @data_dir = data_dir
+    data = load_all_data
 
     results = {}
 
@@ -81,11 +86,11 @@ class GenerateNarrativesWithLLM
 end
 
 if __FILE__ == $PROGRAM_NAME
-  data_file = ARGV[0] || File.expand_path('../careeronestop_data.json', __dir__)
+  data_dir = ARGV[0] || File.expand_path('careers', __dir__)
   output = ARGV[1] || File.expand_path('generated_narratives.json', __dir__)
   model = ARGV[2] || 'llama3.2'
   uri = ARGV[3] || 'http://localhost:11434'
 
   generator = GenerateNarrativesWithLLM.new(model: model, uri: uri)
-  generator.save_results(data_file, output)
+  generator.save_results(data_dir, output)
 end
