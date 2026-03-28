@@ -10,10 +10,10 @@ class GenerateNarratives
   end
 
   def generate_day_in_life(occupation_data, occupation_name)
-    details = occupation_data['details'] || {}
-    tasks = details.dig('Tasks', 0, 'Task') || []
-    skills = details.dig('Skills', 0, 'Skill') || []
-    work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
+    details = occupation_data['details'] || { }
+    tasks = details.dig('Tasks', 0, 'Task') || [ ]
+    skills = details.dig('Skills', 0, 'Skill') || [ ]
+    work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || { }
 
     task_list = tasks.take(5).map { |t| t['TaskDescription'] }.compact.join('. ')
     skill_list = skills.take(5).map { |s| s['SkillName'] }.compact.join(', ')
@@ -32,10 +32,10 @@ class GenerateNarratives
   end
 
   def generate_full_narrative(occupation_data, occupation_name)
-    details = occupation_data['details'] || {}
-    tasks = details.dig('Tasks', 0, 'Task') || []
-    skills = details.dig('Skills', 0, 'Skill') || []
-    work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
+    details = occupation_data['details'] || { }
+    tasks = details.dig('Tasks', 0, 'Task') || [ ]
+    skills = details.dig('Skills', 0, 'Skill') || [ ]
+    work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || { }
 
     task_list = tasks.map { |t| t['TaskDescription'] }.compact.join("\n- ")
     skill_list = skills.map { |s| "#{s['SkillName']} (#{s['Importance']})" }.compact.join("\n- ")
