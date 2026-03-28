@@ -1,15 +1,9 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'open3'
 require 'active_record'
 
-require_relative 'generate_images'
-
 class PopulateCareerContents
-  LLM_MODEL = ENV.fetch('LLM_MODEL', 'llama3.2')
-  LLM_URI = ENV.fetch('LLM_URI', 'http://localhost:11434')
-
   DB_CONFIG = {
     adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
     database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
@@ -88,25 +82,6 @@ class PopulateCareerContents
       )
     end
   end
-
-  def save_images_to_database(images_results)
-    images_results.each do |code, data|
-      next unless data[:image_url]
-
-      ActiveRecord::Base.connection.exec_insert(
-        <<~SQL,
-          INSERT INTO career_images (occupation_code, image_url, prompt_used, position, created_at, updated_at)
-          VALUES ($1, $2, $3, 0, NOW(), NOW())
-          ON CONFLICT (occupation_code, position) DO UPDATE SET
-            image_url = EXCLUDED.image_url,
-            prompt_used = EXCLUDED.prompt_used,
-            updated_at = NOW()
-        SQL
-        nil,
-        [code, data[:image_url], data[:prompt]]
-      )
-    end
-  end
 end
 
 if __FILE__ == $PROGRAM_NAME
@@ -124,19 +99,6 @@ if __FILE__ == $PROGRAM_NAME
 
   puts 'Step 2: Saving to database...'
   populator.save_to_database(results)
-
-  r2_config = {
-    'bucket_url' => ENV['R2_BUCKET_URL']
-  }
-
-  flux_model = ENV.fetch('FLUX_MODEL', 'x/flux2-klein:latest')
-
-  puts 'Step 3: Generating career images...'
-  image_gen = GenerateImages.new(r2_config, ollama_uri: PopulateCareerContents::LLM_URI, flux_model: flux_model)
-  image_results = image_gen.process_all(occupation_codes)
-
-  puts 'Step 4: Saving images to database...'
-  populator.save_images_to_database(image_results)
 
   puts 'Done!'
 end
