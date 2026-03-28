@@ -3,6 +3,7 @@
 require 'json'
 require 'open3'
 require 'active_record'
+require 'fileutils'
 
 class GenerateImages
   DB_CONFIG = {
@@ -98,7 +99,9 @@ class GenerateImages
 
       if status.success?
         result = JSON.parse(stdout)
-        result['image'] || result['response']
+        image_b64 = result['image'] || result['response']
+        require 'base64'
+        Base64.decode64(image_b64)
       else
         puts "Error: #{stderr}"
         nil
@@ -114,19 +117,76 @@ class GenerateImages
 
     puts 'Uploading to R2...'
 
+    access_key = ENV['R2_ACCESS_KEY_ID']
+    secret_key = ENV['R2_SECRET_ACCESS_KEY']
+
+    unless access_key && secret_key
+      puts "R2 credentials not configured"
+      return nil
+    end
+
+    bucket_url = @r2_config['bucket_url']
+    url = "#{bucket_url}/#{filename}"
+
+    require 'openssl'
+    require 'base64'
+
+    date = Time.now.utc.strftime('%Y%m%dT%H%M%SZ')
+    date_stamp = Time.now.utc.strftime('%Y%m%d')
+    region = 'auto'
+    service = 's3'
+
+    payload_hash = Digest::SHA256.hexdigest(image_data)
+
+    canonical_uri = "/#{filename}"
+    canonical_querystring = ''
+    host = URI.parse(url).host
+    canonical_headers = "content-type:image/png\nhost:#{host}\nx-amz-content-sha256:#{payload_hash}\nx-amz-date:#{date}\n"
+    signed_headers = 'content-type;host;x-amz-content-sha256;x-amz-date'
+    canonical_request = "PUT\n#{canonical_uri}\n#{canonical_querystring}\n#{canonical_headers}\n#{signed_headers}\n#{payload_hash}"
+    algorithm = 'AWS4-HMAC-SHA256'
+    credential_scope = "#{date_stamp}/#{region}/#{service}/aws4_request"
+    string_to_sign = "#{algorithm}\n#{date}\n#{credential_scope}\n#{Digest::SHA256.hexdigest(canonical_request)}"
+
+    k_date = OpenSSL::HMAC.digest('sha256', "AWS4#{secret_key}", date_stamp)
+    k_region = OpenSSL::HMAC.digest('sha256', k_date, region)
+    k_service = OpenSSL::HMAC.digest('sha256', k_region, service)
+    k_signing = OpenSSL::HMAC.digest('sha256', k_service, 'aws4_request')
+    signature = OpenSSL::HMAC.hexdigest('sha256', k_signing, string_to_sign)
+
+    authorization_header = "#{algorithm} Credential=#{access_key}/#{credential_scope}, SignedHeaders=#{signed_headers}, Signature=#{signature}"
+
+    temp_file = "/tmp/#{filename}"
+    begin
+      File.write(temp_file, image_data)
+    rescue StandardError => e
+      puts "Error writing temp file: #{e.message}"
+      return nil
+    end
+
     cmd = [
       'curl', '--silent',
       '-X', 'PUT',
       '-H', 'Content-Type: image/png',
-      '--data-binary', image_data,
-      "#{@r2_config['bucket_url']}/#{filename}"
+      '-H', "x-amz-date: #{date}",
+      '-H', "x-amz-content-sha256: #{payload_hash}",
+      '-H', "Authorization: #{authorization_header}",
+      '--data-binary', "@#{temp_file}",
+      url
     ]
 
     begin
-      _, _, status = Open3.capture3(*cmd)
-      status.success? ? "#{@r2_config['bucket_url']}/#{filename}" : nil
+      stdout, _, status = Open3.capture3(*cmd)
+      File.delete(temp_file) if File.exist?(temp_file)
+      if status.success?
+        url
+      else
+        puts "Upload failed: #{stdout}"
+        nil
+      end
     rescue StandardError => e
       puts "Error uploading: #{e.message}"
+      File.delete(temp_file) if File.exist?(temp_file)
       nil
     end
   end
@@ -151,20 +211,21 @@ class GenerateImages
 
       image_data = generate_with_flux(prompt)
 
-      if image_data && @r2_config['bucket_url']
+      if image_data
         filename = "#{code.gsub('-', '_')}_#{Time.now.to_i}.png"
-        url = upload_to_r2(image_data, filename)
+        local_path = "/tmp/career_images/#{filename}"
+        FileUtils.mkdir_p(File.dirname(local_path))
+        File.write(local_path, image_data)
 
         results[code] = {
           prompt: prompt,
-          image_url: url
+          local_path: local_path,
+          image_url: nil
         }
       else
-        if @r2_config['bucket_url'].nil?
-          puts "Skipping image storage - R2 not configured"
-        end
         results[code] = {
           prompt: prompt,
+          local_path: nil,
           image_url: nil
         }
       end
