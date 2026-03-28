@@ -4,6 +4,7 @@ require 'json'
 require 'open3'
 require 'active_record'
 require 'fileutils'
+require 'active_support/inflector'
 
 class GenerateImages
   DB_CONFIG = {
@@ -205,7 +206,7 @@ class GenerateImages
         next
       end
 
-      name = occupation_data['OnetTitle'] || code
+      name = (occupation_data['OnetTitle'] || code).singularize
 
       prompt = generate_image_prompt(occupation_data, name)
 
