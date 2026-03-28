@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'open3'
 
@@ -13,7 +15,7 @@ class GenerateImages
 
   def generate_image_prompt(occupation_data, occupation_name)
     details = occupation_data['details'] || {}
-    tasks = details.dig('Tasks', 0, 'Task') || [ ]
+    tasks = details.dig('Tasks', 0, 'Task') || []
     work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
 
     task_list = tasks.take(3).map { |t| t['TaskDescription'] }.compact.join(', ')
@@ -30,22 +32,22 @@ class GenerateImages
   end
 
   def generate_with_flux(prompt)
-    puts "Generating image with FLUX.1-schnell..."
-    
+    puts 'Generating image with FLUX.1-schnell...'
+
     cmd = [
       'curl', '--silent',
       '-X', 'POST',
       'http://localhost:11434/api/generate',
       '-d', JSON.dump({
-        model: 'flux',
-        prompt: prompt,
-        options: { num_ctx: 2048 }
-      })
+                        model: 'flux',
+                        prompt: prompt,
+                        options: { num_ctx: 2048 }
+                      })
     ]
-    
+
     begin
       stdout, stderr, status = Open3.capture3(*cmd)
-      
+
       if status.success?
         result = JSON.parse(stdout)
         result['response']
@@ -53,7 +55,7 @@ class GenerateImages
         puts "Error: #{stderr}"
         nil
       end
-    rescue => e
+    rescue StandardError => e
       puts "Error generating image: #{e.message}"
       nil
     end
@@ -61,21 +63,21 @@ class GenerateImages
 
   def upload_to_r2(image_data, filename)
     return nil unless @r2_config['bucket_url']
-    
-    puts "Uploading to R2..."
-    
+
+    puts 'Uploading to R2...'
+
     cmd = [
       'curl', '--silent',
       '-X', 'PUT',
-      '-H', "Content-Type: image/png",
+      '-H', 'Content-Type: image/png',
       '-d', image_data,
       "#{@r2_config['bucket_url']}/#{filename}"
     ]
-    
+
     begin
-      stdout, stderr, status = Open3.capture3(*cmd)
+      _, _, status = Open3.capture3(*cmd)
       status.success? ? "#{@r2_config['bucket_url']}/#{filename}" : nil
-    rescue => e
+    rescue StandardError => e
       puts "Error uploading: #{e.message}"
       nil
     end
@@ -83,22 +85,22 @@ class GenerateImages
 
   def process_all
     data = load_data
-    
+
     results = {}
-    
+
     data.each do |code, occupation_data|
       puts "Processing #{code}..."
-      
+
       name = occupation_data.dig('details', 'OnetTitle') || code
-      
+
       prompt = generate_image_prompt(occupation_data, name)
-      
+
       image_data = generate_with_flux(prompt)
-      
+
       if image_data
         filename = "#{code.gsub('-', '_')}_#{Time.now.to_i}.png"
         url = upload_to_r2(image_data, filename)
-        
+
         results[code] = {
           prompt: prompt,
           image_url: url
@@ -109,13 +111,13 @@ class GenerateImages
           image_url: nil
         }
       end
-      
+
       sleep(1)
     end
-    
+
     results
   end
-  
+
   def save_results(output_file)
     results = process_all
     File.write(output_file, JSON.pretty_generate(results))
@@ -123,14 +125,14 @@ class GenerateImages
   end
 end
 
-if __FILE__ == $0
+if __FILE__ == $PROGRAM_NAME
   data_file = ARGV[0] || '../careeronestop_data.json'
   output = ARGV[1] || 'image_results.json'
-  
+
   r2_config = {
     'bucket_url' => ENV['R2_BUCKET_URL']
   }
-  
+
   generator = GenerateImages.new(data_file, r2_config)
   generator.save_results(output)
 end

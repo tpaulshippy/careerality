@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'active_record'
 
@@ -13,7 +15,7 @@ class PopulateCareerContents
     password: ENV['DB_PASSWORD'] || ENV['PGPASSWORD'] || 'postgres',
     host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost'
   }.tap do |cfg|
-    [:database, :user, :password, :host].each do |key|
+    %i[database user password host].each do |key|
       value = cfg[key]
       if value.nil? || value.to_s.strip.empty?
         abort "Error: missing database configuration for #{key}. Set the appropriate environment variable (e.g. DB_*/PG*)."
@@ -31,6 +33,7 @@ class PopulateCareerContents
 
   def sanitize_string(value)
     return '' if value.nil?
+
     value.gsub("'", "''")
   end
 
@@ -40,7 +43,7 @@ class PopulateCareerContents
       safe_summary = sanitize_string(data[:summary])
       safe_full = sanitize_string(data[:full])
       safe_video = sanitize_string(data[:video_url])
-      
+
       ActiveRecord::Base.connection.execute <<~SQL
         INSERT INTO career_contents (occupation_code, day_in_life_summary, day_in_life_full, video_url, created_at, updated_at)
         VALUES ('#{safe_code}', '#{safe_summary}', '#{safe_full}', '#{safe_video}', NOW(), NOW())
@@ -59,7 +62,7 @@ class PopulateCareerContents
         safe_code = sanitize_string(code)
         safe_url = sanitize_string(img[:url])
         safe_prompt = sanitize_string(img[:prompt])
-        
+
         ActiveRecord::Base.connection.execute <<~SQL
           INSERT INTO career_images (occupation_code, image_url, prompt_used, position, created_at, updated_at)
           VALUES ('#{safe_code}', '#{safe_url}', '#{safe_prompt}', #{idx}, NOW(), NOW())
@@ -73,33 +76,33 @@ class PopulateCareerContents
   end
 end
 
-if __FILE__ == $0
+if __FILE__ == $PROGRAM_NAME
   api_key = ENV['CAREERONESTOP_API_KEY']
-  
+
   unless api_key
-    puts "Error: Set CAREERONESTOP_API_KEY environment variable"
+    puts 'Error: Set CAREERONESTOP_API_KEY environment variable'
     exit 1
   end
-  
-  puts "Step 1: Fetching CareerOneStop data..."
+
+  puts 'Step 1: Fetching CareerOneStop data...'
   fetcher = FetchCareerOneStop.new(api_key)
-  
-  occupation_codes = ARGV.empty? ? [ ] : ARGV
+
+  occupation_codes = ARGV.empty? ? [] : ARGV
   if occupation_codes.empty?
-    puts "Usage: ruby populate_career_contents.rb <occupation_code1> [occupation_code2] ..."
+    puts 'Usage: ruby populate_career_contents.rb <occupation_code1> [occupation_code2] ...'
     exit 1
   end
-  
+
   temp_file = 'temp_careeronestop.json'
   fetcher.fetch_all_for_occupations(occupation_codes, temp_file)
-  
-  puts "Step 2: Generating narrative prompts..."
+
+  puts 'Step 2: Generating narrative prompts...'
   narrative_gen = GenerateNarratives.new(temp_file)
   prompts = narrative_gen.process_all
-  
-  puts "Step 3: Saving to database..."
+
+  puts 'Step 3: Saving to database...'
   populator = PopulateCareerContents.new
-  
+
   results = {}
   prompts.each do |code, data|
     results[code] = {
@@ -108,10 +111,10 @@ if __FILE__ == $0
       video_url: data[:video_url] || ''
     }
   end
-  
+
   populator.save_to_database(results)
-  
-  puts "Done!"
-  
+
+  puts 'Done!'
+
   File.delete(temp_file) if File.exist?(temp_file)
 end
