@@ -62,6 +62,14 @@ class FetchCareerOneStop
     FileUtils.mkdir_p(output_dir)
 
     occupation_codes.each do |code|
+      safe_name = code.gsub('.', '_')
+      file_path = "#{output_dir}/#{safe_name}.json"
+
+      if File.exist?(file_path)
+        puts "Skipping #{code} - file already exists"
+        next
+      end
+
       puts "Fetching #{code}..."
 
       details = fetch_occupation_details(code)
@@ -77,8 +85,7 @@ class FetchCareerOneStop
         video_url: video_url
       }
 
-      safe_name = code.gsub('.', '_')
-      File.write("#{output_dir}/#{safe_name}.json", JSON.pretty_generate(data))
+      File.write(file_path, JSON.pretty_generate(data))
       puts "Saved #{safe_name}.json"
 
       sleep(0.5)
