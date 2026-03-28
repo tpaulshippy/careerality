@@ -29,14 +29,26 @@ class GenerateNarratives
 
     return nil unless profile
 
+    tasks = profile['tasks']
+    tasks = JSON.parse(tasks) if tasks.is_a?(String)
+
+    skills = profile['skills']
+    skills = JSON.parse(skills) if skills.is_a?(String)
+
+    work_activities = profile['work_activities']
+    work_activities = JSON.parse(work_activities) if work_activities.is_a?(String)
+
+    onet_data = profile['onet_data']
+    onet_data = JSON.parse(onet_data) if onet_data.is_a?(String)
+
     {
       'OnetTitle' => profile['occupation_name'],
       'OnetCode' => profile['occupation_code'],
       'OnetDescription' => profile['occupation_description'],
-      'Tasks' => profile['tasks'] || [],
-      'Skills' => profile['skills'] || [],
+      'Tasks' => tasks || [],
+      'Skills' => skills || [],
       'WorkEnvironment' => [{ 'WorkEnvironment' => profile['occupation_description'] || '' }],
-      'InterestDataList' => profile['onet_data']&.dig('interests') || []
+      'InterestDataList' => onet_data&.dig('interests') || []
     }
   end
 

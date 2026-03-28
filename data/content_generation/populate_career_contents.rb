@@ -38,15 +38,27 @@ class PopulateCareerContents
       '-d', JSON.dump({
         model: LLM_MODEL,
         prompt: prompt,
-        stream: false,
-        format: 'json'
+        stream: false
       })
     ]
 
     begin
       stdout, _stderr, status = Open3.capture3(*cmd)
       if status.success?
-        JSON.parse(stdout)['response']
+        result = JSON.parse(stdout)
+        response = result['response']
+        if response.nil? || response.empty?
+          response = result['thinking']
+        end
+        if response
+          response = response.strip
+          if response.start_with?('```json')
+            response = response.sub(/^```json\n?/, '').sub(/\n?```$/, '')
+          elsif response.start_with?('```')
+            response = response.sub(/^```\n?/, '').sub(/\n?```$/, '')
+          end
+        end
+        response
       else
         nil
       end
@@ -137,8 +149,10 @@ if __FILE__ == $PROGRAM_NAME
     'bucket_url' => ENV['R2_BUCKET_URL']
   }
 
+  flux_model = ENV.fetch('FLUX_MODEL', 'x/flux2-klein:latest')
+
   puts 'Step 4: Generating career images...'
-  image_gen = GenerateImages.new(r2_config)
+  image_gen = GenerateImages.new(r2_config, ollama_uri: PopulateCareerContents::LLM_URI, flux_model: flux_model)
   image_results = image_gen.process_all(occupation_codes)
 
   puts 'Step 5: Saving images to database...'

@@ -13,8 +13,10 @@ class GenerateImages
     host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost'
   }
 
-  def initialize(r2_config = {})
+  def initialize(r2_config = {}, ollama_uri: 'http://localhost:11434', flux_model: 'flux')
     @r2_config = r2_config
+    @ollama_uri = ollama_uri
+    @flux_model = flux_model
     establish_connection
   end
 
@@ -31,14 +33,26 @@ class GenerateImages
 
     return nil unless profile
 
+    tasks = profile['tasks']
+    tasks = JSON.parse(tasks) if tasks.is_a?(String)
+
+    skills = profile['skills']
+    skills = JSON.parse(skills) if skills.is_a?(String)
+
+    work_activities = profile['work_activities']
+    work_activities = JSON.parse(work_activities) if work_activities.is_a?(String)
+
+    onet_data = profile['onet_data']
+    onet_data = JSON.parse(onet_data) if onet_data.is_a?(String)
+
     {
       'OnetTitle' => profile['occupation_name'],
       'OnetCode' => profile['occupation_code'],
       'OnetDescription' => profile['occupation_description'],
-      'Tasks' => profile['tasks'] || [],
-      'Skills' => profile['skills'] || [],
+      'Tasks' => tasks || [],
+      'Skills' => skills || [],
       'WorkEnvironment' => [{ 'WorkEnvironment' => profile['occupation_description'] || '' }],
-      'InterestDataList' => profile['onet_data']&.dig('interests') || []
+      'InterestDataList' => onet_data&.dig('interests') || []
     }
   end
 
@@ -65,14 +79,14 @@ class GenerateImages
   end
 
   def generate_with_flux(prompt)
-    puts 'Generating image with FLUX.1-schnell...'
+    puts "Generating image with FLUX at #{@ollama_uri}..."
 
     cmd = [
       'curl', '--silent',
       '-X', 'POST',
-      'http://localhost:11434/api/generate',
+      "#{@ollama_uri}/api/generate",
       '-d', JSON.dump({
-                        model: 'flux',
+                        model: @flux_model,
                         prompt: prompt,
                         stream: false,
                         options: { num_ctx: 2048 }
@@ -84,7 +98,7 @@ class GenerateImages
 
       if status.success?
         result = JSON.parse(stdout)
-        result['response']
+        result['image'] || result['response']
       else
         puts "Error: #{stderr}"
         nil
@@ -168,11 +182,13 @@ end
 if __FILE__ == $PROGRAM_NAME
   output = ARGV[0] || File.expand_path('image_results.json', __dir__)
   codes = ARGV[1]&.split(',') || nil
+  ollama_uri = ARGV[2] || 'http://localhost:11434'
+  flux_model = ARGV[3] || 'flux'
 
   r2_config = {
     'bucket_url' => ENV['R2_BUCKET_URL']
   }
 
-  generator = GenerateImages.new(r2_config)
+  generator = GenerateImages.new(r2_config, ollama_uri: ollama_uri, flux_model: flux_model)
   generator.save_results(output, codes)
 end
