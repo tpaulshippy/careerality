@@ -8,7 +8,7 @@ class CareerImage < ApplicationRecord
       occupation_code: occupation_code,
       image_url: image_url,
       prompt_used: prompt_used,
-      order: order
+      order: self[:position]
     }
   end
 end

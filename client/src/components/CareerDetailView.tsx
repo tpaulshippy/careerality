@@ -63,7 +63,7 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
         )}
 
         {career.video_url && (
-          <TouchableOpacity style={styles.videoButton} onPress={handleVideoPress}>
+          <TouchableOpacity style={[styles.videoButton, { backgroundColor: theme.colors.card }]} onPress={handleVideoPress}>
             <Text style={[styles.videoButtonText, { color: theme.colors.primary }]}>🎥 Watch Career Video</Text>
           </TouchableOpacity>
         )}
@@ -174,7 +174,6 @@ const styles = StyleSheet.create({
   videoButton: {
     marginBottom: 20,
     padding: 12,
-    backgroundColor: '#F0F4FF',
     borderRadius: 8,
   } as ViewStyle,
   videoButtonText: {

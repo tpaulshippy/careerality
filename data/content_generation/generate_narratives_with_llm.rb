@@ -1,7 +1,7 @@
 require 'json'
 require 'ruby_llm'
 
-class GenerateNarratives
+class GenerateNarrativesWithLLM
   def initialize(model: 'llama3.2', uri: 'http://localhost:11434')
     @model = model
     @uri = uri
@@ -39,8 +39,12 @@ class GenerateNarratives
     chat = RubyLLM.chat(model: @model, uri: @uri)
     response = chat.ask(prompt.strip)
     JSON.parse(response.content)
-  rescue JSON::ParserError
-    { "day_in_life_summary" => "Failed to generate", "full_narrative" => "Failed to generate" }
+  rescue JSON::ParserError, StandardError => e
+    warn "Error generating narrative for #{occupation_name}: #{e.class} - #{e.message}"
+    {
+      "day_in_life_summary" => "Failed to generate: #{e.class}",
+      "full_narrative" => "Failed to generate: #{e.class}"
+    }
   end
 
   def process_all(data_file)
@@ -80,6 +84,6 @@ if __FILE__ == $0
   model = ARGV[2] || 'llama3.2'
   uri = ARGV[3] || 'http://localhost:11434'
   
-  generator = GenerateNarratives.new(model: model, uri: uri)
+  generator = GenerateNarrativesWithLLM.new(model: model, uri: uri)
   generator.save_results(data_file, output)
 end

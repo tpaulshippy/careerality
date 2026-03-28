@@ -62,8 +62,6 @@ class GenerateImages
   def upload_to_r2(image_data, filename)
     return nil unless @r2_config['bucket_url']
     
-    require 'base64'
-    
     puts "Uploading to R2..."
     
     cmd = [
