@@ -15,13 +15,13 @@ class GenerateNarrativesWithLLM
 
   def generate(occupation_data, occupation_name)
     details = occupation_data['details'] || {}
-    tasks = details.dig('Tasks', 0, 'Task') || []
-    skills = details.dig('Skills', 0, 'Skill') || []
-    work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
+    tasks = details['Tasks'] || []
+    skills = details['Skills'] || []
+    work_env = details.dig('WorkEnvironment', 0) || {}
 
     task_list = tasks.take(10).map { |t| t['TaskDescription'] }.compact.join("\n- ")
-    skill_list = skills.map { |s| "#{s['SkillName']} (#{s['Importance']})" }.compact.join("\n- ")
-    work_context = work_env['WorkContextDescription'] || ''
+    skill_list = skills.map { |s| "#{s['ElementName']} (#{s['Importance']})" }.compact.join("\n- ")
+    work_context = work_env['WorkEnvironment'] || ''
 
     prompt = <<~PROMPT
       Write content for a career exploration app about being a #{occupation_name}.

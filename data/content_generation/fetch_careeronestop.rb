@@ -66,6 +66,8 @@ class FetchCareerOneStop
       details = fetch_occupation_details(code)
       video_url = nil
 
+      work_env = details && details['OnetDescription'] ? { 'WorkContextDescription' => details['OnetDescription'] } : nil
+
       if details && details['Video'] && details['Video'].any?
         video_code = details['Video'].first['VideoCode']
         video_url = "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=#{video_code}&op=y"

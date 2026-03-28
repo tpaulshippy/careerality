@@ -15,11 +15,11 @@ class GenerateImages
 
   def generate_image_prompt(occupation_data, occupation_name)
     details = occupation_data['details'] || {}
-    tasks = details.dig('Tasks', 0, 'Task') || []
-    work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
+    tasks = details['Tasks'] || []
+    work_env = details.dig('WorkEnvironment', 0) || {}
 
     task_list = tasks.take(3).map { |t| t['TaskDescription'] }.compact.join(', ')
-    work_context = work_env['WorkContextDescription'] || ''
+    work_context = work_env['WorkEnvironment'] || ''
 
     prompt = <<~PROMPT
       Professional photograph of a #{occupation_name} at work.
