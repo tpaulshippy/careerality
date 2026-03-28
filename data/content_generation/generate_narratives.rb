@@ -89,8 +89,8 @@ class GenerateNarratives
 end
 
 if __FILE__ == $PROGRAM_NAME
-  data_file = ARGV[0] || '../careeronestop_data.json'
-  output = ARGV[1] || 'narrative_prompts.json'
+  data_file = ARGV[0] || File.expand_path('../careeronestop_data.json', __dir__)
+  output = ARGV[1] || File.expand_path('narrative_prompts.json', __dir__)
 
   generator = GenerateNarratives.new(data_file)
   generator.save_prompts(output)

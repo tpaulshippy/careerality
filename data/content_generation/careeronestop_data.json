@@ -1,0 +1,3825 @@
+{
+  "15-1252.00": {
+    "details": {
+      "OnetTitle": "Software Developers",
+      "OnetCode": "15-1252.00",
+      "OnetDescription": "Research, design, and develop computer and network software or specialized utility programs. Analyze user needs and develop software solutions, applying principles and techniques of computer science, engineering, and mathematical analysis. Update software or enhance existing software capabilities. May work with computer hardware engineers to integrate hardware and software systems, and develop specifications and performance requirements. May maintain databases within an application area, working individually or coordinating database development as part of a team.",
+      "Tasks": [
+        {
+          "TaskDescription": "Store, retrieve, and manipulate data for analysis of system capabilities and requirements.",
+          "TaskId": "21676",
+          "DataValue": "3.59"
+        },
+        {
+          "TaskDescription": "Prepare reports or correspondence concerning project specifications, activities, or status.",
+          "TaskId": "21673",
+          "DataValue": "3.68"
+        },
+        {
+          "TaskDescription": "Analyze information to determine, recommend, and plan installation of a new system or modification of an existing system.",
+          "TaskId": "21661",
+          "DataValue": "3.61"
+        },
+        {
+          "TaskDescription": "Analyze user needs and software requirements to determine feasibility of design within time and cost constraints.",
+          "TaskId": "21662",
+          "DataValue": "4.08"
+        },
+        {
+          "TaskDescription": "Modify existing software to correct errors, adapt it to new hardware, or upgrade interfaces and improve performance.",
+          "TaskId": "21670",
+          "DataValue": "3.74"
+        },
+        {
+          "TaskDescription": "Determine system performance standards.",
+          "TaskId": "21668",
+          "DataValue": "3.53"
+        },
+        {
+          "TaskDescription": "Design, develop and modify software systems, using scientific analysis and mathematical models to predict and measure outcomes and consequences of design.",
+          "TaskId": "21667",
+          "DataValue": "3.56"
+        },
+        {
+          "TaskDescription": "Supervise the work of programmers, technologists and technicians and other engineering and scientific personnel.",
+          "TaskId": "21678",
+          "DataValue": "3.51"
+        },
+        {
+          "TaskDescription": "Supervise and assign work to programmers, designers, technologists, technicians, or other engineering or scientific personnel.",
+          "TaskId": "21677",
+          "DataValue": "3.13"
+        },
+        {
+          "TaskDescription": "Store, retrieve, and manipulate data for analysis of system capabilities and requirements.",
+          "TaskId": "21676",
+          "DataValue": "3.59"
+        },
+        {
+          "TaskDescription": "Obtain and evaluate information on factors such as reporting formats required, costs, or security needs to determine hardware configuration.",
+          "TaskId": "21672",
+          "DataValue": "3.07"
+        },
+        {
+          "TaskDescription": "Confer with systems analysts, engineers, programmers and others to design systems and to obtain information on project limitations and capabilities, performance requirements and interfaces.",
+          "TaskId": "21664",
+          "DataValue": "3.75"
+        },
+        {
+          "TaskDescription": "Monitor functioning of equipment to ensure system operates in conformance with specifications.",
+          "TaskId": "21671",
+          "DataValue": "4.12"
+        },
+        {
+          "TaskDescription": "Coordinate installation of software system.",
+          "TaskId": "21666",
+          "DataValue": "3.75"
+        },
+        {
+          "TaskDescription": "Confer with data processing or project managers to obtain information on limitations or capabilities for data processing projects.",
+          "TaskId": "21663",
+          "DataValue": "3.32"
+        },
+        {
+          "TaskDescription": "Design, develop and modify software systems, using scientific analysis and mathematical models to predict and measure outcomes and consequences of design.",
+          "TaskId": "21667",
+          "DataValue": "3.56"
+        },
+        {
+          "TaskDescription": "Design, develop and modify software systems, using scientific analysis and mathematical models to predict and measure outcomes and consequences of design.",
+          "TaskId": "21667",
+          "DataValue": "3.56"
+        },
+        {
+          "TaskDescription": "Consult with customers or other departments on project status, proposals, or technical issues, such as software system design or maintenance.",
+          "TaskId": "21665",
+          "DataValue": "3.37"
+        },
+        {
+          "TaskDescription": "Supervise and assign work to programmers, designers, technologists, technicians, or other engineering or scientific personnel.",
+          "TaskId": "21677",
+          "DataValue": "3.13"
+        },
+        {
+          "TaskDescription": "Train users to use new or modified equipment.",
+          "TaskId": "21679",
+          "DataValue": "2.91"
+        },
+        {
+          "TaskDescription": "Develop or direct software system testing or validation procedures, programming, or documentation.",
+          "TaskId": "21669",
+          "DataValue": "3.9"
+        },
+        {
+          "TaskDescription": "Develop or direct software system testing or validation procedures, programming, or documentation.",
+          "TaskId": "21669",
+          "DataValue": "3.9"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "1.62",
+          "Importance": "16"
+        },
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1.25",
+          "Importance": "6"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1.12",
+          "Importance": "3"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Research, design, and develop computer and network software or specialized utility programs. Analyze user needs and develop software solutions, applying principles and techniques of computer science, engineering, and mathematical analysis. Update software or enhance existing software capabilities. May work with computer hardware engineers to integrate hardware and software systems, and develop specifications and performance requirements. May maintain databases within an application area, working individually or coordinating database development as part of a team."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "15-1252.00",
+          "VideoTitle": "Software Developers",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Investigative",
+          "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+          "DataValue": "2",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.i",
+          "ElementName": "Realistic",
+          "ElementDescription": "Designing, building, or repairing equipment, materials, or structures, engaging in physical activity, or working outdoors.",
+          "DataValue": "1",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=15-1252.00&op=y"
+  },
+  "15-1253.00": {
+    "details": {
+      "OnetTitle": "Software Quality Assurance Analysts and Testers",
+      "OnetCode": "15-1253.00",
+      "OnetDescription": "Develop and execute software tests to identify software problems and their causes. Test system modifications to prepare for implementation. Document software and application defects using a bug tracking system and report defects to software or web developers. Create and maintain databases of known defects. May participate in software design reviews to provide input on functional requirements, operational characteristics, product designs, and schedules.",
+      "Tasks": [
+        {
+          "TaskDescription": "Identify, analyze, and document problems with program function, output, online screen, or content.",
+          "TaskId": "14642",
+          "DataValue": "4.7"
+        },
+        {
+          "TaskDescription": "Document software defects, using a bug tracking system, and report defects to software developers.",
+          "TaskId": "14641",
+          "DataValue": "4.68"
+        },
+        {
+          "TaskDescription": "Conduct software compatibility tests with programs, hardware, operating systems, or network environments.",
+          "TaskId": "14655",
+          "DataValue": "3.88"
+        },
+        {
+          "TaskDescription": "Plan test schedules or strategies in accordance with project scope or delivery dates.",
+          "TaskId": "14645",
+          "DataValue": "4"
+        },
+        {
+          "TaskDescription": "Monitor program performance to ensure efficient and problem-free operations.",
+          "TaskId": "14654",
+          "DataValue": "3.97"
+        },
+        {
+          "TaskDescription": "Evaluate or recommend software for testing or bug tracking.",
+          "TaskId": "14663",
+          "DataValue": "3.25"
+        },
+        {
+          "TaskDescription": "Coordinate user or third-party testing.",
+          "TaskId": "14660",
+          "DataValue": "3.34"
+        },
+        {
+          "TaskDescription": "Visit beta testing sites to evaluate software performance.",
+          "TaskId": "14662",
+          "DataValue": "3.33"
+        },
+        {
+          "TaskDescription": "Install and configure recreations of software production environments to allow testing of software performance.",
+          "TaskId": "14656",
+          "DataValue": "3.45"
+        },
+        {
+          "TaskDescription": "Review software documentation to ensure technical accuracy, compliance, or completeness, or to mitigate risks.",
+          "TaskId": "14647",
+          "DataValue": "3.71"
+        },
+        {
+          "TaskDescription": "Collaborate with field staff or customers to evaluate or diagnose problems and recommend possible solutions.",
+          "TaskId": "14657",
+          "DataValue": "3.34"
+        },
+        {
+          "TaskDescription": "Conduct historical analyses of test results.",
+          "TaskId": "14664",
+          "DataValue": "3.29"
+        },
+        {
+          "TaskDescription": "Monitor bug resolution efforts and track successes.",
+          "TaskId": "14643",
+          "DataValue": "4.12"
+        },
+        {
+          "TaskDescription": "Monitor bug resolution efforts and track successes.",
+          "TaskId": "14643",
+          "DataValue": "4.12"
+        },
+        {
+          "TaskDescription": "Update automated test scripts to ensure currency.",
+          "TaskId": "14650",
+          "DataValue": "4.09"
+        },
+        {
+          "TaskDescription": "Document software defects, using a bug tracking system, and report defects to software developers.",
+          "TaskId": "14641",
+          "DataValue": "4.68"
+        },
+        {
+          "TaskDescription": "Develop testing programs that address areas such as database impacts, software scenarios, regression testing, negative testing, error or bug retests, or usability.",
+          "TaskId": "14640",
+          "DataValue": "4.52"
+        },
+        {
+          "TaskDescription": "Develop or specify standards, methods, or procedures to determine product quality or release readiness.",
+          "TaskId": "14649",
+          "DataValue": "4.12"
+        },
+        {
+          "TaskDescription": "Provide feedback and recommendations to developers on software usability and functionality.",
+          "TaskId": "14653",
+          "DataValue": "4.27"
+        },
+        {
+          "TaskDescription": "Investigate customer problems referred by technical support.",
+          "TaskId": "14651",
+          "DataValue": "3.81"
+        },
+        {
+          "TaskDescription": "Identify program deviance from standards, and suggest modifications to ensure compliance.",
+          "TaskId": "14658",
+          "DataValue": "3.7"
+        },
+        {
+          "TaskDescription": "Perform initial debugging procedures by reviewing configuration files, logs, or code pieces to determine breakdown source.",
+          "TaskId": "14661",
+          "DataValue": "3.66"
+        },
+        {
+          "TaskDescription": "Perform initial debugging procedures by reviewing configuration files, logs, or code pieces to determine breakdown source.",
+          "TaskId": "14661",
+          "DataValue": "3.66"
+        },
+        {
+          "TaskDescription": "Create or maintain databases of known test defects.",
+          "TaskId": "14644",
+          "DataValue": "4.15"
+        },
+        {
+          "TaskDescription": "Conduct software compatibility tests with programs, hardware, operating systems, or network environments.",
+          "TaskId": "14655",
+          "DataValue": "3.88"
+        },
+        {
+          "TaskDescription": "Identify, analyze, and document problems with program function, output, online screen, or content.",
+          "TaskId": "14642",
+          "DataValue": "4.7"
+        },
+        {
+          "TaskDescription": "Test system modifications to prepare for implementation.",
+          "TaskId": "14639",
+          "DataValue": "4.21"
+        },
+        {
+          "TaskDescription": "Plan test schedules or strategies in accordance with project scope or delivery dates.",
+          "TaskId": "14645",
+          "DataValue": "4"
+        },
+        {
+          "TaskDescription": "Design or develop automated testing tools.",
+          "TaskId": "14659",
+          "DataValue": "3.6"
+        },
+        {
+          "TaskDescription": "Identify program deviance from standards, and suggest modifications to ensure compliance.",
+          "TaskId": "14658",
+          "DataValue": "3.7"
+        },
+        {
+          "TaskDescription": "Document test procedures to ensure replicability and compliance with standards.",
+          "TaskId": "14648",
+          "DataValue": "4.3"
+        },
+        {
+          "TaskDescription": "Design test plans, scenarios, scripts, or procedures.",
+          "TaskId": "14638",
+          "DataValue": "4.35"
+        },
+        {
+          "TaskDescription": "Identify, analyze, and document problems with program function, output, online screen, or content.",
+          "TaskId": "14642",
+          "DataValue": "4.7"
+        },
+        {
+          "TaskDescription": "Participate in product design reviews to provide input on functional requirements, product designs, schedules, or potential problems.",
+          "TaskId": "14646",
+          "DataValue": "4.03"
+        },
+        {
+          "TaskDescription": "Collaborate with field staff or customers to evaluate or diagnose problems and recommend possible solutions.",
+          "TaskId": "14657",
+          "DataValue": "3.34"
+        },
+        {
+          "TaskDescription": "Evaluate or recommend software for testing or bug tracking.",
+          "TaskId": "14663",
+          "DataValue": "3.25"
+        },
+        {
+          "TaskDescription": "Install, maintain, or use software testing programs.",
+          "TaskId": "14652",
+          "DataValue": "4.26"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "2.5",
+          "Importance": "38"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "3.75",
+          "Importance": "69"
+        },
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1.12",
+          "Importance": "3"
+        },
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "1.5",
+          "Importance": "13"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "1.5",
+          "Importance": "13"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "2.5",
+          "Importance": "38"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Develop and execute software tests to identify software problems and their causes. Test system modifications to prepare for implementation. Document software and application defects using a bug tracking system and report defects to software or web developers. Create and maintain databases of known defects. May participate in software design reviews to provide input on functional requirements, operational characteristics, product designs, and schedules."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "15-1253.00",
+          "VideoTitle": "Software Quality Assurance Engineers and Testers",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Investigative",
+          "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+          "DataValue": "2",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.i",
+          "ElementName": "Realistic",
+          "ElementDescription": "Designing, building, or repairing equipment, materials, or structures, engaging in physical activity, or working outdoors.",
+          "DataValue": "1",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=15-1253.00&op=y"
+  },
+  "15-1254.00": {
+    "details": {
+      "OnetTitle": "Web Developers",
+      "OnetCode": "15-1254.00",
+      "OnetDescription": "Develop and implement websites, web applications, application databases, and interactive web interfaces. Evaluate code to ensure that it is properly structured, meets industry standards, and is compatible with browsers and devices. Optimize website performance, scalability, and server-side code and processes. May develop website infrastructure and integrate websites with other computer applications.",
+      "Tasks": [
+        {
+          "TaskDescription": "Select programming languages, design tools, or applications.",
+          "TaskId": "14711",
+          "DataValue": "4.17"
+        },
+        {
+          "TaskDescription": "Write supporting code for Web applications or Web sites.",
+          "TaskId": "14707",
+          "DataValue": "4.58"
+        },
+        {
+          "TaskDescription": "Write supporting code for Web applications or Web sites.",
+          "TaskId": "14707",
+          "DataValue": "4.58"
+        },
+        {
+          "TaskDescription": "Install and configure hypertext transfer protocol (HTTP) servers and associated operating systems.",
+          "TaskId": "14729",
+          "DataValue": "2.94"
+        },
+        {
+          "TaskDescription": "Renew domain name registrations.",
+          "TaskId": "14705",
+          "DataValue": "3.67"
+        },
+        {
+          "TaskDescription": "Recommend and implement performance improvements.",
+          "TaskId": "14719",
+          "DataValue": "3.39"
+        },
+        {
+          "TaskDescription": "Communicate with network personnel or Web site hosting agencies to address hardware or software issues affecting Web sites.",
+          "TaskId": "14708",
+          "DataValue": "3.57"
+        },
+        {
+          "TaskDescription": "Evaluate or recommend server hardware or software.",
+          "TaskId": "14725",
+          "DataValue": "3.11"
+        },
+        {
+          "TaskDescription": "Design, build, or maintain Web sites, using authoring or scripting languages, content creation tools, management tools, and digital media.",
+          "TaskId": "14694",
+          "DataValue": "4.42"
+        },
+        {
+          "TaskDescription": "Perform Web site tests according to planned schedules, or after any Web site or product revision.",
+          "TaskId": "14710",
+          "DataValue": "4.04"
+        },
+        {
+          "TaskDescription": "Analyze user needs to determine technical requirements.",
+          "TaskId": "14702",
+          "DataValue": "3.79"
+        },
+        {
+          "TaskDescription": "Communicate with network personnel or Web site hosting agencies to address hardware or software issues affecting Web sites.",
+          "TaskId": "14708",
+          "DataValue": "3.57"
+        },
+        {
+          "TaskDescription": "Design, build, or maintain Web sites, using authoring or scripting languages, content creation tools, management tools, and digital media.",
+          "TaskId": "14694",
+          "DataValue": "4.42"
+        },
+        {
+          "TaskDescription": "Document technical factors such as server load, bandwidth, database performance, and browser and device types.",
+          "TaskId": "14728",
+          "DataValue": "3.35"
+        },
+        {
+          "TaskDescription": "Collaborate with management or users to develop e-commerce strategies and to integrate these strategies with Web sites.",
+          "TaskId": "14706",
+          "DataValue": "3.55"
+        },
+        {
+          "TaskDescription": "Evaluate code to ensure that it is valid, is properly structured, meets industry standards, and is compatible with browsers, devices, or operating systems.",
+          "TaskId": "14700",
+          "DataValue": "4.09"
+        },
+        {
+          "TaskDescription": "Document test plans, testing procedures, or test results.",
+          "TaskId": "14726",
+          "DataValue": "3.54"
+        },
+        {
+          "TaskDescription": "Develop or implement procedures for ongoing Web site revision.",
+          "TaskId": "14714",
+          "DataValue": "3.29"
+        },
+        {
+          "TaskDescription": "Create Web models or prototypes that include physical, interface, logical, or data models.",
+          "TaskId": "14724",
+          "DataValue": "3.19"
+        },
+        {
+          "TaskDescription": "Develop databases that support Web applications and Web sites.",
+          "TaskId": "14704",
+          "DataValue": "4.05"
+        },
+        {
+          "TaskDescription": "Establish appropriate server directory trees.",
+          "TaskId": "14717",
+          "DataValue": "3.47"
+        },
+        {
+          "TaskDescription": "Develop system interaction or sequence diagrams.",
+          "TaskId": "14730",
+          "DataValue": "2.73"
+        },
+        {
+          "TaskDescription": "Research, document, rate, or select alternatives for Web architecture or technologies.",
+          "TaskId": "14727",
+          "DataValue": "2.75"
+        },
+        {
+          "TaskDescription": "Evaluate or recommend server hardware or software.",
+          "TaskId": "14725",
+          "DataValue": "3.11"
+        },
+        {
+          "TaskDescription": "Install and configure hypertext transfer protocol (HTTP) servers and associated operating systems.",
+          "TaskId": "14729",
+          "DataValue": "2.94"
+        },
+        {
+          "TaskDescription": "Perform or direct Web site updates.",
+          "TaskId": "14695",
+          "DataValue": "4"
+        },
+        {
+          "TaskDescription": "Maintain understanding of current Web technologies or programming practices through continuing education, reading, or participation in professional conferences, workshops, or groups.",
+          "TaskId": "14701",
+          "DataValue": "3.83"
+        },
+        {
+          "TaskDescription": "Respond to user email inquiries, or set up automated systems to send responses.",
+          "TaskId": "14713",
+          "DataValue": "3.67"
+        },
+        {
+          "TaskDescription": "Confer with management or development teams to prioritize needs, resolve conflicts, develop content criteria, or choose solutions.",
+          "TaskId": "14697",
+          "DataValue": "3.59"
+        },
+        {
+          "TaskDescription": "Back up files from Web sites to local directories for instant recovery in case of problems.",
+          "TaskId": "14698",
+          "DataValue": "4.35"
+        },
+        {
+          "TaskDescription": "Monitor security system performance logs to identify problems and notify security specialists when problems occur.",
+          "TaskId": "14723",
+          "DataValue": "3.73"
+        },
+        {
+          "TaskDescription": "Research, document, rate, or select alternatives for Web architecture or technologies.",
+          "TaskId": "14727",
+          "DataValue": "2.75"
+        },
+        {
+          "TaskDescription": "Provide clear, detailed descriptions of Web site specifications, such as product features, activities, software, communication protocols, programming languages, and operating systems software and hardware.",
+          "TaskId": "14722",
+          "DataValue": "3.18"
+        },
+        {
+          "TaskDescription": "Monitor security system performance logs to identify problems and notify security specialists when problems occur.",
+          "TaskId": "14723",
+          "DataValue": "3.73"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "1.62",
+          "Importance": "16"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "2.38",
+          "Importance": "35"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "1.25",
+          "Importance": "6"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "4.12",
+          "Importance": "78"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "3.75",
+          "Importance": "69"
+        },
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "2.5",
+          "Importance": "38"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Develop and implement websites, web applications, application databases, and interactive web interfaces. Evaluate code to ensure that it is properly structured, meets industry standards, and is compatible with browsers and devices. Optimize website performance, scalability, and server-side code and processes. May develop website infrastructure and integrate websites with other computer applications."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "15-1254.00",
+          "VideoTitle": "Web Developers",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Investigative",
+          "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+          "DataValue": "2",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=15-1254.00&op=y"
+  },
+  "15-1255.00": {
+    "details": {
+      "OnetTitle": "Web and Digital Interface Designers",
+      "OnetCode": "15-1255.00",
+      "OnetDescription": "Design digital user interfaces or websites. Develop and test layouts, interfaces, functionality, and navigation menus to ensure compatibility and usability across browsers or devices. May use web framework applications as well as client-side code and processes. May evaluate web design following web and accessibility standards, and may analyze web use metrics and optimize websites for marketability and search engine ranking. May design and test interfaces that facilitate the human-computer interaction and maximize the usability of digital devices, websites, and software with a focus on aesthetics and design. May create graphics used in websites and manage website content and links.",
+      "Tasks": [
+
+      ],
+      "Skills": [
+
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Design digital user interfaces or websites. Develop and test layouts, interfaces, functionality, and navigation menus to ensure compatibility and usability across browsers or devices. May use web framework applications as well as client-side code and processes. May evaluate web design following web and accessibility standards, and may analyze web use metrics and optimize websites for marketability and search engine ranking. May design and test interfaces that facilitate the human-computer interaction and maximize the usability of digital devices, websites, and software with a focus on aesthetics and design. May create graphics used in websites and manage website content and links."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "15-1254.00",
+          "VideoTitle": "Web Developers",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Investigative",
+          "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+          "DataValue": "2",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Artistic",
+          "ElementDescription": "Creating original visual artwork, performances, written works, food, or music for a variety of media, or applying artistic principles to the design of various objects and materials.",
+          "DataValue": "3",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.i",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=15-1254.00&op=y"
+  },
+  "29-1051.00": {
+    "details": {
+      "OnetTitle": "Pharmacists",
+      "OnetCode": "29-1051.00",
+      "OnetDescription": "Dispense drugs prescribed by physicians and other health practitioners and provide information to patients about medications and their use. May advise physicians and other health practitioners on the selection, dosage, interactions, and side effects of medications.",
+      "Tasks": [
+        {
+          "TaskDescription": "Compound and dispense medications as prescribed by doctors and dentists, by calculating, weighing, measuring, and mixing ingredients, or oversee these activities.",
+          "TaskId": "1816",
+          "DataValue": "4.14"
+        },
+        {
+          "TaskDescription": "Publish educational information for other pharmacists, doctors, or patients.",
+          "TaskId": "1826",
+          "DataValue": "2.8"
+        },
+        {
+          "TaskDescription": "Order and purchase pharmaceutical supplies, medical supplies, or drugs, maintaining stock and storing and handling it properly.",
+          "TaskId": "1811",
+          "DataValue": "4.2"
+        },
+        {
+          "TaskDescription": "Update or troubleshoot pharmacy information databases.",
+          "TaskId": "20406",
+          "DataValue": "3.96"
+        },
+        {
+          "TaskDescription": "Plan, implement, or maintain procedures for mixing, packaging, or labeling pharmaceuticals, according to policy and legal requirements, to ensure quality, security, and proper disposal.",
+          "TaskId": "1820",
+          "DataValue": "4.21"
+        },
+        {
+          "TaskDescription": "Manage pharmacy operations, hiring or supervising staff, performing administrative duties, or buying or selling non-pharmaceutical merchandise.",
+          "TaskId": "1822",
+          "DataValue": "3.86"
+        },
+        {
+          "TaskDescription": "Refer patients to other health professionals or agencies when appropriate.",
+          "TaskId": "1818",
+          "DataValue": "3.43"
+        },
+        {
+          "TaskDescription": "Analyze prescribing trends to monitor patient compliance and to prevent excessive usage or harmful interactions.",
+          "TaskId": "1810",
+          "DataValue": "4.43"
+        },
+        {
+          "TaskDescription": "Collaborate with other health care professionals to plan, monitor, review, or evaluate the quality or effectiveness of drugs or drug regimens, providing advice on drug applications or characteristics.",
+          "TaskId": "1815",
+          "DataValue": "4.25"
+        },
+        {
+          "TaskDescription": "Contact insurance companies to resolve billing issues.",
+          "TaskId": "20405",
+          "DataValue": "4.06"
+        },
+        {
+          "TaskDescription": "Manage pharmacy operations, hiring or supervising staff, performing administrative duties, or buying or selling non-pharmaceutical merchandise.",
+          "TaskId": "1822",
+          "DataValue": "3.86"
+        },
+        {
+          "TaskDescription": "Maintain records, such as pharmacy files, patient profiles, charge system files, inventories, control records for radioactive nuclei, or registries of poisons, narcotics, or controlled drugs.",
+          "TaskId": "1812",
+          "DataValue": "4.36"
+        },
+        {
+          "TaskDescription": "Collaborate with other health care professionals to plan, monitor, review, or evaluate the quality or effectiveness of drugs or drug regimens, providing advice on drug applications or characteristics.",
+          "TaskId": "1815",
+          "DataValue": "4.25"
+        },
+        {
+          "TaskDescription": "Work in hospitals or clinics or for Health Management Organizations (HMOs), dispensing prescriptions, serving as a medical team consultant, or specializing in specific drug therapy areas, such as oncology or nuclear pharmacotherapy.",
+          "TaskId": "1823",
+          "DataValue": "4.01"
+        },
+        {
+          "TaskDescription": "Work in hospitals or clinics or for Health Management Organizations (HMOs), dispensing prescriptions, serving as a medical team consultant, or specializing in specific drug therapy areas, such as oncology or nuclear pharmacotherapy.",
+          "TaskId": "1823",
+          "DataValue": "4.01"
+        },
+        {
+          "TaskDescription": "Teach pharmacy students serving as interns in preparation for their graduation or licensure.",
+          "TaskId": "1825",
+          "DataValue": "3.75"
+        },
+        {
+          "TaskDescription": "Assess the identity, strength, or purity of medications.",
+          "TaskId": "1824",
+          "DataValue": "4.71"
+        },
+        {
+          "TaskDescription": "Order and purchase pharmaceutical supplies, medical supplies, or drugs, maintaining stock and storing and handling it properly.",
+          "TaskId": "1811",
+          "DataValue": "4.2"
+        },
+        {
+          "TaskDescription": "Contact insurance companies to resolve billing issues.",
+          "TaskId": "20405",
+          "DataValue": "4.06"
+        },
+        {
+          "TaskDescription": "Advise customers on the selection of medication brands, medical equipment, or healthcare supplies.",
+          "TaskId": "1814",
+          "DataValue": "3.98"
+        },
+        {
+          "TaskDescription": "Review prescriptions to assure accuracy, to ascertain the needed ingredients, and to evaluate their suitability.",
+          "TaskId": "1808",
+          "DataValue": "4.9"
+        },
+        {
+          "TaskDescription": "Assess the identity, strength, or purity of medications.",
+          "TaskId": "1824",
+          "DataValue": "4.71"
+        },
+        {
+          "TaskDescription": "Provide information and advice regarding drug interactions, side effects, dosage, and proper medication storage.",
+          "TaskId": "1809",
+          "DataValue": "4.68"
+        },
+        {
+          "TaskDescription": "Provide information and advice regarding drug interactions, side effects, dosage, and proper medication storage.",
+          "TaskId": "1809",
+          "DataValue": "4.68"
+        },
+        {
+          "TaskDescription": "Analyze prescribing trends to monitor patient compliance and to prevent excessive usage or harmful interactions.",
+          "TaskId": "1810",
+          "DataValue": "4.43"
+        },
+        {
+          "TaskDescription": "Provide specialized services to help patients manage conditions, such as diabetes, asthma, smoking cessation, or high blood pressure.",
+          "TaskId": "1813",
+          "DataValue": "3.69"
+        },
+        {
+          "TaskDescription": "Prepare sterile solutions or infusions for use in surgical procedures, emergency rooms, or patients' homes.",
+          "TaskId": "1819",
+          "DataValue": "3.84"
+        },
+        {
+          "TaskDescription": "Offer health promotion or prevention activities, such as training people to use blood pressure devices or diabetes monitors.",
+          "TaskId": "20404",
+          "DataValue": "3.72"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "2.38",
+          "Importance": "35"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "1.5",
+          "Importance": "13"
+        },
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "3.75",
+          "Importance": "69"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "1.25",
+          "Importance": "6"
+        },
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "1.62",
+          "Importance": "16"
+        },
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "1.5",
+          "Importance": "13"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "1",
+          "Importance": "0"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Dispense drugs prescribed by physicians and other health practitioners and provide information to patients about medications and their use. May advise physicians and other health practitioners on the selection, dosage, interactions, and side effects of medications."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "29-1051.00",
+          "VideoTitle": "Pharmacists",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Investigative",
+          "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+          "DataValue": "2",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Social",
+          "ElementDescription": "Helping, teaching, advising, assisting, or providing service to others.",
+          "DataValue": "4",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.i",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=29-1051.00&op=y"
+  },
+  "29-1071.00": {
+    "details": {
+      "OnetTitle": "Physician Assistants",
+      "OnetCode": "29-1071.00",
+      "OnetDescription": "Provide healthcare services typically performed by a physician, under the supervision of a physician. Conduct complete physicals, provide treatment, and counsel patients. May, in some cases, prescribe medication. Must graduate from an accredited educational program for physician assistants.",
+      "Tasks": [
+        {
+          "TaskDescription": "Interpret diagnostic test results for deviations from normal.",
+          "TaskId": "4074",
+          "DataValue": "4.92"
+        },
+        {
+          "TaskDescription": "Administer or order diagnostic tests, such as x-ray, electrocardiogram, and laboratory tests.",
+          "TaskId": "4077",
+          "DataValue": "4.86"
+        },
+        {
+          "TaskDescription": "Prescribe therapy or medication with physician approval.",
+          "TaskId": "4078",
+          "DataValue": "4.92"
+        },
+        {
+          "TaskDescription": "Perform therapeutic procedures, such as injections, immunizations, suturing and wound care, and infection management.",
+          "TaskId": "4079",
+          "DataValue": "4.53"
+        },
+        {
+          "TaskDescription": "Visit and observe patients on hospital rounds or house calls, updating charts, ordering therapy, and reporting back to physician.",
+          "TaskId": "4083",
+          "DataValue": "4.52"
+        },
+        {
+          "TaskDescription": "Prescribe therapy or medication with physician approval.",
+          "TaskId": "4078",
+          "DataValue": "4.92"
+        },
+        {
+          "TaskDescription": "Perform therapeutic procedures, such as injections, immunizations, suturing and wound care, and infection management.",
+          "TaskId": "4079",
+          "DataValue": "4.53"
+        },
+        {
+          "TaskDescription": "Order medical and laboratory supplies and equipment.",
+          "TaskId": "4084",
+          "DataValue": "3.31"
+        },
+        {
+          "TaskDescription": "Instruct and counsel patients about prescribed therapeutic regimens, normal growth and development, family planning, emotional problems of daily living, and health maintenance.",
+          "TaskId": "4080",
+          "DataValue": "4.76"
+        },
+        {
+          "TaskDescription": "Obtain, compile, and record patient medical data, including health history, progress notes, and results of physical examination.",
+          "TaskId": "4076",
+          "DataValue": "4.92"
+        },
+        {
+          "TaskDescription": "Make tentative diagnoses and decisions about management and treatment of patients.",
+          "TaskId": "4075",
+          "DataValue": "4.94"
+        },
+        {
+          "TaskDescription": "Obtain, compile, and record patient medical data, including health history, progress notes, and results of physical examination.",
+          "TaskId": "4076",
+          "DataValue": "4.92"
+        },
+        {
+          "TaskDescription": "Supervise and coordinate activities of technicians and technical assistants.",
+          "TaskId": "4082",
+          "DataValue": "3.68"
+        },
+        {
+          "TaskDescription": "Provide physicians with assistance during surgery or complicated medical procedures.",
+          "TaskId": "4081",
+          "DataValue": "4.29"
+        },
+        {
+          "TaskDescription": "Examine patients to obtain information about their physical condition.",
+          "TaskId": "4073",
+          "DataValue": "4.92"
+        },
+        {
+          "TaskDescription": "Visit and observe patients on hospital rounds or house calls, updating charts, ordering therapy, and reporting back to physician.",
+          "TaskId": "4083",
+          "DataValue": "4.52"
+        },
+        {
+          "TaskDescription": "Visit and observe patients on hospital rounds or house calls, updating charts, ordering therapy, and reporting back to physician.",
+          "TaskId": "4083",
+          "DataValue": "4.52"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "4.12",
+          "Importance": "78"
+        },
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "1.12",
+          "Importance": "3"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "2.38",
+          "Importance": "35"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "4.12",
+          "Importance": "78"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "4",
+          "Importance": "75"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Provide healthcare services typically performed by a physician, under the supervision of a physician. Conduct complete physicals, provide treatment, and counsel patients. May, in some cases, prescribe medication. Must graduate from an accredited educational program for physician assistants."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "29-1071.00",
+          "VideoTitle": "Physician Assistants",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Social",
+          "ElementDescription": "Helping, teaching, advising, assisting, or providing service to others.",
+          "DataValue": "4",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Investigative",
+          "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+          "DataValue": "2",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.i",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=29-1071.00&op=y"
+  },
+  "29-1122.00": {
+    "details": {
+      "OnetTitle": "Occupational Therapists",
+      "OnetCode": "29-1122.00",
+      "OnetDescription": "Assess, plan, and organize rehabilitative programs that help build or restore vocational, homemaking, and daily living skills, as well as general independence, to persons with disabilities or developmental delays. Use therapeutic techniques, adapt the individual's environment, teach skills, and modify specific tasks that present barriers to the individual.",
+      "Tasks": [
+        {
+          "TaskDescription": "Plan and implement programs and social activities to help patients learn work or school skills and adjust to handicaps.",
+          "TaskId": "358",
+          "DataValue": "4.52"
+        },
+        {
+          "TaskDescription": "Lay out materials such as puzzles, scissors and eating utensils for use in therapy, and clean and repair these tools after therapy sessions.",
+          "TaskId": "359",
+          "DataValue": "4.29"
+        },
+        {
+          "TaskDescription": "Advise on health risks in the workplace or on health-related transition to retirement.",
+          "TaskId": "360",
+          "DataValue": "3.53"
+        },
+        {
+          "TaskDescription": "Test and evaluate patients' physical and mental abilities and analyze medical data to determine realistic rehabilitation goals for patients.",
+          "TaskId": "349",
+          "DataValue": "4.77"
+        },
+        {
+          "TaskDescription": "Plan, organize, and conduct occupational therapy programs in hospital, institutional, or community settings to help rehabilitate persons with disabilities because of illness, injury or psychological or developmental problems.",
+          "TaskId": "351",
+          "DataValue": "4.59"
+        },
+        {
+          "TaskDescription": "Evaluate patients' progress and prepare reports that detail progress.",
+          "TaskId": "348",
+          "DataValue": "4.45"
+        },
+        {
+          "TaskDescription": "Lay out materials such as puzzles, scissors and eating utensils for use in therapy, and clean and repair these tools after therapy sessions.",
+          "TaskId": "359",
+          "DataValue": "4.29"
+        },
+        {
+          "TaskDescription": "Provide training and supervision in therapy techniques and objectives for students or nurses and other medical staff.",
+          "TaskId": "356",
+          "DataValue": "3.91"
+        },
+        {
+          "TaskDescription": "Conduct research in occupational therapy.",
+          "TaskId": "361",
+          "DataValue": "3.84"
+        },
+        {
+          "TaskDescription": "Test and evaluate patients' physical and mental abilities and analyze medical data to determine realistic rehabilitation goals for patients.",
+          "TaskId": "349",
+          "DataValue": "4.77"
+        },
+        {
+          "TaskDescription": "Complete and maintain necessary records.",
+          "TaskId": "347",
+          "DataValue": "4.71"
+        },
+        {
+          "TaskDescription": "Consult with rehabilitation team to select activity programs or coordinate occupational therapy with other therapeutic activities.",
+          "TaskId": "353",
+          "DataValue": "4.27"
+        },
+        {
+          "TaskDescription": "Provide training and supervision in therapy techniques and objectives for students or nurses and other medical staff.",
+          "TaskId": "356",
+          "DataValue": "3.91"
+        },
+        {
+          "TaskDescription": "Help clients improve decision making, abstract reasoning, memory, sequencing, coordination, and perceptual skills, using computer programs.",
+          "TaskId": "354",
+          "DataValue": "3.85"
+        },
+        {
+          "TaskDescription": "Recommend changes in patients' work or living environments, consistent with their needs and capabilities.",
+          "TaskId": "352",
+          "DataValue": "4.09"
+        },
+        {
+          "TaskDescription": "Help clients improve decision making, abstract reasoning, memory, sequencing, coordination, and perceptual skills, using computer programs.",
+          "TaskId": "354",
+          "DataValue": "3.85"
+        },
+        {
+          "TaskDescription": "Provide patients with assistance in locating or holding jobs.",
+          "TaskId": "362",
+          "DataValue": "2.72"
+        },
+        {
+          "TaskDescription": "Design and create, or requisition, special supplies and equipment, such as splints, braces, and computer-aided adaptive equipment.",
+          "TaskId": "357",
+          "DataValue": "4.18"
+        },
+        {
+          "TaskDescription": "Design and create, or requisition, special supplies and equipment, such as splints, braces, and computer-aided adaptive equipment.",
+          "TaskId": "357",
+          "DataValue": "4.18"
+        },
+        {
+          "TaskDescription": "Plan, organize, and conduct occupational therapy programs in hospital, institutional, or community settings to help rehabilitate persons with disabilities because of illness, injury or psychological or developmental problems.",
+          "TaskId": "351",
+          "DataValue": "4.59"
+        },
+        {
+          "TaskDescription": "Develop and participate in health promotion programs, group activities, or discussions to promote client health, facilitate social adjustment, alleviate stress, and prevent physical or mental disability.",
+          "TaskId": "355",
+          "DataValue": "3.91"
+        },
+        {
+          "TaskDescription": "Select activities that will help individuals learn work and life-management skills within limits of their mental or physical capabilities.",
+          "TaskId": "350",
+          "DataValue": "4.45"
+        },
+        {
+          "TaskDescription": "Evaluate patients' progress and prepare reports that detail progress.",
+          "TaskId": "348",
+          "DataValue": "4.45"
+        },
+        {
+          "TaskDescription": "Train caregivers in providing for the needs of a patient during and after therapy.",
+          "TaskId": "15231",
+          "DataValue": "4.45"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "1.25",
+          "Importance": "6"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "1.62",
+          "Importance": "16"
+        },
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3.75",
+          "Importance": "69"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "4.12",
+          "Importance": "78"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "4.12",
+          "Importance": "78"
+        },
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "3.75",
+          "Importance": "69"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "4.12",
+          "Importance": "78"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "4",
+          "Importance": "75"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Assess, plan, and organize rehabilitative programs that help build or restore vocational, homemaking, and daily living skills, as well as general independence, to persons with disabilities or developmental delays. Use therapeutic techniques, adapt the individual's environment, teach skills, and modify specific tasks that present barriers to the individual."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "29-1122.00",
+          "VideoTitle": "Occupational Therapists",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Social",
+          "ElementDescription": "Helping, teaching, advising, assisting, or providing service to others.",
+          "DataValue": "4",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Investigative",
+          "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+          "DataValue": "2",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=29-1122.00&op=y"
+  },
+  "31-1121.00": {
+    "details": {
+      "OnetTitle": "Home Health Aides",
+      "OnetCode": "31-1121.00",
+      "OnetDescription": "Monitor the health status of an individual with disabilities or illness, and address their health-related needs, such as changing bandages, dressing wounds, or administering medication. Work is performed under the direction of offsite or intermittent onsite licensed nursing staff. Provide assistance with routine healthcare tasks or activities of daily living, such as feeding, bathing, toileting, or ambulation. May also help with tasks such as preparing meals, doing light housekeeping, and doing laundry depending on the patient's abilities.",
+      "Tasks": [
+        {
+          "TaskDescription": "Administer prescribed oral medications, under the written direction of physician or as directed by home care nurse or aide, and ensure patients take their medicine.",
+          "TaskId": "18695",
+          "DataValue": "4.27"
+        },
+        {
+          "TaskDescription": "Accompany clients to doctors' offices or on other trips outside the home, providing transportation, assistance, and companionship.",
+          "TaskId": "4250",
+          "DataValue": "3.76"
+        },
+        {
+          "TaskDescription": "Provide patients and families with emotional support and instruction in areas such as caring for infants, preparing healthy meals, living independently, or adapting to disability or illness.",
+          "TaskId": "4242",
+          "DataValue": "3.9"
+        },
+        {
+          "TaskDescription": "Change dressings.",
+          "TaskId": "4248",
+          "DataValue": "3.6"
+        },
+        {
+          "TaskDescription": "Care for patients by changing bed linens, washing and ironing laundry, cleaning, or assisting with their personal care.",
+          "TaskId": "18694",
+          "DataValue": "4.16"
+        },
+        {
+          "TaskDescription": "Provide patients with help moving in and out of beds, baths, wheelchairs, or automobiles and with dressing and grooming.",
+          "TaskId": "4241",
+          "DataValue": "4.38"
+        },
+        {
+          "TaskDescription": "Direct patients in simple prescribed exercises or in the use of braces or artificial limbs.",
+          "TaskId": "4246",
+          "DataValue": "3.49"
+        },
+        {
+          "TaskDescription": "Care for children with disabilities or who have sick parents or parents with disabilities.",
+          "TaskId": "4252",
+          "DataValue": "3.95"
+        },
+        {
+          "TaskDescription": "Massage patients or apply preparations or treatments, such as liniment, alcohol rubs, or heat-lamp stimulation.",
+          "TaskId": "4253",
+          "DataValue": "3.31"
+        },
+        {
+          "TaskDescription": "Perform a variety of duties as requested by client, such as obtaining household supplies or running errands.",
+          "TaskId": "4249",
+          "DataValue": "3.71"
+        },
+        {
+          "TaskDescription": "Maintain records of patient care, condition, progress, or problems to report and discuss observations with supervisor or case manager.",
+          "TaskId": "4240",
+          "DataValue": "4.46"
+        },
+        {
+          "TaskDescription": "Plan, purchase, prepare, or serve meals to patients or other family members, according to prescribed diets.",
+          "TaskId": "4245",
+          "DataValue": "4.04"
+        },
+        {
+          "TaskDescription": "Check patients' pulse, temperature, and respiration.",
+          "TaskId": "4247",
+          "DataValue": "3.92"
+        },
+        {
+          "TaskDescription": "Entertain, converse with, or read aloud to patients to keep them mentally healthy and alert.",
+          "TaskId": "4244",
+          "DataValue": "4.06"
+        },
+        {
+          "TaskDescription": "Bathe patients.",
+          "TaskId": "20577",
+          "DataValue": "4.29"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "3.62",
+          "Importance": "66"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "2.12",
+          "Importance": "28"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "3.75",
+          "Importance": "69"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "1.38",
+          "Importance": "10"
+        },
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "1.62",
+          "Importance": "16"
+        },
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "1.25",
+          "Importance": "6"
+        },
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "1.12",
+          "Importance": "3"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Monitor the health status of an individual with disabilities or illness, and address their health-related needs, such as changing bandages, dressing wounds, or administering medication. Work is performed under the direction of offsite or intermittent onsite licensed nursing staff. Provide assistance with routine healthcare tasks or activities of daily living, such as feeding, bathing, toileting, or ambulation. May also help with tasks such as preparing meals, doing light housekeeping, and doing laundry depending on the patient's abilities."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "31-1122.00",
+          "VideoTitle": "Personal Care Aides",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Social",
+          "ElementDescription": "Helping, teaching, advising, assisting, or providing service to others.",
+          "DataValue": "4",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Realistic",
+          "ElementDescription": "Designing, building, or repairing equipment, materials, or structures, engaging in physical activity, or working outdoors.",
+          "DataValue": "1",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.i",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=31-1122.00&op=y"
+  },
+  "33-3021.00": {
+    "details": {
+      "OnetTitle": "Detectives and Criminal Investigators",
+      "OnetCode": "33-3021.00",
+      "OnetDescription": "Conduct investigations related to suspected violations of federal, state, or local laws to prevent or solve crimes.",
+      "Tasks": [
+        {
+          "TaskDescription": "Summon medical help for injured individuals and alert medical personnel to take statements from them.",
+          "TaskId": "23040",
+          "DataValue": "4.29"
+        },
+        {
+          "TaskDescription": "Notify command of situation and request assistance.",
+          "TaskId": "23041",
+          "DataValue": "4.25"
+        },
+        {
+          "TaskDescription": "Block or rope off scene and check perimeter to ensure that entire scene is secured.",
+          "TaskId": "23043",
+          "DataValue": "4.24"
+        },
+        {
+          "TaskDescription": "Identify case issues and evidence needed, based on analysis of charges, complaints, or allegations of law violations.",
+          "TaskId": "23037",
+          "DataValue": "4.22"
+        },
+        {
+          "TaskDescription": "Record progress of investigation, maintain informational files on suspects, and submit reports to commanding officer or magistrate to authorize warrants.",
+          "TaskId": "23024",
+          "DataValue": "4.54"
+        },
+        {
+          "TaskDescription": "Maintain surveillance of establishments to obtain identifying information on suspects.",
+          "TaskId": "23047",
+          "DataValue": "4.17"
+        },
+        {
+          "TaskDescription": "Secure persons at scene, keeping witnesses from conversing or leaving the scene before investigators arrive.",
+          "TaskId": "23031",
+          "DataValue": "4.42"
+        },
+        {
+          "TaskDescription": "Obtain and verify evidence by interviewing and observing suspects and witnesses or by analyzing records.",
+          "TaskId": "23034",
+          "DataValue": "4.33"
+        },
+        {
+          "TaskDescription": "Obtain and verify evidence by interviewing and observing suspects and witnesses or by analyzing records.",
+          "TaskId": "23034",
+          "DataValue": "4.33"
+        },
+        {
+          "TaskDescription": "Perform undercover assignments and maintain surveillance, including monitoring authorized wiretaps.",
+          "TaskId": "23049",
+          "DataValue": "3.94"
+        },
+        {
+          "TaskDescription": "Secure deceased body and obtain evidence from it, preventing bystanders from tampering with it prior to medical examiner's arrival.",
+          "TaskId": "23023",
+          "DataValue": "4.55"
+        },
+        {
+          "TaskDescription": "Obtain facts or statements from complainants, witnesses, and accused persons and record interviews, using recording device.",
+          "TaskId": "23022",
+          "DataValue": "4.55"
+        },
+        {
+          "TaskDescription": "Obtain summary of incident from officer in charge at crime scene, taking care to avoid disturbing evidence.",
+          "TaskId": "23027",
+          "DataValue": "4.49"
+        },
+        {
+          "TaskDescription": "Preserve, process, and analyze items of evidence obtained from crime scenes and suspects, placing them in proper containers and destroying evidence no longer needed.",
+          "TaskId": "23026",
+          "DataValue": "4.52"
+        },
+        {
+          "TaskDescription": "Question individuals or observe persons and establishments to confirm information given to patrol officers.",
+          "TaskId": "23036",
+          "DataValue": "4.36"
+        },
+        {
+          "TaskDescription": "Question individuals or observe persons and establishments to confirm information given to patrol officers.",
+          "TaskId": "23036",
+          "DataValue": "4.36"
+        },
+        {
+          "TaskDescription": "Organize scene search, assigning specific tasks and areas of search to individual officers and obtaining adequate lighting as necessary.",
+          "TaskId": "23039",
+          "DataValue": "4.3"
+        },
+        {
+          "TaskDescription": "Collaborate with other offices and agencies to exchange information and coordinate activities.",
+          "TaskId": "23048",
+          "DataValue": "4.19"
+        },
+        {
+          "TaskDescription": "Check victims for signs of life, such as breathing and pulse.",
+          "TaskId": "23021",
+          "DataValue": "4.59"
+        },
+        {
+          "TaskDescription": "Prepare and serve search and arrest warrants.",
+          "TaskId": "23035",
+          "DataValue": "4.37"
+        },
+        {
+          "TaskDescription": "Participate or assist in raids and arrests.",
+          "TaskId": "23038",
+          "DataValue": "4.31"
+        },
+        {
+          "TaskDescription": "Examine records and governmental agency files to find identifying data about suspects.",
+          "TaskId": "23030",
+          "DataValue": "4.45"
+        },
+        {
+          "TaskDescription": "Preserve, process, and analyze items of evidence obtained from crime scenes and suspects, placing them in proper containers and destroying evidence no longer needed.",
+          "TaskId": "23026",
+          "DataValue": "4.52"
+        },
+        {
+          "TaskDescription": "Provide information to lab personnel concerning the source of an item of evidence and tests to be performed.",
+          "TaskId": "23032",
+          "DataValue": "4.41"
+        },
+        {
+          "TaskDescription": "Search for and collect evidence, such as fingerprints, using investigative equipment.",
+          "TaskId": "23045",
+          "DataValue": "4.38"
+        },
+        {
+          "TaskDescription": "Prepare reports that detail investigation findings.",
+          "TaskId": "23029",
+          "DataValue": "4.53"
+        },
+        {
+          "TaskDescription": "Determine scope, timing, and direction of investigations.",
+          "TaskId": "23046",
+          "DataValue": "4.35"
+        },
+        {
+          "TaskDescription": "Analyze completed police reports to determine what additional information and investigative work is needed.",
+          "TaskId": "23033",
+          "DataValue": "4.4"
+        },
+        {
+          "TaskDescription": "Notify command of situation and request assistance.",
+          "TaskId": "23041",
+          "DataValue": "4.25"
+        },
+        {
+          "TaskDescription": "Notify, or request notification of, medical examiner or district attorney representative.",
+          "TaskId": "23044",
+          "DataValue": "4.22"
+        },
+        {
+          "TaskDescription": "Record progress of investigation, maintain informational files on suspects, and submit reports to commanding officer or magistrate to authorize warrants.",
+          "TaskId": "23024",
+          "DataValue": "4.54"
+        },
+        {
+          "TaskDescription": "Examine records and governmental agency files to find identifying data about suspects.",
+          "TaskId": "23030",
+          "DataValue": "4.45"
+        },
+        {
+          "TaskDescription": "Obtain and verify evidence by interviewing and observing suspects and witnesses or by analyzing records.",
+          "TaskId": "23034",
+          "DataValue": "4.33"
+        },
+        {
+          "TaskDescription": "Summon medical help for injured individuals and alert medical personnel to take statements from them.",
+          "TaskId": "23040",
+          "DataValue": "4.29"
+        },
+        {
+          "TaskDescription": "Prepare charges or responses to charges, or information for court cases, according to formalized procedures.",
+          "TaskId": "23025",
+          "DataValue": "4.53"
+        },
+        {
+          "TaskDescription": "Examine records to locate links in chains of evidence or information.",
+          "TaskId": "23050",
+          "DataValue": "4.38"
+        },
+        {
+          "TaskDescription": "Testify before grand juries concerning criminal activity investigations.",
+          "TaskId": "23042",
+          "DataValue": "4.04"
+        },
+        {
+          "TaskDescription": "Secure deceased body and obtain evidence from it, preventing bystanders from tampering with it prior to medical examiner's arrival.",
+          "TaskId": "23023",
+          "DataValue": "4.55"
+        },
+        {
+          "TaskDescription": "Note, mark, and photograph location of objects found, such as footprints, tire tracks, bullets and bloodstains, and take measurements of the scene.",
+          "TaskId": "23028",
+          "DataValue": "4.48"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "1.62",
+          "Importance": "16"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "4.25",
+          "Importance": "81"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "2",
+          "Importance": "25"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "1.62",
+          "Importance": "16"
+        },
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "1.5",
+          "Importance": "13"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "2.5",
+          "Importance": "38"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "2.38",
+          "Importance": "35"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "4.12",
+          "Importance": "78"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "3.75",
+          "Importance": "69"
+        },
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "3.5",
+          "Importance": "63"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "4.38",
+          "Importance": "85"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Conduct investigations related to suspected violations of federal, state, or local laws to prevent or solve crimes."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "33-3021.00",
+          "VideoTitle": "Detectives and Criminal Investigators",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Investigative",
+          "ElementDescription": "Studying and researching scientific subjects and human behavior.",
+          "DataValue": "2",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.i",
+          "ElementName": "Realistic",
+          "ElementDescription": "Designing, building, or repairing equipment, materials, or structures, engaging in physical activity, or working outdoors.",
+          "DataValue": "1",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=33-3021.00&op=y"
+  },
+  "43-4051.00": {
+    "details": {
+      "OnetTitle": "Customer Service Representatives",
+      "OnetCode": "43-4051.00",
+      "OnetDescription": "Interact with customers to provide basic or scripted information in response to routine inquiries about products and services. May handle and resolve general complaints. Excludes individuals whose duties are primarily installation, sales, repair, and technical support.",
+      "Tasks": [
+        {
+          "TaskDescription": "Check to ensure that appropriate changes were made to resolve customers' problems.",
+          "TaskId": "2580",
+          "DataValue": "4.39"
+        },
+        {
+          "TaskDescription": "Compare disputed merchandise with original requisitions and information from invoices and prepare invoices for returned goods.",
+          "TaskId": "2589",
+          "DataValue": "3.64"
+        },
+        {
+          "TaskDescription": "Obtain and examine all relevant information to assess validity of complaints and to determine possible causes, such as extreme weather conditions that could increase utility bills.",
+          "TaskId": "2585",
+          "DataValue": "3.63"
+        },
+        {
+          "TaskDescription": "Resolve customers' service or billing complaints by performing activities such as exchanging merchandise, refunding money, or adjusting bills.",
+          "TaskId": "2579",
+          "DataValue": "4.19"
+        },
+        {
+          "TaskDescription": "Refer unresolved customer grievances to designated departments for further investigation.",
+          "TaskId": "2582",
+          "DataValue": "4.07"
+        },
+        {
+          "TaskDescription": "Complete contract forms, prepare change of address records, or issue service discontinuance orders, using computers.",
+          "TaskId": "2584",
+          "DataValue": "4.1"
+        },
+        {
+          "TaskDescription": "Resolve customers' service or billing complaints by performing activities such as exchanging merchandise, refunding money, or adjusting bills.",
+          "TaskId": "2579",
+          "DataValue": "4.19"
+        },
+        {
+          "TaskDescription": "Solicit sales of new or additional services or products.",
+          "TaskId": "2586",
+          "DataValue": "3.87"
+        },
+        {
+          "TaskDescription": "Keep records of customer interactions or transactions, recording details of inquiries, complaints, or comments, as well as actions taken.",
+          "TaskId": "2578",
+          "DataValue": "4.53"
+        },
+        {
+          "TaskDescription": "Determine charges for services requested, collect deposits or payments, or arrange for billing.",
+          "TaskId": "2583",
+          "DataValue": "4.18"
+        },
+        {
+          "TaskDescription": "Compare disputed merchandise with original requisitions and information from invoices and prepare invoices for returned goods.",
+          "TaskId": "2589",
+          "DataValue": "3.64"
+        },
+        {
+          "TaskDescription": "Confer with customers by telephone or in person to provide information about products or services, take or enter orders, cancel accounts, or obtain details of complaints.",
+          "TaskId": "18565",
+          "DataValue": "4.67"
+        },
+        {
+          "TaskDescription": "Recommend improvements in products, packaging, shipping, service, or billing methods and procedures to prevent future problems.",
+          "TaskId": "2591",
+          "DataValue": "3.16"
+        },
+        {
+          "TaskDescription": "Contact customers to respond to inquiries or to notify them of claim investigation results or any planned adjustments.",
+          "TaskId": "2581",
+          "DataValue": "4.22"
+        },
+        {
+          "TaskDescription": "Review insurance policy terms to determine whether a particular loss is covered by insurance.",
+          "TaskId": "2587",
+          "DataValue": "4.05"
+        },
+        {
+          "TaskDescription": "Determine charges for services requested, collect deposits or payments, or arrange for billing.",
+          "TaskId": "2583",
+          "DataValue": "4.18"
+        }
+      ],
+      "Skills": [
+        {
+          "ElementId": "2.A.1.d",
+          "ElementName": "Speaking",
+          "ElementDescription": "Talking to others.",
+          "DataValue": "3.88",
+          "Importance": "72"
+        },
+        {
+          "ElementId": "2.A.1.e",
+          "ElementName": "Mathematics",
+          "ElementDescription": "Using math to solve problems.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.3.a",
+          "ElementName": "Operations Analysis",
+          "ElementDescription": "Figuring out what a product or service needs to be able to do.",
+          "DataValue": "1.62",
+          "Importance": "16"
+        },
+        {
+          "ElementId": "2.B.3.m",
+          "ElementName": "Quality Control Analysis",
+          "ElementDescription": "Testing how well a product or service works.",
+          "DataValue": "1.12",
+          "Importance": "3"
+        },
+        {
+          "ElementId": "2.B.4.h",
+          "ElementName": "Systems Evaluation",
+          "ElementDescription": "Measuring how well a system is working and how to improve it.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.3.g",
+          "ElementName": "Operations Monitoring",
+          "ElementDescription": "Watching gauges, dials, or display screens to make sure a machine is working.",
+          "DataValue": "1.75",
+          "Importance": "19"
+        },
+        {
+          "ElementId": "2.B.5.b",
+          "ElementName": "Management of Financial Resources",
+          "ElementDescription": "Making spending decisions and keeping track of what is spent.",
+          "DataValue": "1.38",
+          "Importance": "10"
+        },
+        {
+          "ElementId": "2.B.3.e",
+          "ElementName": "Programming",
+          "ElementDescription": "Writing computer programs.",
+          "DataValue": "1.5",
+          "Importance": "13"
+        },
+        {
+          "ElementId": "2.A.1.b",
+          "ElementName": "Active Listening",
+          "ElementDescription": "Listening to others, not interrupting, and asking good questions.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.1.b",
+          "ElementName": "Coordination",
+          "ElementDescription": "Changing what is done based on other people's actions.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.A.2.d",
+          "ElementName": "Monitoring",
+          "ElementDescription": "Keeping track of how well people and/or groups are doing in order to make improvements.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.1.a",
+          "ElementName": "Reading Comprehension",
+          "ElementDescription": "Reading work-related information.",
+          "DataValue": "3.38",
+          "Importance": "60"
+        },
+        {
+          "ElementId": "2.A.2.b",
+          "ElementName": "Active Learning",
+          "ElementDescription": "Figuring out how to use new ideas or things.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.3.b",
+          "ElementName": "Technology Design",
+          "ElementDescription": "Making equipment and technology useful for customers.",
+          "DataValue": "1.88",
+          "Importance": "22"
+        },
+        {
+          "ElementId": "2.B.4.g",
+          "ElementName": "Systems Analysis",
+          "ElementDescription": "Figuring out how a system should work and how changes in the future will affect it.",
+          "DataValue": "2.25",
+          "Importance": "31"
+        },
+        {
+          "ElementId": "2.B.1.c",
+          "ElementName": "Persuasion",
+          "ElementDescription": "Talking people into changing their minds or their behavior.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.A.2.a",
+          "ElementName": "Critical Thinking",
+          "ElementDescription": "Thinking about the pros and cons of different ways to solve a problem.",
+          "DataValue": "3.25",
+          "Importance": "56"
+        },
+        {
+          "ElementId": "2.B.1.d",
+          "ElementName": "Negotiation",
+          "ElementDescription": "Bringing people together to solve differences.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.3.j",
+          "ElementName": "Equipment Maintenance",
+          "ElementDescription": "Planning and doing the basic maintenance on equipment.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.d",
+          "ElementName": "Installation",
+          "ElementDescription": "Installing equipment, machines, wiring, or computer programs.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.5.d",
+          "ElementName": "Management of Personnel Resources",
+          "ElementDescription": "Selecting and managing the best workers for a job.",
+          "DataValue": "2.38",
+          "Importance": "35"
+        },
+        {
+          "ElementId": "2.B.1.f",
+          "ElementName": "Service Orientation",
+          "ElementDescription": "Looking for ways to help people.",
+          "DataValue": "4",
+          "Importance": "75"
+        },
+        {
+          "ElementId": "2.B.3.c",
+          "ElementName": "Equipment Selection",
+          "ElementDescription": "Deciding what kind of tools and equipment are needed to do a job.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.1.e",
+          "ElementName": "Instructing",
+          "ElementDescription": "Teaching people how to do something.",
+          "DataValue": "2.75",
+          "Importance": "44"
+        },
+        {
+          "ElementId": "2.B.2.i",
+          "ElementName": "Complex Problem Solving",
+          "ElementDescription": "Noticing a problem and figuring out the best way to solve it.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        },
+        {
+          "ElementId": "2.A.2.c",
+          "ElementName": "Learning Strategies",
+          "ElementDescription": "Using the best training or teaching strategies for learning new things.",
+          "DataValue": "2.62",
+          "Importance": "41"
+        },
+        {
+          "ElementId": "2.A.1.f",
+          "ElementName": "Science",
+          "ElementDescription": "Using scientific rules and strategies to solve problems.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.A.1.c",
+          "ElementName": "Writing",
+          "ElementDescription": "Writing things for co-workers or customers.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.1.a",
+          "ElementName": "Social Perceptiveness",
+          "ElementDescription": "Understanding people's reactions.",
+          "DataValue": "3",
+          "Importance": "50"
+        },
+        {
+          "ElementId": "2.B.3.h",
+          "ElementName": "Operation and Control",
+          "ElementDescription": "Using equipment or systems.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.3.k",
+          "ElementName": "Troubleshooting",
+          "ElementDescription": "Figuring out what is causing equipment, machines, wiring, or computer programs to not work.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.4.e",
+          "ElementName": "Judgment and Decision Making",
+          "ElementDescription": "Thinking about the pros and cons of different options and picking the best one.",
+          "DataValue": "2.88",
+          "Importance": "47"
+        },
+        {
+          "ElementId": "2.B.3.l",
+          "ElementName": "Repairing",
+          "ElementDescription": "Repairing machines or systems using the right tools.",
+          "DataValue": "1",
+          "Importance": "0"
+        },
+        {
+          "ElementId": "2.B.5.c",
+          "ElementName": "Management of Material Resources",
+          "ElementDescription": "Managing equipment and materials.",
+          "DataValue": "1.38",
+          "Importance": "10"
+        },
+        {
+          "ElementId": "2.B.5.a",
+          "ElementName": "Time Management",
+          "ElementDescription": "Managing your time and the time of other people.",
+          "DataValue": "3.12",
+          "Importance": "53"
+        }
+      ],
+      "WorkEnvironment": [
+        {
+          "WorkEnvironment": "Interact with customers to provide basic or scripted information in response to routine inquiries about products and services. May handle and resolve general complaints. Excludes individuals whose duties are primarily installation, sales, repair, and technical support."
+        }
+      ],
+      "Video": [
+        {
+          "VideoCode": "43-4051.00",
+          "VideoTitle": "Customer Service Representatives",
+          "VideoType": "flv"
+        }
+      ],
+      "InterestDataList": [
+        {
+          "ElementId": "1.B.1.g",
+          "ElementName": "Conventional",
+          "ElementDescription": "Following procedures and regulations to organize information or data, typically in a business setting.",
+          "DataValue": "6",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.h",
+          "ElementName": "Enterprising",
+          "ElementDescription": "Managing, negotiating, marketing, or selling, typically in a business setting, or leading or advising people in political and legal situations.",
+          "DataValue": "5",
+          "Importance": null
+        },
+        {
+          "ElementId": "1.B.1.i",
+          "ElementName": "Social",
+          "ElementDescription": "Helping, teaching, advising, assisting, or providing service to others.",
+          "DataValue": "4",
+          "Importance": null
+        }
+      ]
+    },
+    "video_url": "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=43-4051.00&op=y"
+  }
+}

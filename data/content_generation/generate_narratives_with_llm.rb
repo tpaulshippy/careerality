@@ -81,8 +81,8 @@ class GenerateNarrativesWithLLM
 end
 
 if __FILE__ == $PROGRAM_NAME
-  data_file = ARGV[0] || '../careeronestop_data.json'
-  output = ARGV[1] || 'generated_narratives.json'
+  data_file = ARGV[0] || File.expand_path('../careeronestop_data.json', __dir__)
+  output = ARGV[1] || File.expand_path('generated_narratives.json', __dir__)
   model = ARGV[2] || 'llama3.2'
   uri = ARGV[3] || 'http://localhost:11434'
 

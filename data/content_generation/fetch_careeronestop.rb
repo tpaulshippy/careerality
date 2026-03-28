@@ -7,39 +7,53 @@ require 'uri'
 class FetchCareerOneStop
   BASE_URL = 'https://api.careeronestop.org/v1'
 
-  def initialize(api_key)
-    @api_key = api_key
+  def initialize(user_id, api_token)
+    @user_id = user_id
+    @api_token = api_token
   end
 
-  def fetch_occupation_details(occupation_code)
-    uri = URI("#{BASE_URL}/occupation/#{occupation_code}")
-    uri.query = URI.encode_www_form({ key: @api_key })
+  def fetch_occupation_details(occupation_code, location = '0')
+    uri = URI("#{BASE_URL}/occupation/#{@user_id}/#{URI.encode_www_form_component(occupation_code)}/#{location}")
+    uri.query = URI.encode_www_form({
+      tasks: true,
+      skills: true,
+      videos: true,
+      workvalues: true,
+      interest: true
+    })
 
-    response = Net::HTTP.get_response(uri)
+    request = Net::HTTP::Get.new(uri)
+    request['Authorization'] = "Bearer #{@api_token}"
+    request['Accept'] = 'application/json'
+
+    response = Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+      http.request(request)
+    end
 
     if response.is_a?(Net::HTTPSuccess)
-      JSON.parse(response.body)
+      data = JSON.parse(response.body)
+      if data['OccupationDetail'] && data['OccupationDetail'].any?
+        occupation = data['OccupationDetail'].first
+        {
+          'OnetTitle' => occupation['OnetTitle'],
+          'OnetCode' => occupation['OnetCode'],
+          'OnetDescription' => occupation['OnetDescription'],
+          'Tasks' => occupation['Tasks'] || [],
+          'Skills' => occupation['SkillsDataList'] || [],
+          'WorkEnvironment' => [{ 'WorkEnvironment' => occupation['OnetDescription'] || '' }],
+          'Video' => occupation['Video'] || [],
+          'InterestDataList' => occupation['InterestDataList'] || []
+        }
+      else
+        puts "No occupation found for #{occupation_code}"
+        nil
+      end
     else
-      puts "Error fetching #{occupation_code}: #{response.code}"
+      puts "Error fetching #{occupation_code}: #{response.code} - #{response.body}"
       nil
     end
   rescue StandardError => e
     puts "Error: #{e.message}"
-    nil
-  end
-
-  def fetch_video(occupation_code)
-    uri = URI("#{BASE_URL}/video/#{occupation_code}")
-    uri.query = URI.encode_www_form({ key: @api_key })
-
-    response = Net::HTTP.get_response(uri)
-
-    if response.is_a?(Net::HTTPSuccess)
-      data = JSON.parse(response.body)
-      data.dig('videos', 0, 'videoUrl')
-    end
-  rescue StandardError => e
-    puts "Error fetching video: #{e.message}"
     nil
   end
 
@@ -50,11 +64,16 @@ class FetchCareerOneStop
       puts "Fetching #{code}..."
 
       details = fetch_occupation_details(code)
-      video = fetch_video(code)
+      video_url = nil
+
+      if details && details['Video'] && details['Video'].any?
+        video_code = details['Video'].first['VideoCode']
+        video_url = "https://www.careeronestop.org/Videos/careeronestop-videos.aspx?videocode=#{video_code}&op=y"
+      end
 
       results[code] = {
         details: details,
-        video_url: video
+        video_url: video_url
       }
 
       sleep(0.5)
@@ -66,28 +85,30 @@ class FetchCareerOneStop
 end
 
 if __FILE__ == $PROGRAM_NAME
-  api_key = ENV['CAREERONESTOP_API_KEY'] || ARGV[0]
+  user_id = ENV['CAREERONESTOP_USER_ID'] || ARGV[0]
+  api_token = ENV['CAREERONESTOP_API_KEY'] || ARGV[1]
 
-  if api_key.nil? || api_key.empty?
-    puts 'Usage: ruby fetch_careeronestop.rb <api_key> [output_file]'
+  if user_id.nil? || user_id.empty? || api_token.nil? || api_token.empty?
+    puts 'Usage: ruby fetch_careeronestop.rb <user_id> <api_token> [output_file]'
+    puts '       Or set CAREERONESTOP_USER_ID and CAREERONESTOP_API_KEY environment variables'
     exit 1
   end
 
-  fetcher = FetchCareerOneStop.new(api_key)
+  fetcher = FetchCareerOneStop.new(user_id, api_token)
 
   occupation_codes = %w[
-    15-1252
-    15-1253
-    15-1254
-    15-1255
-    29-1051
-    29-1071
-    29-1122
-    31-1121
-    33-3021
-    43-4051
+    15-1252.00
+    15-1253.00
+    15-1254.00
+    15-1255.00
+    29-1051.00
+    29-1071.00
+    29-1122.00
+    31-1121.00
+    33-3021.00
+    43-4051.00
   ]
 
-  output = ARGV[1] || 'careeronestop_data.json'
+  output = ARGV[2] || File.expand_path('../careeronestop_data.json', __dir__)
   fetcher.fetch_all_for_occupations(occupation_codes, output)
 end

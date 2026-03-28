@@ -127,8 +127,8 @@ class GenerateImages
 end
 
 if __FILE__ == $PROGRAM_NAME
-  data_file = ARGV[0] || '../careeronestop_data.json'
-  output = ARGV[1] || 'image_results.json'
+  data_file = ARGV[0] || File.expand_path('../careeronestop_data.json', __dir__)
+  output = ARGV[1] || File.expand_path('image_results.json', __dir__)
 
   r2_config = {
     'bucket_url' => ENV['R2_BUCKET_URL']
