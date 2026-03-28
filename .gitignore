@@ -8,6 +8,9 @@ data/education/
 data/cost_of_living/
 data/cost-of-living/
 
+# Generated files
+data/content_generation/generated_narratives
+
 # Python cache
 __pycache__/
 data/__pycache__/
