@@ -4,7 +4,6 @@ require 'json'
 require 'open3'
 require 'active_record'
 
-require_relative 'generate_narratives'
 require_relative 'generate_images'
 
 class PopulateCareerContents
@@ -30,67 +29,46 @@ class PopulateCareerContents
     establish_connection
   end
 
-  def generate_with_llm(prompt)
-    cmd = [
-      'curl', '--silent',
-      '-X', 'POST',
-      LLM_URI + '/api/generate',
-      '-d', JSON.dump({
-        model: LLM_MODEL,
-        prompt: prompt,
-        stream: false
-      })
-    ]
+  def establish_connection
+    ActiveRecord::Base.establish_connection(DB_CONFIG)
+  end
+
+  def load_narrative_from_file(narratives_dir, code)
+    file_path = File.join(narratives_dir, "#{code}.json")
+    return nil unless File.exist?(file_path)
 
     begin
-      stdout, _stderr, status = Open3.capture3(*cmd)
-      if status.success?
-        result = JSON.parse(stdout)
-        response = result['response']
-        if response.nil? || response.empty?
-          response = result['thinking']
-        end
-        if response
-          response = response.strip
-          if response.start_with?('```json')
-            response = response.sub(/^```json\n?/, '').sub(/\n?```$/, '')
-          elsif response.start_with?('```')
-            response = response.sub(/^```\n?/, '').sub(/\n?```$/, '')
-          end
-        end
-        response
-      else
-        nil
-      end
+      data = JSON.parse(File.read(file_path))
+      {
+        summary: data['day_in_life_summary'] || "Failed to generate summary",
+        full: data['full_narrative'] || "Failed to generate narrative",
+        video_url: data['video_url'] || ''
+      }
     rescue StandardError => e
-      puts "LLM error: #{e.message}"
+      warn "Error reading narrative file for #{code}: #{e.class} - #{e.message}"
       nil
     end
   end
 
-  def generate_narratives(prompts)
+  def load_narratives_from_directory(narratives_dir, occupation_codes = nil)
     results = {}
 
-    prompts.each do |code, data|
-      puts "Generating narrative for #{code}..."
-
-      summary_result = generate_with_llm(data[:summary_prompt])
-      full_result = generate_with_llm(data[:full_prompt])
-
-      results[code] = {
-        summary: summary_result || "Failed to generate summary",
-        full: full_result || "Failed to generate narrative",
-        video_url: data[:video_url] || ''
-      }
-
-      sleep(1)
+    if occupation_codes
+      # Load specific occupations
+      occupation_codes.each do |code|
+        data = load_narrative_from_file(narratives_dir, code)
+        results[code] = data if data
+      end
+    else
+      # Load all narratives from directory
+      Dir.glob(File.join(narratives_dir, '*.json')).each do |file_path|
+        code = File.basename(file_path, '.json')
+        data = load_narrative_from_file(narratives_dir, code)
+        results[code] = data if data
+      end
     end
 
     results
-  end
-
-  def establish_connection
-    ActiveRecord::Base.establish_connection(DB_CONFIG)
   end
 
   def save_to_database(results)
@@ -132,17 +110,19 @@ class PopulateCareerContents
 end
 
 if __FILE__ == $PROGRAM_NAME
-  occupation_codes = ARGV.empty? ? nil : ARGV
+  narratives_dir = ARGV[0] || File.expand_path('generated_narratives', __dir__)
+  occupation_codes = ARGV[1]&.split(',')
 
-  puts 'Step 1: Generating narrative prompts from database...'
-  narrative_gen = GenerateNarratives.new
-  prompts = narrative_gen.process_all(occupation_codes)
+  unless Dir.exist?(narratives_dir)
+    abort "Error: narratives directory not found at #{narratives_dir}. Run generate_narratives_with_llm.rb first."
+  end
 
-  puts 'Step 2: Generating narratives with LLM...'
+  puts "Step 1: Loading narratives from #{narratives_dir}..."
   populator = PopulateCareerContents.new
-  results = populator.generate_narratives(prompts)
+  results = populator.load_narratives_from_directory(narratives_dir, occupation_codes)
+  puts "Loaded #{results.length} narratives"
 
-  puts 'Step 3: Saving to database...'
+  puts 'Step 2: Saving to database...'
   populator.save_to_database(results)
 
   r2_config = {
@@ -151,11 +131,11 @@ if __FILE__ == $PROGRAM_NAME
 
   flux_model = ENV.fetch('FLUX_MODEL', 'x/flux2-klein:latest')
 
-  puts 'Step 4: Generating career images...'
+  puts 'Step 3: Generating career images...'
   image_gen = GenerateImages.new(r2_config, ollama_uri: PopulateCareerContents::LLM_URI, flux_model: flux_model)
   image_results = image_gen.process_all(occupation_codes)
 
-  puts 'Step 5: Saving images to database...'
+  puts 'Step 4: Saving images to database...'
   populator.save_images_to_database(image_results)
 
   puts 'Done!'
