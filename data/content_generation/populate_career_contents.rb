@@ -84,7 +84,7 @@ if __FILE__ == $0
   puts "Step 1: Fetching CareerOneStop data..."
   fetcher = FetchCareerOneStop.new(api_key)
   
-  occupation_codes = ARGV.empty? ? [] : ARGV
+  occupation_codes = ARGV.empty? ? [ ] : ARGV
   if occupation_codes.empty?
     puts "Usage: ruby populate_career_contents.rb <occupation_code1> [occupation_code2] ..."
     exit 1

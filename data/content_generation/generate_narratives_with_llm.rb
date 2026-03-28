@@ -13,8 +13,8 @@ class GenerateNarrativesWithLLM
 
   def generate(occupation_data, occupation_name)
     details = occupation_data['details'] || {}
-    tasks = details.dig('Tasks', 0, 'Task') || []
-    skills = details.dig('Skills', 0, 'Skill') || []
+    tasks = details.dig('Tasks', 0, 'Task') || [ ]
+    skills = details.dig('Skills', 0, 'Skill') || [ ]
     work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
 
     task_list = tasks.take(10).map { |t| t['TaskDescription'] }.compact.join("\n- ")

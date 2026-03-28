@@ -13,7 +13,7 @@ class GenerateImages
 
   def generate_image_prompt(occupation_data, occupation_name)
     details = occupation_data['details'] || {}
-    tasks = details.dig('Tasks', 0, 'Task') || []
+    tasks = details.dig('Tasks', 0, 'Task') || [ ]
     work_env = details.dig('WorkEnvironment', 0, 'WorkEnvironment') || {}
 
     task_list = tasks.take(3).map { |t| t['TaskDescription'] }.compact.join(', ')
