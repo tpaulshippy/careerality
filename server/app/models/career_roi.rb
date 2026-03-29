@@ -2,8 +2,13 @@ class CareerRoi < ApplicationRecord
   self.table_name = "career_roi"
   self.primary_key = "id"
 
+  has_one :career_content, foreign_key: :occupation_code, primary_key: :occupation_code
+
   def as_json(options = {})
-    {
+    # NOTE: This method calls career_content association. To avoid N+1 queries,
+    # ensure callers eager-load with: includes(:career_content)
+    content = association(:career_content).loaded? ? career_content : career_content
+    base = {
       id: id,
       occupation_code: occupation_code,
       occupation_name: occupation_name,
@@ -25,5 +30,13 @@ class CareerRoi < ApplicationRecord
       projected_growth_percent: projected_growth_percent,
       demand_score: demand_score
     }
+
+    if content
+      base[:day_in_life_summary] = content.day_in_life_summary
+      base[:day_in_life_full] = content.day_in_life_full
+      base[:video_url] = content.video_url
+    end
+
+    base
   end
 end

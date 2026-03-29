@@ -1,22 +1,29 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, Image, Linking } from 'react-native';
 import { Card } from './Card';
 import { Section } from './Section';
 import { InfoRow } from './InfoRow';
 import { SkillBadge } from './SkillBadge';
 import { OccupationIconBadge } from './OccupationIconBadge';
-import { CareerROI } from '../types';
+import { CareerROI, CareerImage } from '../types';
 import { formatCurrency } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
 import { getOccupationGroup } from '../utils/occupationGroup';
 
 interface CareerDetailViewProps {
   career: CareerROI;
+  images?: CareerImage[];
   onClose?: () => void;
 }
 
-export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, onClose }) => {
+export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, images, onClose }) => {
   const theme = useTheme();
+
+  const handleVideoPress = () => {
+    if (career.video_url) {
+      Linking.openURL(career.video_url);
+    }
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -34,6 +41,32 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, onCl
             <Text style={[styles.occupationCode, { color: theme.colors.text.secondary }]}>{career.occupation_code}</Text>
           </View>
         </View>
+
+        {career.day_in_life_full && (
+          <View style={styles.dayInLifeSection}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Day in the Life</Text>
+            <Text style={[styles.dayInLifeText, { color: theme.colors.text.secondary }]}>
+              {career.day_in_life_full}
+            </Text>
+          </View>
+        )}
+
+        {images && images.length > 0 && (
+          <View style={styles.imageGallery}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Photos</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
+              {images.map((img) => (
+                <Image key={img.id} source={{ uri: img.image_url }} style={styles.galleryImage} />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {career.video_url && (
+          <TouchableOpacity style={[styles.videoButton, { backgroundColor: theme.colors.card }]} onPress={handleVideoPress}>
+            <Text style={[styles.videoButtonText, { color: theme.colors.primary }]}>🎥 Watch Career Video</Text>
+          </TouchableOpacity>
+        )}
 
         <Section title="Salary Information">
           <InfoRow label="Median Salary" value={formatCurrency(career.annual_median_salary)} />
@@ -114,6 +147,40 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
   } as ViewStyle,
+  dayInLifeSection: {
+    marginBottom: 20,
+  } as ViewStyle,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  } as TextStyle,
+  dayInLifeText: {
+    fontSize: 15,
+    lineHeight: 22,
+  } as TextStyle,
+  imageGallery: {
+    marginBottom: 20,
+  } as ViewStyle,
+  imageScroll: {
+    marginTop: 8,
+  } as ViewStyle,
+  galleryImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+    marginRight: 12,
+  } as ViewStyle,
+  videoButton: {
+    marginBottom: 20,
+    padding: 12,
+    borderRadius: 8,
+  } as ViewStyle,
+  videoButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  } as TextStyle,
   skillsContainer: {
     marginTop: 8,
   } as ViewStyle,
