@@ -20,10 +20,11 @@ class GenerateNarrativesWithLLM
 
   def generate_from_prompt(prompt, occupation_name)
     response = call_ollama(prompt)
-    response if response && response != "Failed to generate"
+    # Return nil only if generation actually failed, not if response is "Failed to generate"
+    response if response && !response.start_with?("Failed to generate")
   rescue StandardError => e
     warn "Error generating narrative for #{occupation_name}: #{e.class} - #{e.message}"
-    "Failed to generate: #{e.class}"
+    nil
   end
 
   def call_ollama(prompt)
@@ -83,6 +84,12 @@ class GenerateNarrativesWithLLM
         # Generate both summary and full narrative from LLM
         summary_content = generate_from_prompt(summary_prompt, occupation_name)
         full_content = generate_from_prompt(full_prompt, occupation_name)
+
+        # Skip if either generation failed (returns nil)
+        if summary_content.nil? || full_content.nil?
+          warn "Skipping #{code}: generation failed (null content)"
+          next
+        end
 
         result = {
           occupation_code: code,
