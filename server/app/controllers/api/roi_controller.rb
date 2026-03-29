@@ -49,7 +49,7 @@ class Api::RoiController < ApplicationController
       roi_records = roi_records.where.not(id: swiped_ids)
     end
 
-    pagy, records = pagy(roi_records, items: 20)
+    pagy, records = pagy(roi_records.includes(:career_content), items: 20)
 
     render_response = {
       records: records.as_json,
@@ -66,7 +66,7 @@ class Api::RoiController < ApplicationController
 
   def show
     area = params[:area] || "99"
-    roi = CareerRoi.find_by(occupation_code: params[:id], area_code: area)
+    roi = CareerRoi.includes(:career_content).find_by(occupation_code: params[:id], area_code: area)
     if roi
       render json: roi.as_json
     else
@@ -77,21 +77,21 @@ class Api::RoiController < ApplicationController
   def by_salary
     area = params[:area] || "99"
     roi_records = CareerRoi.where(area_code: area).order(annual_median_salary: :desc)
-    pagy, records = pagy(roi_records, items: 50)
+    pagy, records = pagy(roi_records.includes(:career_content), items: 50)
     render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
   end
 
   def by_roi
     area = params[:area] || "99"
     roi_records = CareerRoi.where(area_code: area).order(roi_percentage: :desc)
-    pagy, records = pagy(roi_records, items: 50)
+    pagy, records = pagy(roi_records.includes(:career_content), items: 50)
     render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
   end
 
   def by_breakeven
     area = params[:area] || "99"
     roi_records = CareerRoi.where(area_code: area).order(years_to_breakeven: :asc)
-    pagy, records = pagy(roi_records, items: 50)
+    pagy, records = pagy(roi_records.includes(:career_content), items: 50)
     render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
   end
 
@@ -100,7 +100,7 @@ class Api::RoiController < ApplicationController
     area = params[:area] || "99"
     if query.present?
       roi_records = CareerRoi.where(area_code: area).where("occupation_name ILIKE ?", "%#{query}%").order(roi_percentage: :desc)
-pagy, records = pagy(roi_records, items: 50)
+pagy, records = pagy(roi_records.includes(:career_content), items: 50)
       render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
     else
       render json: { error: "Query parameter q is required" }, status: :bad_request

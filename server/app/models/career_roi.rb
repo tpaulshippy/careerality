@@ -5,7 +5,9 @@ class CareerRoi < ApplicationRecord
   has_one :career_content, foreign_key: :occupation_code, primary_key: :occupation_code
 
   def as_json(options = {})
-    content = career_content
+    # NOTE: This method calls career_content association. To avoid N+1 queries,
+    # ensure callers eager-load with: includes(:career_content)
+    content = association(:career_content).loaded? ? career_content : career_content
     base = {
       id: id,
       occupation_code: occupation_code,
