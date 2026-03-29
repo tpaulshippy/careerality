@@ -57,7 +57,17 @@ class GenerateNarrativesWithLLM
     Dir.mkdir(output_dir) unless Dir.exist?(output_dir)
     
     count = 0
+    skipped = 0
     prompts_data.each do |code, prompt_info|
+      file_path = File.join(output_dir, "#{code}.json")
+      
+      # Skip if file already exists
+      if File.exist?(file_path)
+        puts "Skipping #{code}: output file already exists"
+        skipped += 1
+        next
+      end
+      
       puts "Generating narrative for #{code}..."
 
       summary_prompt = prompt_info['summary_prompt']
@@ -83,7 +93,6 @@ class GenerateNarrativesWithLLM
         }
 
         # Save individual file per occupation
-        file_path = File.join(output_dir, "#{code}.json")
         File.write(file_path, JSON.pretty_generate(result))
         count += 1
       rescue StandardError => e
@@ -91,7 +100,7 @@ class GenerateNarrativesWithLLM
       end
     end
 
-    puts "Saved narratives for #{count} occupations to #{output_dir}"
+    puts "Saved narratives for #{count} occupations to #{output_dir}" + (skipped > 0 ? " (#{skipped} skipped)" : "")
   end
 end
 
