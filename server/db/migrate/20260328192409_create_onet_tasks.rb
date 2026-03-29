@@ -14,8 +14,8 @@ class CreateOnetTasks < ActiveRecord::Migration[8.0]
     end
 
     # Add unique constraint for occupation_code + task_id combo
-    add_index :onet_tasks, [:occupation_code, :task_id], unique: true
-    add_index :onet_tasks, [:occupation_code, :importance], order: { importance: :desc }
+    add_index :onet_tasks, [ :occupation_code, :task_id ], unique: true
+    add_index :onet_tasks, [ :occupation_code, :importance ], order: { importance: :desc }
 
     # Add foreign key to career_profiles
     add_foreign_key :onet_tasks, :career_profiles, column: :occupation_code, primary_key: :occupation_code
