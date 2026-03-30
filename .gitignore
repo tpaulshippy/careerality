@@ -11,6 +11,8 @@ data/cost-of-living/
 # Generated files
 data/content_generation/narrative_prompts.json
 data/content_generation/generated_narratives
+data/content_generation/image_prompts.json
+data/content_generation/generated_imagess
 
 # Python cache
 __pycache__/
