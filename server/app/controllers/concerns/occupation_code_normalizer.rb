@@ -10,9 +10,9 @@ module OccupationCodeNormalizer
 
     code = code.to_s.strip
 
-    return code if code.include?('.')
+    return code if code.include?(".")
 
-    if code.include?('-')
+    if code.include?("-")
       return "#{code}.00"
     end
 
