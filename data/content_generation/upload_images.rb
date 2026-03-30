@@ -82,27 +82,30 @@ class UploadImages
     upload_to_r2(image_data, filename)
   end
 
-  def process_results(results_file)
-    results = JSON.parse(File.read(results_file))
+  def process_images_dir(images_dir, existing_uploaded = {})
     uploaded = {}
 
-    results.each do |code, data|
-      next unless data['local_path']
+    Dir.glob(File.join(images_dir, '*.png')).sort.each do |image_path|
+      filename = File.basename(image_path)
+      code = filename.gsub('.png', '').gsub('_', '-')
 
-      filename = File.basename(data['local_path'])
+      if existing_uploaded.key?(code) && existing_uploaded[code][:image_url]
+        puts "Skipping #{filename}: already uploaded"
+        uploaded[code] = existing_uploaded[code]
+        next
+      end
+
       puts "Uploading #{filename}..."
 
-      url = upload_file(data['local_path'], filename)
+      url = upload_file(image_path, filename)
 
       if url
         uploaded[code] = {
-          prompt: data['prompt'],
           image_url: url
         }
         puts "  -> #{url}"
       else
         uploaded[code] = {
-          prompt: data['prompt'],
           image_url: nil
         }
         puts "  -> FAILED"
@@ -150,8 +153,8 @@ class UploadImages
 end
 
 if __FILE__ == $PROGRAM_NAME
-  results_file = ARGV[0] || '/tmp/image_results.json'
-  output_file = ARGV[1] || '/tmp/uploaded_images.json'
+  images_dir = ARGV[0] || File.expand_path('generated_images', __dir__)
+  output_file = ARGV[1] || File.expand_path('uploaded_images.json', __dir__)
 
   bucket_url = ENV['R2_BUCKET_URL']
   access_key = ENV['R2_ACCESS_KEY_ID']
@@ -164,7 +167,14 @@ if __FILE__ == $PROGRAM_NAME
 
   uploader = UploadImages.new(bucket_url: bucket_url, access_key: access_key, secret_key: secret_key)
 
-  uploaded = uploader.process_results(results_file)
+  existing_uploaded = {}
+  if File.exist?(output_file)
+    JSON.parse(File.read(output_file)).each do |code, data|
+      existing_uploaded[code] = data.is_a?(Hash) ? { image_url: data['image_url'] } : data
+    end
+  end
+
+  uploaded = uploader.process_images_dir(images_dir, existing_uploaded)
   uploader.save_results(uploaded, output_file)
 
   if ENV['UPDATE_DB'] == 'true'

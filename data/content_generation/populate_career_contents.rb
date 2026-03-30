@@ -9,9 +9,10 @@ class PopulateCareerContents
     database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
     user: ENV['DB_USER'] || ENV['PGUSER'] || 'postgres',
     password: ENV['DB_PASSWORD'] || ENV['PGPASSWORD'] || 'postgres',
-    host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost'
+    host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost',
+    port: ENV['DB_PORT'] || ENV['PGPORT'] || 5432
   }.tap do |cfg|
-    %i[database user password host].each do |key|
+    %i[database user password host port].each do |key|
       value = cfg[key]
       if value.nil? || value.to_s.strip.empty?
         abort "Error: missing database configuration for #{key}. Set the appropriate environment variable (e.g. DB_*/PG*)."
