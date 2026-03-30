@@ -5,6 +5,8 @@ import sys
 import psycopg2
 from psycopg2.extras import execute_batch
 
+from soc_utils import normalize_soc_code
+
 def log(msg):
     print(msg)
     sys.stdout.flush()
@@ -134,12 +136,8 @@ def transform_career_profiles():
 
     values = []
     for occ_code, occ_name, occ_desc in occupations:
-        if '.' in occ_code:
-            onet_code = occ_code
-        elif '-' in occ_code:
-            onet_code = f"{occ_code}.00"
-        else:
-            onet_code = f"{occ_code[:2]}-{occ_code[2:6]}.00"
+        normalized_code = normalize_soc_code(occ_code)
+        onet_code = normalized_code
 
         job_zone = job_zone_cache.get(onet_code)
         education_level = education_cache.get(onet_code)
@@ -148,7 +146,7 @@ def transform_career_profiles():
         work_activities = json.dumps(activities_cache.get(onet_code, []))
 
         values.append((
-            occ_code,
+            normalized_code,
             occ_name,
             occ_desc,
             None,
@@ -219,12 +217,13 @@ def transform_career_salaries():
 
     values = []
     for row in rows:
+        normalized_occ_code = normalize_soc_code(row[0])
         values.append((
-            row[0], row[1], row[2], row[3], row[4], row[5], row[6],
+            normalized_occ_code, row[1], row[2], row[3], row[4], row[5], row[6],
             row[7], row[8], row[9], row[10], row[11], row[12], row[13],
             row[14], row[15], row[16]
         ))
-    
+
     cursor.execute("""
         SELECT MAX(year) FROM salaries WHERE area_type = 2
     """)
@@ -261,8 +260,9 @@ def transform_career_salaries():
     log(f"  Loading {len(state_rows)} state salary records")
 
     for row in state_rows:
+        normalized_occ_code = normalize_soc_code(row[0])
         values.append((
-            row[0], row[1], row[2], row[3], row[4], row[5], row[6],
+            normalized_occ_code, row[1], row[2], row[3], row[4], row[5], row[6],
             row[7], row[8], row[9], row[10], row[11], row[12], row[13],
             row[14], row[15], row[16]
         ))
@@ -401,8 +401,8 @@ def transform_cost_of_living():
     log(f"  Transformed {len(values)} cost of living records ({len(state_data)} states)")
 
 def get_occupation_education_level(occ_code):
-    onet_code = occ_code if '.' in occ_code else f"{occ_code[:2]}.{occ_code[2:]}"
-    
+    onet_code = normalize_soc_code(occ_code)
+
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -558,13 +558,7 @@ def transform_career_roi():
     """)
     for row in cursor.fetchall():
         if row[0] and row[1]:
-            raw_code = row[0]
-            if '-' in raw_code:
-                normalized = raw_code.replace('-', '')
-            else:
-                normalized = raw_code
-            skills_cache[raw_code] = row[1]
-            skills_cache[normalized] = row[1]
+            skills_cache[row[0]] = row[1]
     
     log("  Loading cost of living data...")
     col_cache = {}
@@ -625,14 +619,10 @@ def transform_career_roi():
         processed += 1
         occ_name = occ_title or f"Code: {occ_code}"
         area_name = area_title or "Unknown Area"
-        
-        if '.' in occ_code:
-            onet_code = occ_code
-        elif '-' in occ_code:
-            onet_code = f"{occ_code}.00"
-        else:
-            onet_code = f"{occ_code[:2]}-{occ_code[2:6]}.00"
-        
+
+        normalized_code = normalize_soc_code(occ_code)
+        onet_code = normalized_code
+
         education_category = education_cache.get(onet_code)
         cat_int = int(float(education_category)) if education_category else 4
         
@@ -734,22 +724,8 @@ def transform_career_roi():
 
         col_index = state_col_cache.get(prim_state, 100.0)
         adjusted_salary = annual_median_float * (100.0 / col_index) if col_index > 0 else annual_median_float
-        
-        skills = skills_cache.get(occ_code)
-        if not skills:
-            if '-' in occ_code:
-                alt_code = occ_code.replace('-', '')
-                skills = skills_cache.get(alt_code)
-        if not skills:
-            if len(occ_code) == 6:
-                alt_code = f"{occ_code[:2]}-{occ_code[2:]}"
-                skills = skills_cache.get(alt_code)
-        if not skills:
-            base_code = occ_code.replace('-', '')[:4]
-            for cached_code in skills_cache:
-                if cached_code.startswith(base_code):
-                    skills = skills_cache[cached_code]
-                    break
+
+        skills = skills_cache.get(normalized_code)
 
         state_fips = state_to_fips.get(prim_state)
         demand_info = demand_cache.get((occ_code, state_fips)) if state_fips else None
@@ -765,7 +741,7 @@ def transform_career_roi():
             demand_score = rank_component + growth_component
 
         values.append((
-            occ_code,
+            normalized_code,
             occ_name,
             area_code,
             area_name,
@@ -1011,9 +987,13 @@ def transform_education_cost_by_state_occupation():
     for occ_code, occ_title, state, median_wage in wage_records:
         if not occ_code or not state:
             continue
-        
-        edu_info = onet_education.get(occ_code)
-        
+
+        normalized_code = normalize_soc_code(occ_code)
+        if not normalized_code:
+            continue
+
+        edu_info = onet_education.get(normalized_code)
+
         if not edu_info:
             continue
         
@@ -1079,7 +1059,7 @@ def transform_education_cost_by_state_occupation():
             
             values.append((
                 state,
-                occ_code,
+                normalized_code,
                 occ_title,
                 median_wage,
                 edu_label,
@@ -1182,13 +1162,14 @@ def transform_state_high_demand_careers():
         total_growth_rows = cursor.fetchall()
         
         values = []
-        
+
         for rank, row in enumerate(growth_rows[:50], 1):
             occ_code, occupation_title, base_emp, proj_emp, emp_change, pct_change, openings = row
+            normalized_code = normalize_soc_code(occ_code)
             values.append((
                 state_fips,
                 state_abbr,
-                occ_code,
+                normalized_code,
                 occupation_title,
                 rank,
                 'percent_change',
@@ -1202,13 +1183,14 @@ def transform_state_high_demand_careers():
                 base_year,
                 proj_year
             ))
-        
+
         for rank, row in enumerate(openings_rows[:50], 1):
             occ_code, occupation_title, base_emp, proj_emp, emp_change, pct_change, openings = row
+            normalized_code = normalize_soc_code(occ_code)
             values.append((
                 state_fips,
                 state_abbr,
-                occ_code,
+                normalized_code,
                 occupation_title,
                 rank,
                 'avg_annual_openings',
@@ -1225,10 +1207,11 @@ def transform_state_high_demand_careers():
         
         for rank, row in enumerate(total_growth_rows[:50], 1):
             occ_code, occupation_title, base_emp, proj_emp, emp_change, pct_change, openings = row
+            normalized_code = normalize_soc_code(occ_code)
             values.append((
                 state_fips,
                 state_abbr,
-                occ_code,
+                normalized_code,
                 occupation_title,
                 rank,
                 'total_growth',

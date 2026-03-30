@@ -1,4 +1,6 @@
 class Api::CareersController < ApplicationController
+  include OccupationCodeNormalizer
+
   def index
     careers = Career.where(selectable: "T").order(sort_sequence: :asc)
     pagy, records = pagy(careers, items: 10)
@@ -6,7 +8,8 @@ class Api::CareersController < ApplicationController
   end
 
   def show
-    career = Career.find_by(occupation_code: params[:id])
+    normalized_code = normalize_occupation_code(params[:id])
+    career = Career.find_by(occupation_code: normalized_code)
     if career
       render json: career.as_json
     else

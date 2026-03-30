@@ -2,6 +2,7 @@
 
 require 'json'
 require 'csv'
+require 'set'
 require 'active_record'
 
 class PopulateOnetTasks
@@ -198,25 +199,14 @@ class PopulateOnetTasks
 
     puts "Existing tasks in database: #{existing_count}"
 
-    # Fetch all occupation codes to build a mapping
-    all_occupations = ActiveRecord::Base.connection.exec_query(
-      "SELECT occupation_code FROM career_profiles"
-    ).map { |row| row['occupation_code'] }
+    # Fetch all occupation codes to build a lookup set
+    valid_occupation_codes = Set.new(
+      ActiveRecord::Base.connection.exec_query(
+        "SELECT occupation_code FROM career_profiles"
+      ).map { |row| row['occupation_code'] }
+    )
 
-    puts "Found #{all_occupations.size} occupations in database"
-
-    # Build mapping from O*NET format (11-1011.00) to database format (111011)
-    onet_to_db_mapping = {}
-    all_occupations.each do |db_code|
-      # Convert database code to O*NET format for matching
-      # Format: 111011 -> 11-1011.00
-      if db_code.length == 6
-        onet_format = "#{db_code[0..1]}-#{db_code[2..5]}.00"
-        onet_to_db_mapping[onet_format] = db_code
-      end
-    end
-
-    puts "Built mapping for #{onet_to_db_mapping.size} O*NET codes"
+    puts "Found #{valid_occupation_codes.size} occupations in database"
 
     inserted = 0
     skipped = 0
@@ -226,10 +216,8 @@ class PopulateOnetTasks
       rating = task_ratings[key] || {}
       onet_code = statement[:onet_code]
 
-      # Look up the database occupation code
-      db_code = onet_to_db_mapping[onet_code]
-
-      unless db_code
+      # Validate that the O*NET code exists in career_profiles
+      unless valid_occupation_codes.include?(onet_code)
         not_found += 1
         next
       end
@@ -243,7 +231,7 @@ class PopulateOnetTasks
           SQL
           nil,
           [
-            db_code,
+            onet_code,
             statement[:task_id],
             statement[:task_description],
             rating[:importance],

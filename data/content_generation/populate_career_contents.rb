@@ -4,6 +4,24 @@ require 'json'
 require 'active_record'
 
 class PopulateCareerContents
+  def normalize_occupation_code(code)
+    return nil unless code.present?
+
+    code = code.to_s.strip
+
+    return code if code.include?('.')
+
+    if code.include?('-')
+      return "#{code}.00"
+    end
+
+    if code.length == 6 && code.match?(/^\d+$/)
+      return "#{code[0..1]}-#{code[2..5]}.00"
+    end
+
+    nil
+  end
+
   DB_CONFIG = {
     adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
     database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
@@ -68,6 +86,9 @@ class PopulateCareerContents
 
   def save_to_database(results)
     results.each do |code, data|
+      normalized_code = normalize_occupation_code(code)
+      next unless normalized_code
+
       ActiveRecord::Base.connection.exec_insert(
         <<~SQL,
           INSERT INTO career_contents (occupation_code, day_in_life_summary, day_in_life_full, video_url, created_at, updated_at)
@@ -79,7 +100,7 @@ class PopulateCareerContents
             updated_at = NOW()
         SQL
         nil,
-        [code, data[:summary], data[:full], data[:video_url]]
+        [normalized_code, data[:summary], data[:full], data[:video_url]]
       )
     end
   end

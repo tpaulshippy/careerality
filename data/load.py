@@ -8,6 +8,8 @@ import pandas as pd
 import psycopg2
 import warnings
 
+from soc_utils import normalize_soc_code
+
 warnings.filterwarnings('ignore')
 
 def log(msg):

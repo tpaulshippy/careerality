@@ -1,4 +1,6 @@
 class Api::RoiController < ApplicationController
+  include OccupationCodeNormalizer
+
   def index
     sort_by = params[:sort] || "demand"
 
@@ -66,7 +68,8 @@ class Api::RoiController < ApplicationController
 
   def show
     area = params[:area] || "99"
-    roi = CareerRoi.includes(:career_content).find_by(occupation_code: params[:id], area_code: area)
+    normalized_code = normalize_occupation_code(params[:id])
+    roi = CareerRoi.includes(:career_content).find_by(occupation_code: normalized_code, area_code: area)
     if roi
       render json: roi.as_json
     else
