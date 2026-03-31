@@ -741,10 +741,11 @@ def transform_career_roi():
          skills = skills_cache.get(normalized_code)
 
          state_fips = state_to_fips.get(prim_state)
-         demand_info = demand_cache.get((normalized_code, state_fips)) if state_fips else None
+         lookup_fips = '00' if area_code == '99' else state_fips
+         demand_info = demand_cache.get((normalized_code, lookup_fips)) if lookup_fips else None
          demand_rank = demand_info['rank'] if demand_info else None
-        avg_annual_openings = demand_info['avg_annual_openings'] if demand_info else None
-        projected_growth_percent = demand_info['pct_change'] if demand_info else None
+         avg_annual_openings = demand_info['avg_annual_openings'] if demand_info else None
+         projected_growth_percent = demand_info['pct_change'] if demand_info else None
         
         # Pre-compute demand_score for efficient ordering in API
         demand_score = None
