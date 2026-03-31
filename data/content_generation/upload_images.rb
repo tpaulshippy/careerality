@@ -181,7 +181,7 @@ if __FILE__ == $PROGRAM_NAME
     end
   end
 
-  uploaded = uploader.process_images_dir(images_dir, existing_uploaded, output_file)
+  uploaded = uploader.process_images_dir(images_dir, output_file, existing_uploaded)
   uploader.save_results(uploaded, output_file)
 
   if ENV['UPDATE_DB'] == 'true'
