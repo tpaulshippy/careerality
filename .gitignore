@@ -14,6 +14,7 @@ data/content_generation/generated_narratives
 data/content_generation/image_prompts.json
 data/content_generation/generated_images
 data/content_generation/uploaded_images.json
+data/content_generation/generate_images.log
 
 # Python cache
 __pycache__/
