@@ -82,16 +82,17 @@ class UploadImages
     upload_to_r2(image_data, filename)
   end
 
-  def process_images_dir(images_dir, existing_uploaded = {})
-    uploaded = {}
+  def process_images_dir(images_dir, existing_uploaded = {}, output_file)
+    uploaded = existing_uploaded.dup
+    count = 0
+    total = Dir.glob(File.join(images_dir, '*.png')).size
 
     Dir.glob(File.join(images_dir, '*.png')).sort.each do |image_path|
       filename = File.basename(image_path)
       code = filename.gsub('.png', '').gsub('_', '-')
 
-      if existing_uploaded.key?(code) && existing_uploaded[code][:image_url]
+      if uploaded.key?(code) && uploaded[code][:image_url]
         puts "Skipping #{filename}: already uploaded"
-        uploaded[code] = existing_uploaded[code]
         next
       end
 
@@ -109,6 +110,12 @@ class UploadImages
           image_url: nil
         }
         puts "  -> FAILED"
+      end
+
+      count += 1
+      if count % 10 == 0
+        save_results(uploaded, output_file)
+        puts "Progress saved (#{count}/#{total})"
       end
     end
 
@@ -174,7 +181,7 @@ if __FILE__ == $PROGRAM_NAME
     end
   end
 
-  uploaded = uploader.process_images_dir(images_dir, existing_uploaded)
+  uploaded = uploader.process_images_dir(images_dir, existing_uploaded, output_file)
   uploader.save_results(uploaded, output_file)
 
   if ENV['UPDATE_DB'] == 'true'
