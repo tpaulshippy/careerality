@@ -82,7 +82,7 @@ class UploadImages
     upload_to_r2(image_data, filename)
   end
 
-  def process_images_dir(images_dir, existing_uploaded = {}, output_file)
+  def process_images_dir(images_dir, output_file, existing_uploaded = {})
     uploaded = existing_uploaded.dup
     count = 0
     total = Dir.glob(File.join(images_dir, '*.png')).size

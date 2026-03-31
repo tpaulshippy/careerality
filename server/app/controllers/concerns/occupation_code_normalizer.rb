@@ -10,13 +10,16 @@ module OccupationCodeNormalizer
 
     code = code.to_s.strip
 
-    return code if code.include?(".")
+    # Accept only fully-formed codes matching "XX-XXXX.00"
+    return code if code.match?(/^\d{2}-\d{4}\.00$/)
 
-    if code.include?("-")
+    # Accept "XX-XXXX" and normalize by appending ".00"
+    if code.match?(/^\d{2}-\d{4}$/)
       return "#{code}.00"
     end
 
-    if code.length == 6 && code.match?(/^\d+$/)
+    # Accept compact form "XXXXXX" and normalize to "XX-XXXX.00"
+    if code.length == 6 && code.match?(/^\d{6}$/)
       return "#{code[0..1]}-#{code[2..5]}.00"
     end
 

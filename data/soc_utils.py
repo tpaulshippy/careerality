@@ -23,12 +23,18 @@ def normalize_soc_code(code):
     if not code:
         return None
 
-    if '.' in code:
-        return code
+    # Accept only fully-formed codes matching "XX-XXXX.00"
+    if code.endswith('.00') and len(code) == 10:
+        if code[0:2].isdigit() and code[3:7].isdigit() and code[2] == '-' and code[7] == '.':
+            return code
 
-    if '-' in code:
-        return f"{code}.00"
+    # Accept "XX-XXXX" and normalize by appending ".00"
+    if code.count('-') == 1 and len(code) == 7:
+        parts = code.split('-')
+        if parts[0].isdigit() and len(parts[0]) == 2 and parts[1].isdigit() and len(parts[1]) == 4:
+            return f"{code}.00"
 
+    # Accept compact form "XXXXXX" and normalize to "XX-XXXX.00"
     if len(code) == 6 and code.isdigit():
         return f"{code[:2]}-{code[2:6]}.00"
 

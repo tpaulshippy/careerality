@@ -8,12 +8,15 @@ class Api::CareersController < ApplicationController
   end
 
   def show
-    normalized_code = normalize_occupation_code(params[:id])
-    career = Career.find_by(occupation_code: normalized_code)
-    if career
-      render json: career.as_json
-    else
-      render json: { error: "Career not found" }, status: :not_found
-    end
-  end
+     normalized_code = normalize_occupation_code(params[:id])
+     if normalized_code.nil?
+       render json: { error: "Invalid occupation code" }, status: :bad_request and return
+     end
+     career = Career.find_by(occupation_code: normalized_code)
+     if career
+       render json: career.as_json
+     else
+       render json: { error: "Career not found" }, status: :not_found
+     end
+   end
 end

@@ -66,16 +66,20 @@ class Api::RoiController < ApplicationController
     render json: render_response
   end
 
-  def show
-    area = params[:area] || "99"
-    normalized_code = normalize_occupation_code(params[:id])
-    roi = CareerRoi.includes(:career_content).find_by(occupation_code: normalized_code, area_code: area)
-    if roi
-      render json: roi.as_json
-    else
-      render json: { error: "Career ROI not found" }, status: :not_found
-    end
-  end
+   def show
+     area = params[:area] || "99"
+     normalized_code = normalize_occupation_code(params[:id])
+     if normalized_code.nil?
+       render json: { error: "Invalid occupation code; expected format XX-XXXX.00" }, status: :bad_request
+       return
+     end
+     roi = CareerRoi.includes(:career_content).find_by(occupation_code: normalized_code, area_code: area)
+     if roi
+       render json: roi.as_json
+     else
+       render json: { error: "Career ROI not found" }, status: :not_found
+     end
+   end
 
   def by_salary
     area = params[:area] || "99"

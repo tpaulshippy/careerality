@@ -5,9 +5,10 @@ require 'active_record'
 
 class PopulateCareerContents
   def normalize_occupation_code(code)
-    return nil unless code.present?
+    return nil if code.nil?
 
     code = code.to_s.strip
+    return nil if code.empty?
 
     return code if code.include?('.')
 
