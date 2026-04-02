@@ -47,9 +47,6 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
     return `$${num.toLocaleString()}`;
   };
 
-  const demandRank = career.demand_rank;
-  const demandColor = demandRank && demandRank <= 3 ? theme.colors.success : demandRank && demandRank <= 6 ? theme.colors.warning : theme.colors.error;
-
   const handleSwipeLeft = () => {
     onSwipeLeft?.();
   };
@@ -119,19 +116,12 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
         </View>
 
         {career.day_in_life_summary && (
-          <View style={styles.dayInLifeContainer}>
-            <Text style={[styles.dayInLifeText, { color: theme.colors.text.secondary }]} numberOfLines={2}>
+          <View style={styles.narrativeContainer}>
+            <Text style={[styles.narrativeText, { color: theme.colors.text.primary }]}>
               {career.day_in_life_summary}
             </Text>
           </View>
         )}
-
-        <View style={styles.demandContainer}>
-          <Text style={[styles.demandValue, { color: demandColor }]}>
-            {demandRank ? `#${demandRank}` : 'N/A'}
-          </Text>
-          <Text style={[styles.demandLabel, { color: theme.colors.text.secondary }]}>Demand Rank</Text>
-        </View>
 
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
@@ -193,29 +183,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   } as TextStyle,
-  dayInLifeContainer: {
+  narrativeContainer: {
     marginBottom: 16,
-    paddingHorizontal: 8,
   } as ViewStyle,
-  dayInLifeText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  } as TextStyle,
-  demandContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingVertical: 16,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-  } as ViewStyle,
-  demandValue: {
-    fontSize: 36,
-    fontWeight: 'bold',
-  } as TextStyle,
-  demandLabel: {
-    fontSize: 14,
-    marginTop: 4,
+  narrativeText: {
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'left',
   } as TextStyle,
   statsGrid: {
     flexDirection: 'row',
