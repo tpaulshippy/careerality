@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, Image, ScrollView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
@@ -17,6 +17,13 @@ interface SwipeCardProps {
 }
 
 const SWIPE_THRESHOLD = 100;
+
+const R2_IMAGE_BASE_URL = "https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev";
+
+const getImageUrl = (occupationCode: string): string => {
+  const digits = occupationCode.replace(/-/g, '').replace(/\./g, '').slice(0, -2);
+  return `${R2_IMAGE_BASE_URL}/${digits}.png`;
+};
 
 export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwipeRight, onViewDetails, cardKey: _cardKey, shouldReset }) => {
   const theme = useTheme();
@@ -101,58 +108,66 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
   return (
     <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.shadows.card, cardStyle]}>
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <OccupationIconBadge groupName={getOccupationGroup(career.occupation_code)} size={44} />
-            <View style={styles.headerText}>
-              <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>
-                {career.occupation_name}
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <View style={styles.headerRow}>
+              <OccupationIconBadge groupName={getOccupationGroup(career.occupation_code)} size={44} />
+              <View style={styles.headerText}>
+                <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>
+                  {career.occupation_name}
+                </Text>
+                <Text style={[styles.areaName, { color: theme.colors.text.secondary }]}>
+                  {career.area_name}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {career.day_in_life_summary && (
+            <View style={styles.narrativeContainer}>
+              <Text style={[styles.narrativeText, { color: theme.colors.text.primary }]}>
+                {career.day_in_life_summary}
               </Text>
-              <Text style={[styles.areaName, { color: theme.colors.text.secondary }]}>
-                {career.area_name}
+            </View>
+          )}
+
+          <Image 
+            source={{ uri: getImageUrl(career.occupation_code) }} 
+            style={styles.cardImage}
+            resizeMode="contain"
+          />
+
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Annual Salary</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {formatCurrency(career.annual_median_salary)}
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Education Cost</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {formatCurrency(career.education_cost)}
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Break-even</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {career.years_to_breakeven} years
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Job Zone</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {career.job_zone}
               </Text>
             </View>
           </View>
-        </View>
 
-        {career.day_in_life_summary && (
-          <View style={styles.narrativeContainer}>
-            <Text style={[styles.narrativeText, { color: theme.colors.text.primary }]}>
-              {career.day_in_life_summary}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Annual Salary</Text>
-            <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
-              {formatCurrency(career.annual_median_salary)}
-            </Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Education Cost</Text>
-            <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
-              {formatCurrency(career.education_cost)}
-            </Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Break-even</Text>
-            <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
-              {career.years_to_breakeven} years
-            </Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Job Zone</Text>
-            <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
-              {career.job_zone}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={[styles.hint, { color: theme.colors.text.secondary }]}>
-          Tap for details, swipe to continue
-        </Text>
+          <Text style={[styles.hint, { color: theme.colors.text.secondary }]}>
+            Tap for details, swipe to continue
+          </Text>
+        </ScrollView>
       </Animated.View>
     </GestureDetector>
   );
@@ -163,6 +178,11 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 16,
     padding: 20,
+  } as ViewStyle,
+  cardImage: {
+    width: '100%',
+    height: 200,
+    marginBottom: 16,
   } as ViewStyle,
   header: {
     marginBottom: 16,
