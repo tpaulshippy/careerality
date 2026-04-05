@@ -14,35 +14,69 @@ export const DiscoverScreen: React.FC = () => {
   const navigation = useNavigation();
   const [careers, setCareers] = useState<CareerROI[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [dataKey, setDataKey] = useState(0);
   const [cardReset] = useState(0);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const fetchKeyRef = useRef(0);
+  const currentPageRef = useRef(1);
+  const hasMoreRef = useRef(true);
+  const careersLengthRef = useRef(0);
+  const currentIndexRef = useRef(0);
+  const loadingMoreRef = useRef(false);
 
   const { filters, setStateCode, setSalaryMin, setSalaryMax } = useFilters();
   const { cards, swipeLeft, swipeRight, undo, currentIndex, resetSwipes } = useSwipe(careers);
 
-  const fetchCareers = useCallback(async () => {
+  useEffect(() => {
+    careersLengthRef.current = careers.length;
+  }, [careers]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  useEffect(() => {
+    loadingMoreRef.current = loadingMore;
+  }, [loadingMore]);
+
+  const fetchCareers = useCallback(async (page: number = 1, append: boolean = false) => {
     const thisFetch = ++fetchKeyRef.current;
-    setLoading(true);
-    setError(null);
+    
+    if (!append) {
+      currentPageRef.current = 1;
+      hasMoreRef.current = true;
+      setLoading(true);
+      setError(null);
+    } else {
+      setLoadingMore(true);
+    }
 
     try {
-      const params: Record<string, string | number> = {};
+      const params: Record<string, string | number> = { page };
       if (filters.stateCode) params.area_code = filters.stateCode;
       if (filters.salaryMin > 0) params.min_salary = filters.salaryMin;
       if (filters.salaryMax < 1000000) params.max_salary = filters.salaryMax;
 
-      const json = await apiClient.getCareers(params) as { records: CareerROI[] } | CareerROI[];
+      const json = await apiClient.getCareers(params) as { records: CareerROI[]; pagy?: { pages: number } };
 
       if (thisFetch !== fetchKeyRef.current) return;
 
       const data: CareerROI[] = Array.isArray(json) ? json : (json.records || []);
-      setCareers(data);
-      setDataKey(prev => prev + 1);
-      resetSwipes();
+      const totalPages = json.pagy?.pages ?? 1;
+
+      hasMoreRef.current = page < totalPages;
+      currentPageRef.current = page;
+
+      if (append) {
+        setCareers(prev => [...prev, ...data]);
+      } else {
+        setCareers(data);
+        setDataKey(prev => prev + 1);
+        resetSwipes();
+      }
     } catch {
       if (thisFetch === fetchKeyRef.current) {
         setError('Failed to load careers');
@@ -50,6 +84,7 @@ export const DiscoverScreen: React.FC = () => {
     } finally {
       if (thisFetch === fetchKeyRef.current) {
         setLoading(false);
+        setLoadingMore(false);
       }
     }
   }, [filters.stateCode, filters.salaryMin, filters.salaryMax, resetSwipes]);
@@ -72,6 +107,7 @@ export const DiscoverScreen: React.FC = () => {
     if (career) {
       submitSwipe(career.id, 'left');
     }
+    checkAndLoadMore();
   }, [swipeLeft]);
 
   const handleSwipeRight = useCallback(() => {
@@ -79,7 +115,14 @@ export const DiscoverScreen: React.FC = () => {
     if (career) {
       submitSwipe(career.id, 'right');
     }
+    checkAndLoadMore();
   }, [swipeRight]);
+
+  const checkAndLoadMore = useCallback(() => {
+    if (!loadingMoreRef.current && hasMoreRef.current && currentIndexRef.current >= careersLengthRef.current - 5) {
+      fetchCareers(currentPageRef.current + 1, true);
+    }
+  }, [fetchCareers]);
 
   const submitSwipe = async (careerId: number, direction: 'left' | 'right') => {
     try {
