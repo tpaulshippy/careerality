@@ -20,7 +20,7 @@
     },
     "ios": {
       "bundleIdentifier": "app.careerality.app",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -33,7 +33,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "app.careerality.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": []
     },
     "web": {
