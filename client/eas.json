@@ -16,6 +16,9 @@
     },
     "production": {
       "autoIncrement": true,
+      "hooks": {
+        "eas-build-pre-install": "node scripts/set-git-commit.js"
+      },
       "android": {
         "image": "latest",
         "buildType": "app-bundle"
