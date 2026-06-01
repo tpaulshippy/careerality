@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useTheme } from '../hooks/useTheme';
 import { GIT_COMMIT_PREFIX } from '../constants/version';
+import * as Updates from 'expo-updates';
 
 export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
   const theme = useTheme();
@@ -18,6 +19,9 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
       </View>
       <View style={[styles.drawerFooter, { borderTopColor: theme.colors.border }]}>
         <Text style={[styles.commitText, { color: theme.colors.text.muted }]}>Build: {GIT_COMMIT_PREFIX}</Text>
+        <Text style={[styles.commitText, { color: theme.colors.text.muted }]}>Channel: {Updates.channel || 'none'}</Text>
+        <Text style={[styles.commitText, { color: theme.colors.text.muted }]}>Runtime: {Updates.runtimeVersion || 'unknown'}</Text>
+        <Text style={[styles.commitText, { color: theme.colors.text.muted }]}>Update: {Updates.updateId || 'none'}</Text>
       </View>
     </DrawerContentScrollView>
   );
