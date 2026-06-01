@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useTheme } from '../hooks/useTheme';
+import { GIT_COMMIT_PREFIX } from '../constants/version';
 
 export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
   const theme = useTheme();
@@ -12,14 +13,19 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
         <Text style={styles.drawerTitle}>Careerality</Text>
         <Text style={[styles.drawerSubtitle, { color: theme.colors.text.light }]}>Career Investment Calculator</Text>
       </View>
-      <DrawerItemList {...props} />
+      <View style={styles.drawerBody}>
+        <DrawerItemList {...props} />
+      </View>
+      <View style={[styles.drawerFooter, { borderTopColor: theme.colors.border }]}>
+        <Text style={[styles.commitText, { color: theme.colors.text.muted }]}>Build: {GIT_COMMIT_PREFIX}</Text>
+      </View>
     </DrawerContentScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   drawerContent: {
-    flex: 1,
+    flexGrow: 1,
   } as ViewStyle,
   drawerHeader: {
     paddingTop: 54,
@@ -34,5 +40,16 @@ const styles = StyleSheet.create({
   drawerSubtitle: {
     fontSize: 14,
     marginTop: 4,
+  } as TextStyle,
+  drawerBody: {
+    flex: 1,
+  } as ViewStyle,
+  drawerFooter: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+  } as ViewStyle,
+  commitText: {
+    fontSize: 12,
   } as TextStyle,
 });
