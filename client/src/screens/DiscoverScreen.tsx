@@ -223,9 +223,23 @@ export const DiscoverScreen: React.FC = () => {
             <Text style={[styles.emptySubtitle, { color: theme.colors.text.secondary }]}>
               You've reviewed all available careers
             </Text>
+            {hasMoreRef.current && (
+              <TouchableOpacity onPress={() => fetchCareers(currentPageRef.current + 1, true)}>
+                <Text style={{ color: theme.colors.primary, marginTop: 12 }}>
+                  {loadingMore ? 'Loading more...' : 'Tap to load more'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
+      {hasCareers && (
+        <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+          <Text style={{ fontSize: 11, color: theme.colors.text.muted }}>
+            DEBUG: careers={careers.length} idx={currentIndex} cards={cards.length} loadingMore={loadingMore ? 'y' : 'n'} hasMore={hasMoreRef.current ? 'y' : 'n'} page={currentPageRef.current} err={error || 'none'}
+          </Text>
+        </View>
+      )}
 
       <SwipeControls
         onSkip={handleSwipeLeft}
