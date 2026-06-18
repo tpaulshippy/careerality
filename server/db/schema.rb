@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_28_192409) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_18_061607) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -141,6 +141,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_28_192409) do
     t.decimal "projected_growth_percent"
     t.decimal "demand_score", precision: 10, scale: 4
     t.index ["annual_median_salary"], name: "index_career_roi_on_annual_median_salary"
+    t.index ["area_code", "annual_median_salary"], name: "index_career_roi_on_area_code_and_annual_median_salary"
+    t.index ["area_code", "demand_score"], name: "index_career_roi_on_area_code_and_demand_score"
+    t.index ["area_code", "roi_percentage"], name: "index_career_roi_on_area_code_and_roi_percentage"
+    t.index ["area_code", "years_to_breakeven"], name: "index_career_roi_on_area_code_and_years_to_breakeven"
+    t.index ["area_code"], name: "index_career_roi_on_area_code"
     t.index ["occupation_code", "area_code", "industry_code"], name: "index_career_roi_on_unique_key", unique: true
     t.index ["roi_percentage"], name: "index_career_roi_on_roi_percentage"
     t.index ["years_to_breakeven"], name: "index_career_roi_on_years_to_breakeven"
@@ -353,6 +358,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_28_192409) do
     t.integer "display_level"
     t.string "selectable", limit: 1
     t.integer "sort_sequence"
+    t.index ["selectable", "sort_sequence"], name: "index_salary_occupations_on_selectable_and_sort_sequence"
   end
 
   create_table "salary_sector", primary_key: "sector_code", id: { type: :string, limit: 10 }, force: :cascade do |t|
@@ -413,6 +419,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_28_192409) do
     t.text "feedback"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["user_id", "created_at"], name: "index_swipes_on_user_id_and_created_at"
+    t.index ["user_id", "direction"], name: "index_swipes_on_user_id_and_direction"
+    t.index ["user_id"], name: "index_swipes_on_user_id"
   end
 
   add_foreign_key "onet_tasks", "career_profiles", column: "occupation_code", primary_key: "occupation_code"
