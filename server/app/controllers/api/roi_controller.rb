@@ -33,15 +33,14 @@ class Api::RoiController < ApplicationController
     when "demand"
         demand_query = base_query.where("demand_score IS NOT NULL")
         if demand_query.count > 0
-          # Use pre-computed demand_score (weighted combination of demand_rank and growth)
-          # plus small random component for variety
-          demand_query.order(Arel.sql("
-            demand_score + RANDOM() * 2.0 DESC,
-            demand_rank ASC,
-            projected_growth_percent DESC
-          "))
+          demand_query.order(Arel.sql(
+            "demand_score DESC NULLS LAST, " \
+            "demand_rank ASC NULLS LAST, " \
+            "projected_growth_percent DESC NULLS LAST, " \
+            "occupation_code ASC"
+          ))
         else
-          demand_query.order(roi_percentage: :desc)
+          base_query.order(roi_percentage: :desc)
         end
     else base_query.order(roi_percentage: :desc)
     end
