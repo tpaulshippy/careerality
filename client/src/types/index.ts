@@ -16,11 +16,23 @@ export interface CareerROI {
   industry_code: string;
   industry_name: string;
   demand_rank: number | null;
+  demand_score: number | null;
   avg_annual_openings: number | null;
   projected_growth_percent: number | null;
   day_in_life_summary?: string;
   day_in_life_full?: string;
   video_url?: string;
+}
+
+export interface RoiResponse {
+  records: CareerROI[];
+  pagy: { page: number; items: number; count: number; pages: number };
+  area_code?: string;
+  area_name?: string;
+}
+
+export interface LikedResponse {
+  records: Array<CareerROI & { swipe_id: number; swiped_at: string }>;
 }
 
 export interface CareerImage {
