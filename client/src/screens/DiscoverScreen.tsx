@@ -165,7 +165,7 @@ export const DiscoverScreen: React.FC = () => {
     return (
       <View style={[styles.errorContainer, { backgroundColor: theme.colors.background }]}>
         <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
-        <Text style={[styles.retryText, { color: theme.colors.primary }]} onPress={fetchCareers}>
+        <Text style={[styles.retryText, { color: theme.colors.primary }]} onPress={() => fetchCareers()}>
           Tap to retry
         </Text>
       </View>
