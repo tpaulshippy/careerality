@@ -291,11 +291,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   } as TextStyle,
-  headerBar: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
-  } as ViewStyle,
   progress: {
     fontSize: 13,
     marginTop: 4,
