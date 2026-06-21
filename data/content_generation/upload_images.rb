@@ -16,7 +16,7 @@ class UploadImages
     @secret_key = secret_key
   end
 
-  def upload_to_r2(image_data, filename)
+  def upload_to_r2(image_data, filename, content_type: 'image/png', cache_control: 'public, max-age=31536000, immutable')
     url = "#{@endpoint_url}/#{@bucket_name}/#{filename}"
 
     date = Time.now.utc.strftime('%Y%m%dT%H%M%SZ')
@@ -29,8 +29,8 @@ class UploadImages
     canonical_uri = "/#{@bucket_name}/#{filename}"
     canonical_querystring = ''
     host = URI.parse(url).host
-    canonical_headers = "content-type:image/png\nhost:#{host}\nx-amz-content-sha256:#{payload_hash}\nx-amz-date:#{date}"
-    signed_headers = 'content-type;host;x-amz-content-sha256;x-amz-date'
+    canonical_headers = "cache-control:#{cache_control}\ncontent-type:#{content_type}\nhost:#{host}\nx-amz-content-sha256:#{payload_hash}\nx-amz-date:#{date}"
+    signed_headers = 'cache-control;content-type;host;x-amz-content-sha256;x-amz-date'
     canonical_request = "PUT\n#{canonical_uri}\n\n#{canonical_headers}\n\n#{signed_headers}\n#{payload_hash}"
     algorithm = 'AWS4-HMAC-SHA256'
     credential_scope = "#{date_stamp}/#{region}/#{service}/aws4_request"
@@ -50,7 +50,8 @@ class UploadImages
     cmd = [
       'curl', '--silent',
       '-X', 'PUT',
-      '-H', 'Content-Type: image/png',
+      '-H', "Content-Type: #{content_type}",
+      '-H', "Cache-Control: #{cache_control}",
       '-H', "x-amz-date: #{date}",
       '-H', "x-amz-content-sha256: #{payload_hash}",
       '-H', "Authorization: #{authorization_header}",
@@ -75,11 +76,23 @@ class UploadImages
     end
   end
 
-  def upload_file(local_path, filename)
+  def generate_webp(source_path, max_width: 600, quality: 80)
+    webp_path = "/tmp/#{File.basename(source_path, '.*')}.webp"
+    cmd = ['cwebp', '-q', quality.to_s, '-resize', max_width.to_s, '0', source_path, '-o', webp_path]
+    _stdout, stderr, status = Open3.capture3(*cmd)
+    unless status.success?
+      puts "cwebp failed: #{stderr}"
+      File.delete(webp_path) if File.exist?(webp_path)
+      return nil
+    end
+    webp_path
+  end
+
+  def upload_file(local_path, filename, content_type: 'image/png')
     return nil unless File.exist?(local_path)
 
     image_data = File.read(local_path)
-    upload_to_r2(image_data, filename)
+    upload_to_r2(image_data, filename, content_type: content_type)
   end
 
   def process_images_dir(images_dir, output_file, existing_uploaded = {})
@@ -89,29 +102,44 @@ class UploadImages
 
     Dir.glob(File.join(images_dir, '*.png')).sort.each do |image_path|
       filename = File.basename(image_path)
-      code = filename.gsub('.png', '').gsub('_', '-')
+      webp_filename = filename.gsub(/\.png\z/, '.webp')
+      code = filename.gsub(/\.png\z/, '').gsub('_', '-')
 
-      if uploaded.key?(code) && uploaded[code][:image_url]
-        puts "Skipping #{filename}: already uploaded"
-        next
-      end
+      entry = uploaded[code] || { image_url: nil, webp_url: nil }
 
-      puts "Uploading #{filename}..."
-
-      url = upload_file(image_path, filename)
-
-      if url
-        uploaded[code] = {
-          image_url: url
-        }
-        puts "  -> #{url}"
+      if entry[:image_url]
+        puts "Skipping #{filename} PNG: already uploaded"
       else
-        uploaded[code] = {
-          image_url: nil
-        }
-        puts "  -> FAILED"
+        puts "Uploading #{filename}..."
+        url = upload_file(image_path, filename)
+        if url
+          entry[:image_url] = url
+          puts "  -> #{url}"
+        else
+          entry[:image_url] = nil
+          puts "  -> PNG FAILED"
+        end
       end
 
+      if entry[:webp_url]
+        puts "Skipping #{webp_filename} WebP: already uploaded"
+      else
+        webp_path = generate_webp(image_path)
+        if webp_path
+          webp_url = upload_file(webp_path, webp_filename, content_type: 'image/webp')
+          File.delete(webp_path) if File.exist?(webp_path)
+          if webp_url
+            entry[:webp_url] = webp_url
+            puts "  -> #{webp_url}"
+          else
+            puts "  -> WebP FAILED"
+          end
+        else
+          puts "  -> WebP generation FAILED"
+        end
+      end
+
+      uploaded[code] = entry
       count += 1
       if count % 10 == 0
         save_results(uploaded, output_file)
@@ -172,12 +200,21 @@ if __FILE__ == $PROGRAM_NAME
     exit 1
   end
 
+  unless system('command -v cwebp > /dev/null 2>&1')
+    puts "Error: cwebp not found. Install libwebp (e.g. 'brew install webp' or 'apt install webp')."
+    exit 1
+  end
+
   uploader = UploadImages.new(bucket_url: bucket_url, access_key: access_key, secret_key: secret_key)
 
   existing_uploaded = {}
   if File.exist?(output_file)
     JSON.parse(File.read(output_file)).each do |code, data|
-      existing_uploaded[code] = data.is_a?(Hash) ? { image_url: data['image_url'] } : data
+      if data.is_a?(Hash)
+        existing_uploaded[code] = { image_url: data['image_url'], webp_url: data['webp_url'] }
+      else
+        existing_uploaded[code] = { image_url: data, webp_url: nil }
+      end
     end
   end
 
