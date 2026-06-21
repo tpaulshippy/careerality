@@ -1278,15 +1278,15 @@ def main():
     transform_cost_of_living()
     log("")
 
+    transform_state_high_demand_careers()
+    log("")
+
     transform_career_roi()
     log("")
 
     transform_education_cost_by_state_occupation()
     log("")
-    
-    transform_state_high_demand_careers()
-    log("")
-    
+
     log("=" * 60)
     log("Transformation complete!")
     log("=" * 60)
