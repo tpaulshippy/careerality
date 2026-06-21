@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_18_061607) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_18_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -413,7 +413,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_18_061607) do
   end
 
   create_table "swipes", force: :cascade do |t|
-    t.integer "career_id"
+    t.bigint "career_id"
     t.string "user_id"
     t.string "direction"
     t.text "feedback"
@@ -425,4 +425,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_18_061607) do
   end
 
   add_foreign_key "onet_tasks", "career_profiles", column: "occupation_code", primary_key: "occupation_code"
+  add_foreign_key "swipes", "career_roi", column: "career_id", on_delete: :nullify
 end
