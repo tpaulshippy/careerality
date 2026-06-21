@@ -1,5 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle, Image, ScrollView } from 'react-native';
+import React, { useEffect, useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
@@ -31,6 +31,8 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
+  const [imageLoading, setImageLoading] = useState(true);
+  const imageUrl = getImageUrl(career.occupation_code);
 
   const resetPosition = useCallback(() => {
     'worklet';
@@ -47,6 +49,10 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
       scale.value = withSpring(1);
     }
   }, [shouldReset]);
+
+  useEffect(() => {
+    setImageLoading(true);
+  }, [imageUrl]);
 
   const formatCurrency = (value: string) => {
     const num = parseFloat(value.replace(/[^0-9.-]/g, ''));
@@ -131,11 +137,25 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
             </View>
           )}
 
-          <Image 
-            source={{ uri: getImageUrl(career.occupation_code) }} 
-            style={styles.cardImage}
-            resizeMode="contain"
-          />
+          <View style={styles.imageContainer}>
+            <Image
+              key={imageUrl}
+              source={{ uri: imageUrl }}
+              style={styles.cardImage}
+              resizeMode="contain"
+              testID="swipe-card-image"
+              onLoad={() => setImageLoading(false)}
+              onError={() => setImageLoading(false)}
+            />
+            {imageLoading && (
+              <View
+                testID="swipe-card-image-loading"
+                style={[styles.imageLoadingOverlay, { backgroundColor: theme.colors.surface }]}
+              >
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              </View>
+            )}
+          </View>
 
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
@@ -179,10 +199,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
   } as ViewStyle,
-  cardImage: {
+  imageContainer: {
     width: '100%',
     height: 200,
     marginBottom: 16,
+  } as ViewStyle,
+  cardImage: {
+    width: '100%',
+    height: 200,
+  } as ViewStyle,
+  imageLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
   } as ViewStyle,
   header: {
     marginBottom: 16,
