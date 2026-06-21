@@ -49,7 +49,10 @@ BACKFILL_SQL = """
       ORDER BY state_fips, occ_code, projection_type
     ) s
     WHERE s.occ_code = career_roi.occupation_code
-      AND s.state_fips = CASE WHEN career_roi.area_code = '99' THEN '00' ELSE career_roi.area_code END
+      AND s.state_fips = CASE WHEN career_roi.area_code = '99' THEN '00'
+                              WHEN career_roi.area_code ~ '^[0-9]{1,2}$'
+                                THEN LPAD(career_roi.area_code, 2, '0')
+                              ELSE NULL END
 """
 
 
