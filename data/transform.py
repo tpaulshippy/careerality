@@ -503,9 +503,6 @@ def transform_career_roi():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM career_roi")
-    conn.commit()
-
     cursor.execute("""
         SELECT DISTINCT ON (s.occ_code, s.area)
             s.occ_code as occ_code,
@@ -783,7 +780,25 @@ def transform_career_roi():
          education_level, skills, cost_of_living_index, adjusted_salary, demand_rank, 
          avg_annual_openings, projected_growth_percent, demand_score, created_at, updated_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-        ON CONFLICT (occupation_code, area_code, industry_code) DO NOTHING
+        ON CONFLICT (occupation_code, area_code, industry_code) DO UPDATE SET
+            occupation_name = EXCLUDED.occupation_name,
+            area_name = EXCLUDED.area_name,
+            industry_code = EXCLUDED.industry_code,
+            industry_name = EXCLUDED.industry_name,
+            annual_median_salary = EXCLUDED.annual_median_salary,
+            education_cost = EXCLUDED.education_cost,
+            years_to_breakeven = EXCLUDED.years_to_breakeven,
+            roi_percentage = EXCLUDED.roi_percentage,
+            job_zone = EXCLUDED.job_zone,
+            education_level = EXCLUDED.education_level,
+            skills = EXCLUDED.skills,
+            cost_of_living_index = EXCLUDED.cost_of_living_index,
+            adjusted_salary = EXCLUDED.adjusted_salary,
+            demand_rank = EXCLUDED.demand_rank,
+            avg_annual_openings = EXCLUDED.avg_annual_openings,
+            projected_growth_percent = EXCLUDED.projected_growth_percent,
+            demand_score = EXCLUDED.demand_score,
+            updated_at = NOW()
     """
 
     if values:
@@ -1278,15 +1293,15 @@ def main():
     transform_cost_of_living()
     log("")
 
+    transform_state_high_demand_careers()
+    log("")
+
     transform_career_roi()
     log("")
 
     transform_education_cost_by_state_occupation()
     log("")
-    
-    transform_state_high_demand_careers()
-    log("")
-    
+
     log("=" * 60)
     log("Transformation complete!")
     log("=" * 60)
