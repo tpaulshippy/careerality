@@ -56,7 +56,7 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
             <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Photos</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
               {images.map((img) => (
-                <Image key={img.id} source={{ uri: img.image_url }} style={styles.galleryImage} />
+                <Image key={img.id} source={{ uri: img.image_url.replace(/\.png$/, '.webp') }} style={styles.galleryImage} />
               ))}
             </ScrollView>
           </View>
