@@ -3,6 +3,17 @@ import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default [
+  {
+    ignores: [
+      "dist/",
+      "android/",
+      "ios/",
+      "node_modules/",
+      "coverage/",
+      ".expo/",
+      "web-build/"
+    ]
+  },
   { languageOptions: { globals: { ...globals.browser, ...globals.node, ...globals.jest } } },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,

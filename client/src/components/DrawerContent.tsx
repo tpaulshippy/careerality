@@ -38,6 +38,7 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
       <View style={styles.drawerBody}>
         <DrawerItemList {...props} />
       </View>
+      {__DEV__ && (
       <View style={[styles.drawerFooter, { borderTopColor: theme.colors.border }]}>
         <Text style={[styles.commitText, { color: theme.colors.text.muted }]}>Build: {GIT_COMMIT_PREFIX}</Text>
         <Text style={[styles.commitText, { color: theme.colors.text.muted }]}>Channel: {Updates.channel || 'none'}</Text>
@@ -55,6 +56,7 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
           <Button title="Check for Update" onPress={onFetchUpdateAsync} />
         </View>
       </View>
+      )}
     </DrawerContentScrollView>
   );
 };

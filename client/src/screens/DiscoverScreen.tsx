@@ -233,13 +233,6 @@ export const DiscoverScreen: React.FC = () => {
           </View>
         )}
       </View>
-      {hasCareers && (
-        <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
-          <Text style={{ fontSize: 11, color: theme.colors.text.muted }}>
-            DEBUG: careers={careers.length} idx={currentIndex} cards={cards.length} loadingMore={loadingMore ? 'y' : 'n'} hasMore={hasMoreRef.current ? 'y' : 'n'} page={currentPageRef.current} err={error || 'none'}
-          </Text>
-        </View>
-      )}
 
       <SwipeControls
         onSkip={handleSwipeLeft}
