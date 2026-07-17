@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Header } from '../components';
 import { DATA_SOURCES } from '../constants/dataSources';
 import { useTheme } from '../hooks/useTheme';
 
@@ -9,8 +8,6 @@ export const DataSourcesScreen: React.FC = () => {
   
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Header title="Data Sources" subtitle="Information about our data providers" />
-
       <View style={[styles.lagWarning, { backgroundColor: theme.colors.warningLight, borderLeftColor: theme.colors.warning }]}>
         <Text style={[styles.lagWarningTitle, { color: '#92400E' }]}>Data Currency Notice</Text>
         <Text style={[styles.lagWarningText, { color: '#92400E' }]}>
