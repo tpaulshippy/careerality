@@ -7,7 +7,7 @@
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    origins "http://100.96.176.38:8081"
+    origins ENV.fetch("CORS_ORIGINS", "https://careerality.app").split(",")
 
     resource "*",
       headers: :any,
