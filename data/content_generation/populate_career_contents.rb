@@ -47,6 +47,15 @@ class PopulateCareerContents
     ActiveRecord::Base.establish_connection(DB_CONFIG)
   end
 
+  # Generated narrative files may contain placeholder strings instead of a
+  # real URL; store NULL for those (and for missing/blank values).
+  def scrub_video_url(value)
+    url = value.to_s.strip
+    return nil if url.empty? || %w[none null].include?(url.downcase)
+
+    url
+  end
+
   def load_narrative_from_file(narratives_dir, code)
     file_path = File.join(narratives_dir, "#{code}.json")
     return nil unless File.exist?(file_path)
@@ -56,7 +65,7 @@ class PopulateCareerContents
       {
         summary: data['day_in_life_summary'] || "Failed to generate summary",
         full: data['full_narrative'] || "Failed to generate narrative",
-        video_url: data['video_url'] || ''
+        video_url: scrub_video_url(data['video_url'])
       }
     rescue StandardError => e
       warn "Error reading narrative file for #{code}: #{e.class} - #{e.message}"

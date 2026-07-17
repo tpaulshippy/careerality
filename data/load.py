@@ -440,6 +440,70 @@ def load_salary_reference_data():
         count = load_tsv_to_table(filepath, table_name)
         print(f"    Loaded {count} rows")
 
+# EPI Family Budget Calculator workbook layout (fbc_data_2026.xlsx):
+# 'County' sheet with two header rows (group names over variable names).
+# Budget columns appear twice: monthly under 'Monthly', annual under 'Annual'.
+EPI_COUNTY_SHEET = 'County'
+
+# Reference family composition: 2 adults with 2 children ('2p2c'), the most
+# standard composition in EPI's Family Budget Calculator.
+EPI_REFERENCE_FAMILY = '2p2c'
+
+# Maps cost_of_living index columns to EPI annual budget components.
+# EPI has no separate utilities budget (utilities are part of Housing), so
+# utilities_index reuses the Housing component.
+EPI_INDEX_COMPONENTS = {
+    'col_index': 'Total',
+    'grocery_index': 'Food',
+    'housing_index': 'Housing',
+    'utilities_index': 'Housing',
+    'transportation_index': 'Transportation',
+    'misc_index': 'Other Necessities',
+}
+
+
+def parse_epi_family_budgets(path, family=EPI_REFERENCE_FAMILY):
+    """Parse the EPI Family Budget Calculator workbook into state-level
+    cost-of-living indices.
+
+    Index = state average annual budget / national average annual budget * 100
+    for the reference family composition (2 adults, 2 children), averaged
+    over the state's county rows (unweighted). Returns a list of dicts with
+    keys area/col_index/grocery_index/housing_index/utilities_index/
+    transportation_index/misc_index: one per state (2-letter abbreviation,
+    including DC) preceded by a national baseline row ('United States', all
+    indices 100.0). Metro/area rows are not included.
+    """
+    header = pd.read_excel(path, sheet_name=EPI_COUNTY_SHEET, header=None, nrows=2)
+    groups = header.iloc[0].ffill()
+    names = [str(c).strip() for c in header.iloc[1]]
+
+    state_col = names.index('State abv.')
+    family_col = names.index('Family')
+    annual_col = {names[i]: i for i in range(len(names)) if groups.iloc[i] == 'Annual'}
+
+    df = pd.read_excel(path, sheet_name=EPI_COUNTY_SHEET, header=None, skiprows=2)
+    df = df[df[family_col] == family]
+
+    components = sorted(set(EPI_INDEX_COMPONENTS.values()))
+    annual = df[[state_col] + [annual_col[c] for c in components]]
+    annual.columns = ['state'] + components
+    annual = annual.dropna(subset=['state'])
+
+    national_avg = annual[components].mean()
+    state_avg = annual.groupby('state')[components].mean()
+
+    def indices(row):
+        return {index: round(float(row[component]) / float(national_avg[component]) * 100, 2)
+                for index, component in EPI_INDEX_COMPONENTS.items()}
+
+    entries = [{'area': 'United States',
+                **{index: 100.0 for index in EPI_INDEX_COMPONENTS}}]
+    for state in sorted(state_avg.index):
+        entries.append({'area': state, **indices(state_avg.loc[state])})
+    return entries
+
+
 def load_cost_of_living():
     print("Loading cost of living data...")
     
@@ -452,23 +516,19 @@ def load_cost_of_living():
     cursor = conn.cursor()
     
     try:
-        df = pd.read_excel(col_file)
+        entries = parse_epi_family_budgets(col_file)
         
-        df.columns = [c.strip() for c in df.columns]
-        
-        values = []
-        for _, row in df.iterrows():
-            values.append((
-                row.get('Area'),
-                row.get('COL Index') if pd.notna(row.get('COL Index')) else None,
-                row.get('Grocery Index') if pd.notna(row.get('Grocery Index')) else None,
-                row.get('Housing Index') if pd.notna(row.get('Housing Index')) else None,
-                row.get('Utilities Index') if pd.notna(row.get('Utilities Index')) else None,
-                row.get('Transportation Index') if pd.notna(row.get('Transportation Index')) else None,
-                row.get('Misc Index') if pd.notna(row.get('Misc Index')) else None,
-                2026,
-                1
-            ))
+        values = [(
+            e['area'],
+            e['col_index'],
+            e['grocery_index'],
+            e['housing_index'],
+            e['utilities_index'],
+            e['transportation_index'],
+            e['misc_index'],
+            2026,
+            1
+        ) for e in entries]
         
         query = '''
             INSERT INTO cost_of_living 
@@ -477,10 +537,12 @@ def load_cost_of_living():
         '''
         
         from psycopg2.extras import execute_batch
+        # Replace previous contents so re-running the loader stays idempotent
+        cursor.execute("DELETE FROM cost_of_living")
         execute_batch(cursor, query, values)
         conn.commit()
         
-        print(f"  Loaded {len(df)} rows")
+        print(f"  Loaded {len(values)} rows")
         
     except Exception as e:
         print(f"  Error: {e}")
