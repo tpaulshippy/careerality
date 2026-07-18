@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ViewStyle, TextStyle, Image, ScrollView, Activi
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
+import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { CareerROI } from '../types';
 import { OccupationIconBadge } from './OccupationIconBadge';
 import { getOccupationGroup } from '../utils/occupationGroup';
@@ -32,6 +33,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
   const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
   const imageUrl = getImageUrl(career.occupation_code);
 
   const resetPosition = useCallback(() => {
@@ -52,13 +54,8 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
 
   useEffect(() => {
     setImageLoading(true);
+    setImageError(false);
   }, [imageUrl]);
-
-  const formatCurrency = (value: string) => {
-    const num = parseFloat(value.replace(/[^0-9.-]/g, ''));
-    if (isNaN(num)) return value;
-    return `$${num.toLocaleString()}`;
-  };
 
   const handleSwipeLeft = () => {
     onSwipeLeft?.();
@@ -138,16 +135,31 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
           )}
 
           <View style={styles.imageContainer}>
-            <Image
-              key={imageUrl}
-              source={{ uri: imageUrl }}
-              style={styles.cardImage}
-              resizeMode="contain"
-              testID="swipe-card-image"
-              onLoad={() => setImageLoading(false)}
-              onError={() => setImageLoading(false)}
-            />
-            {imageLoading && (
+            {imageError ? (
+              <View
+                testID="swipe-card-image-fallback"
+                style={[styles.imageFallback, { backgroundColor: theme.colors.background }]}
+              >
+                <OccupationIconBadge groupName={getOccupationGroup(career.occupation_code)} size={64} />
+                <Text style={[styles.imageFallbackText, { color: theme.colors.text.muted }]}>
+                  Image coming soon
+                </Text>
+              </View>
+            ) : (
+              <Image
+                key={imageUrl}
+                source={{ uri: imageUrl }}
+                style={styles.cardImage}
+                resizeMode="contain"
+                testID="swipe-card-image"
+                onLoad={() => setImageLoading(false)}
+                onError={() => {
+                  setImageLoading(false);
+                  setImageError(true);
+                }}
+              />
+            )}
+            {imageLoading && !imageError && (
               <View
                 testID="swipe-card-image-loading"
                 style={[styles.imageLoadingOverlay, { backgroundColor: theme.colors.surface }]}
@@ -177,9 +189,9 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
               </Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Job Zone</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>ROI</Text>
               <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
-                {career.job_zone}
+                {formatPercent(career.roi_percentage)}
               </Text>
             </View>
           </View>
@@ -198,6 +210,8 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 16,
     padding: 20,
+    flexShrink: 1,
+    overflow: 'hidden',
   } as ViewStyle,
   imageContainer: {
     width: '100%',
@@ -213,6 +227,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   } as ViewStyle,
+  imageFallback: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  } as ViewStyle,
+  imageFallbackText: {
+    fontSize: 13,
+  } as TextStyle,
   header: {
     marginBottom: 16,
   } as ViewStyle,

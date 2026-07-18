@@ -87,4 +87,46 @@ describe('SwipeCard', () => {
 
     expect(getByTestId('swipe-card-image-loading')).toBeTruthy();
   });
+
+  it('shows the ROI stat instead of job zone', async () => {
+    const { getByText, queryByText } = await render(<SwipeCard career={mockCareer} />);
+
+    expect(getByText('ROI')).toBeTruthy();
+    expect(getByText('137.0%')).toBeTruthy();
+    expect(queryByText('Job Zone')).toBeNull();
+  });
+
+  it('formats currency as whole dollars', async () => {
+    const career = { ...mockCareer, annual_median_salary: '45675.85', education_cost: '12000.50' };
+    const { getByText, queryByText } = await render(<SwipeCard career={career} />);
+
+    expect(getByText('$45,676')).toBeTruthy();
+    expect(getByText('$12,001')).toBeTruthy();
+    expect(queryByText(/\.\d{2}/)).toBeNull();
+  });
+
+  it('shows a placeholder when the image fails to load', async () => {
+    const { getByTestId, getByText, queryByTestId } = await render(<SwipeCard career={mockCareer} />);
+
+    expect(queryByTestId('swipe-card-image-fallback')).toBeNull();
+
+    await fireEvent(getByTestId('swipe-card-image'), 'error');
+
+    expect(getByTestId('swipe-card-image-fallback')).toBeTruthy();
+    expect(getByText('Image coming soon')).toBeTruthy();
+    expect(queryByTestId('swipe-card-image-loading')).toBeNull();
+  });
+
+  it('clears the placeholder when the career changes', async () => {
+    const { getByTestId, queryByTestId, rerender } = await render(<SwipeCard career={mockCareer} />);
+
+    await fireEvent(getByTestId('swipe-card-image'), 'error');
+    expect(getByTestId('swipe-card-image-fallback')).toBeTruthy();
+
+    const nextCareer = { ...mockCareer, id: 2, occupation_code: '29-1141' };
+    await rerender(<SwipeCard career={nextCareer} />);
+
+    expect(queryByTestId('swipe-card-image-fallback')).toBeNull();
+    expect(getByTestId('swipe-card-image')).toBeTruthy();
+  });
 });
