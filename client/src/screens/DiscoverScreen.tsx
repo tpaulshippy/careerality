@@ -7,6 +7,7 @@ import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
 import { SwipeCard, SwipeControls, CareerDetailView } from '../components';
 import { FilterSheet, FilterState } from '../components/FilterSheet';
+import { FeedbackModal, InterestLevel } from '../components/FeedbackModal';
 import { useTheme } from '../hooks/useTheme';
 
 export const DiscoverScreen: React.FC = () => {
@@ -20,6 +21,7 @@ export const DiscoverScreen: React.FC = () => {
   const [dataKey, setDataKey] = useState(0);
   const [cardReset] = useState(0);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
+  const [feedbackCareer, setFeedbackCareer] = useState<CareerROI | null>(null);
   const fetchKeyRef = useRef(0);
   const currentPageRef = useRef(1);
   const hasMoreRef = useRef(true);
@@ -113,7 +115,8 @@ export const DiscoverScreen: React.FC = () => {
   const handleSwipeRight = useCallback(() => {
     const career = swipeRight();
     if (career) {
-      submitSwipe(career.id, 'right');
+      // Hold the POST until the feedback modal resolves; card advances immediately.
+      setFeedbackCareer(career);
     }
     checkAndLoadMore();
   }, [swipeRight]);
@@ -124,13 +127,31 @@ export const DiscoverScreen: React.FC = () => {
     }
   }, [fetchCareers]);
 
-  const submitSwipe = async (careerId: number, direction: 'left' | 'right') => {
+  const submitSwipe = async (careerId: number, direction: 'left' | 'right', feedback?: string) => {
     try {
-      await apiClient.submitSwipe(careerId, direction);
+      await apiClient.submitSwipe(careerId, direction, feedback);
     } catch {
       // Swipe submission failed silently - user can retry
     }
   };
+
+  const handleFeedbackSubmit = useCallback((interest: InterestLevel, notes: string) => {
+    const career = feedbackCareer;
+    setFeedbackCareer(null);
+    if (career) {
+      const trimmedNotes = notes.trim();
+      const feedback = trimmedNotes ? `${interest}: ${trimmedNotes}` : interest;
+      submitSwipe(career.id, 'right', feedback);
+    }
+  }, [feedbackCareer]);
+
+  const handleFeedbackClose = useCallback(() => {
+    const career = feedbackCareer;
+    setFeedbackCareer(null);
+    if (career) {
+      submitSwipe(career.id, 'right');
+    }
+  }, [feedbackCareer]);
 
   const handleFilterApply = useCallback((filterState: FilterState) => {
     setStateCode(filterState.stateCode);
@@ -250,6 +271,13 @@ export const DiscoverScreen: React.FC = () => {
           minSalary: filters.salaryMin,
           maxSalary: filters.salaryMax,
         }}
+      />
+
+      <FeedbackModal
+        visible={feedbackCareer !== null}
+        careerName={feedbackCareer?.occupation_name ?? ''}
+        onSubmit={handleFeedbackSubmit}
+        onClose={handleFeedbackClose}
       />
     </View>
   );

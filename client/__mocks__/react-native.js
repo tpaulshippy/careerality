@@ -11,4 +11,5 @@ module.exports = {
   Platform: { OS: 'ios', select: (obj) => obj.ios },
   NativeModules: {},
   ActivityIndicator: 'ActivityIndicator',
+  TouchableOpacity: 'TouchableOpacity',
 };
