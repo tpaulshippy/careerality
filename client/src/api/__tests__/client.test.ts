@@ -70,6 +70,42 @@ describe('ApiClient', () => {
     expect(err.message).toBe('Request timed out');
   });
 
+  it('submitSwipe includes feedback in the POST body when provided', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    }) as unknown as typeof fetch;
+
+    await apiClient.submitSwipe(42, 'right', 'very_interested: great pay');
+
+    const fetchMock = global.fetch as jest.Mock;
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain('/api/swipes');
+    expect(JSON.parse(options.body as string)).toEqual({
+      career_id: 42,
+      user_id: 'test-user-id',
+      direction: 'right',
+      feedback: 'very_interested: great pay',
+    });
+  });
+
+  it('submitSwipe omits feedback from the POST body when not provided', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    }) as unknown as typeof fetch;
+
+    await apiClient.submitSwipe(42, 'left');
+
+    const fetchMock = global.fetch as jest.Mock;
+    const [, options] = fetchMock.mock.calls[0];
+    expect(JSON.parse(options.body as string)).toEqual({
+      career_id: 42,
+      user_id: 'test-user-id',
+      direction: 'left',
+    });
+  });
+
   it('non-ok response throws API error', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,

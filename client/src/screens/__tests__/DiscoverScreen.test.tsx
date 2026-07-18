@@ -1,17 +1,47 @@
 import React from 'react';
-import { render, act } from '@testing-library/react-native';
+import { render, act, waitFor } from '@testing-library/react-native';
 import { DiscoverScreen } from '../DiscoverScreen';
+import { apiClient } from '../../api/client';
+import { CareerROI } from '../../types';
+import { InterestLevel } from '../../components/FeedbackModal';
 
-jest.mock('../../hooks/useSwipe', () => ({
-  useSwipe: () => ({
-    cards: [],
-    swipeLeft: jest.fn(),
-    swipeRight: jest.fn(),
-    undo: jest.fn(),
-    currentIndex: 0,
-    resetSwipes: jest.fn(),
-  }),
-}));
+let mockSwipedCareer: CareerROI | null = null;
+
+interface CapturedFeedbackModalProps {
+  visible: boolean;
+  careerName: string;
+  onSubmit: (interest: InterestLevel, notes: string) => void;
+  onClose: () => void;
+}
+
+interface CapturedSwipeControlsProps {
+  onSkip: () => void;
+  onLike: () => void;
+  onUndo?: () => void;
+  disabled?: boolean;
+}
+
+let mockFeedbackModalProps: CapturedFeedbackModalProps | null = null;
+let mockSwipeControlsProps: CapturedSwipeControlsProps | null = null;
+
+jest.mock('../../hooks/useSwipe', () => {
+  // Stable identities: inline jest.fn()s would change every render and
+  // retrigger DiscoverScreen's fetch effect in an infinite loop.
+  const swipeLeft = jest.fn(() => mockSwipedCareer);
+  const swipeRight = jest.fn(() => mockSwipedCareer);
+  const undo = jest.fn();
+  const resetSwipes = jest.fn();
+  return {
+    useSwipe: () => ({
+      cards: [],
+      swipeLeft,
+      swipeRight,
+      undo,
+      currentIndex: 0,
+      resetSwipes,
+    }),
+  };
+});
 
 jest.mock('../../hooks/useFilters', () => ({
   useFilters: () => ({
@@ -53,7 +83,10 @@ jest.mock('../../components/FilterSheet', () => ({
 }));
 
 jest.mock('../../components/FeedbackModal', () => ({
-  FeedbackModal: () => null,
+  FeedbackModal: (props: CapturedFeedbackModalProps) => {
+    mockFeedbackModalProps = props;
+    return null;
+  },
 }));
 
 jest.mock('../../components/CareerDetailView', () => ({
@@ -69,7 +102,10 @@ jest.mock('../../components', () => ({
   ErrorView: () => null,
   FilterChip: () => null,
   SwipeCard: () => null,
-  SwipeControls: () => null,
+  SwipeControls: (props: CapturedSwipeControlsProps) => {
+    mockSwipeControlsProps = props;
+    return null;
+  },
   FilterSheet: () => null,
   FeedbackModal: () => null,
   CareerDetailView: () => null,
@@ -101,10 +137,89 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
+const submitSwipeMock = apiClient.submitSwipe as jest.Mock;
+
+const career = { id: 42, occupation_name: 'Software Developers' } as CareerROI;
+
 describe('DiscoverScreen', () => {
-  it('should render DiscoverScreen without errors', () => {
-    act(() => {
-      render(<DiscoverScreen />);
+  beforeEach(() => {
+    mockSwipedCareer = null;
+    mockFeedbackModalProps = null;
+    mockSwipeControlsProps = null;
+    submitSwipeMock.mockClear();
+  });
+
+  it('should render DiscoverScreen without errors', async () => {
+    await render(<DiscoverScreen />);
+  });
+
+  it('shows feedback modal after a right swipe and submits the swipe with feedback', async () => {
+    mockSwipedCareer = career;
+    await render(<DiscoverScreen />);
+    await waitFor(() => expect(mockSwipeControlsProps).not.toBeNull());
+
+    await act(async () => {
+      mockSwipeControlsProps?.onLike();
     });
+
+    // Modal opens for the swiped career; POST is held until the modal resolves
+    await waitFor(() => expect(mockFeedbackModalProps?.visible).toBe(true));
+    expect(mockFeedbackModalProps?.careerName).toBe('Software Developers');
+    expect(submitSwipeMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      mockFeedbackModalProps?.onSubmit('very_interested', 'great pay');
+    });
+
+    expect(submitSwipeMock).toHaveBeenCalledWith(42, 'right', 'very_interested: great pay');
+    await waitFor(() => expect(mockFeedbackModalProps?.visible).toBe(false));
+  });
+
+  it('submits feedback with the interest key only when no notes are given', async () => {
+    mockSwipedCareer = career;
+    await render(<DiscoverScreen />);
+    await waitFor(() => expect(mockSwipeControlsProps).not.toBeNull());
+
+    await act(async () => {
+      mockSwipeControlsProps?.onLike();
+    });
+    await waitFor(() => expect(mockFeedbackModalProps?.visible).toBe(true));
+
+    await act(async () => {
+      mockFeedbackModalProps?.onSubmit('somewhat_interested', '  ');
+    });
+
+    expect(submitSwipeMock).toHaveBeenCalledWith(42, 'right', 'somewhat_interested');
+  });
+
+  it('submits the right swipe without feedback when the modal is dismissed', async () => {
+    mockSwipedCareer = career;
+    await render(<DiscoverScreen />);
+    await waitFor(() => expect(mockSwipeControlsProps).not.toBeNull());
+
+    await act(async () => {
+      mockSwipeControlsProps?.onLike();
+    });
+    await waitFor(() => expect(mockFeedbackModalProps?.visible).toBe(true));
+
+    await act(async () => {
+      mockFeedbackModalProps?.onClose();
+    });
+
+    expect(submitSwipeMock).toHaveBeenCalledWith(42, 'right', undefined);
+    await waitFor(() => expect(mockFeedbackModalProps?.visible).toBe(false));
+  });
+
+  it('submits left swipes immediately without showing the feedback modal', async () => {
+    mockSwipedCareer = career;
+    await render(<DiscoverScreen />);
+    await waitFor(() => expect(mockSwipeControlsProps).not.toBeNull());
+
+    await act(async () => {
+      mockSwipeControlsProps?.onSkip();
+    });
+
+    await waitFor(() => expect(submitSwipeMock).toHaveBeenCalledWith(42, 'left', undefined));
+    expect(mockFeedbackModalProps?.visible).toBe(false);
   });
 });

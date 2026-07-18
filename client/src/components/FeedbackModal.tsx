@@ -101,11 +101,13 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
               />
 
               <View style={styles.buttonContainer}>
-                <Button
-                  title="Skip"
+                <TouchableOpacity
                   onPress={handleClose}
-                  style={[styles.button, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-                />
+                  style={[styles.button, styles.skipButton, { borderColor: theme.colors.border }]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.skipText, { color: theme.colors.text.secondary }]}>Skip</Text>
+                </TouchableOpacity>
                 <Button
                   title="Submit"
                   onPress={handleSubmit}
@@ -176,4 +178,15 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
   } as ViewStyle,
+  skipButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as ViewStyle,
+  skipText: {
+    fontSize: 15,
+    fontWeight: '600',
+  } as TextStyle,
 });

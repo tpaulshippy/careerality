@@ -6,6 +6,7 @@ export interface SwipePayload {
   career_id: number;
   user_id: string;
   direction: 'left' | 'right';
+  feedback?: string;
 }
 
 export class ApiTimeoutError extends Error {
@@ -70,9 +71,11 @@ class ApiClient {
     });
   }
 
-  async submitSwipe(careerId: number, direction: 'left' | 'right'): Promise<void> {
+  async submitSwipe(careerId: number, direction: 'left' | 'right', feedback?: string): Promise<void> {
     const userId = await getUserId();
-    await this.post('/api/swipes', { career_id: careerId, user_id: userId, direction });
+    const payload: SwipePayload = { career_id: careerId, user_id: userId, direction };
+    if (feedback) payload.feedback = feedback;
+    await this.post('/api/swipes', payload);
   }
 
   async getCareers(params?: Record<string, string | number>): Promise<RoiResponse> {
