@@ -20,6 +20,7 @@ const mockCareer: CareerROI = {
   industry_code: '54',
   industry_name: 'Professional Services',
   demand_rank: 1,
+  demand_score: 95,
   avg_annual_openings: 50000,
   projected_growth_percent: 15,
 };
@@ -58,7 +59,7 @@ describe('useSwipe', () => {
   it('should return null when no cards available', () => {
     const { result } = renderHook(() => useSwipe([]));
     
-    let returned: CareerROI | null = 'initial';
+    let returned: CareerROI | null = null;
     act(() => {
       returned = result.current.swipeLeft();
     });

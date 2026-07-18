@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, Image, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, ImageStyle, Image, Linking } from 'react-native';
 import { Card } from './Card';
 import { Section } from './Section';
 import { InfoRow } from './InfoRow';
@@ -93,7 +93,7 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
         )}
 
         {career.video_url && (
-          <TouchableOpacity style={[styles.videoButton, { backgroundColor: theme.colors.card }]} onPress={handleVideoPress}>
+          <TouchableOpacity style={[styles.videoButton, { backgroundColor: theme.colors.surface }]} onPress={handleVideoPress}>
             <Text style={[styles.videoButtonText, { color: theme.colors.primary }]}>🎥 Watch Career Video</Text>
           </TouchableOpacity>
         )}
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
     marginBottom: 20,
-  } as ViewStyle,
+  } as ImageStyle,
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 8,
     marginRight: 12,
-  } as ViewStyle,
+  } as ImageStyle,
   videoButton: {
     marginBottom: 20,
     padding: 12,
