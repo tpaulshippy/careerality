@@ -7,8 +7,16 @@ import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
 import { SwipeCard, SwipeControls, CareerDetailView } from '../components';
 import { FilterSheet, FilterState } from '../components/FilterSheet';
+import { SortOption } from '../types';
 import { FeedbackModal, InterestLevel } from '../components/FeedbackModal';
 import { useTheme } from '../hooks/useTheme';
+
+const SORT_LABELS: Record<SortOption, string> = {
+  roi: 'ROI',
+  salary: 'Salary',
+  breakeven: 'Break-even',
+  demand: 'Demand',
+};
 
 export const DiscoverScreen: React.FC = () => {
   const theme = useTheme();
@@ -29,7 +37,7 @@ export const DiscoverScreen: React.FC = () => {
   const currentIndexRef = useRef(0);
   const loadingMoreRef = useRef(false);
 
-  const { filters, setStateCode, setSalaryMin, setSalaryMax } = useFilters();
+  const { filters, setStateCode, setSalaryMin, setSalaryMax, setSortBy } = useFilters();
   const { cards, swipeLeft, swipeRight, undo, currentIndex, resetSwipes } = useSwipe(careers);
 
   useEffect(() => {
@@ -61,6 +69,7 @@ export const DiscoverScreen: React.FC = () => {
       if (filters.stateCode) params.area_code = filters.stateCode;
       if (filters.salaryMin > 0) params.min_salary = filters.salaryMin;
       if (filters.salaryMax < 1000000) params.max_salary = filters.salaryMax;
+      if (filters.sortBy) params.sort = filters.sortBy;
 
       const json = await apiClient.getCareers(params) as { records: CareerROI[]; pagy?: { pages: number } };
 
@@ -89,7 +98,7 @@ export const DiscoverScreen: React.FC = () => {
         setLoadingMore(false);
       }
     }
-  }, [filters.stateCode, filters.salaryMin, filters.salaryMax, resetSwipes]);
+  }, [filters.stateCode, filters.salaryMin, filters.salaryMax, filters.sortBy, resetSwipes]);
 
   useEffect(() => {
     fetchCareers();
@@ -157,7 +166,8 @@ export const DiscoverScreen: React.FC = () => {
     setStateCode(filterState.stateCode);
     setSalaryMin(filterState.minSalary);
     setSalaryMax(filterState.maxSalary);
-  }, [setStateCode, setSalaryMin, setSalaryMax]);
+    setSortBy(filterState.sortBy);
+  }, [setStateCode, setSalaryMin, setSalaryMax, setSortBy]);
 
   const handleUndo = useCallback(() => {
     undo();
@@ -213,7 +223,9 @@ export const DiscoverScreen: React.FC = () => {
           </Text>
         )}
         <TouchableOpacity onPress={() => setFilterSheetVisible(true)}>
-          <Text style={{ color: theme.colors.primary }}>Filter</Text>
+          <Text style={{ color: theme.colors.primary }}>
+            {filters.sortBy !== 'roi' ? `Filter · ${SORT_LABELS[filters.sortBy]}` : 'Filter'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -270,6 +282,7 @@ export const DiscoverScreen: React.FC = () => {
           stateCode: filters.stateCode,
           minSalary: filters.salaryMin,
           maxSalary: filters.salaryMax,
+          sortBy: filters.sortBy,
         }}
       />
 

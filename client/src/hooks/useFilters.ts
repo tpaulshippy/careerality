@@ -1,16 +1,19 @@
 import { useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
+import { SortOption } from '../types';
 
 export interface Filters {
   stateCode: string;
   salaryMin: number;
   salaryMax: number;
+  sortBy: SortOption;
 }
 
 const DEFAULT_FILTERS: Filters = {
   stateCode: '99',
   salaryMin: 0,
   salaryMax: 1000000,
+  sortBy: 'roi',
 };
 
 interface UseFiltersResult {
@@ -18,6 +21,7 @@ interface UseFiltersResult {
   setStateCode: (stateCode: string) => void;
   setSalaryMin: (salary: number) => void;
   setSalaryMax: (salary: number) => void;
+  setSortBy: (sortBy: SortOption) => void;
   resetFilters: () => void;
 }
 
@@ -45,15 +49,24 @@ export const useFilters = (): UseFiltersResult => {
     [setFilters],
   );
 
+  const setSortBy = useCallback(
+    (sortBy: SortOption) => {
+      setFilters(prev => ({ ...prev, sortBy }));
+    },
+    [setFilters],
+  );
+
   const resetFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
   }, [setFilters]);
 
   return {
-    filters,
+    // Merge defaults so values stored before new filter fields existed still work.
+    filters: { ...DEFAULT_FILTERS, ...filters },
     setStateCode,
     setSalaryMin,
     setSalaryMax,
+    setSortBy,
     resetFilters,
   };
 };
