@@ -1,12 +1,30 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle, Button, Alert } from 'react-native';
-import { DrawerContentScrollView, DrawerItemList, DrawerContentComponentProps } from '@react-navigation/drawer';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, Button, Alert, Platform } from 'react-native';
+import { DrawerContentScrollView, DrawerItemList, DrawerItem, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useTheme } from '../hooks/useTheme';
 import { GIT_COMMIT_PREFIX } from '../constants/version';
+import { apiClient } from '../api/client';
 import * as Updates from 'expo-updates';
+
+const DELETE_CONFIRM_TITLE = 'Delete My Data';
+const DELETE_CONFIRM_MESSAGE = 'This permanently deletes all of your swipe history. This cannot be undone.';
+
+const confirmDelete = (): Promise<boolean> => {
+  // react-native-web does not render Alert.alert, so fall back to window.confirm on web.
+  if (Platform.OS === 'web') {
+    return Promise.resolve(window.confirm(`${DELETE_CONFIRM_TITLE}\n\n${DELETE_CONFIRM_MESSAGE}`));
+  }
+  return new Promise((resolve) => {
+    Alert.alert(DELETE_CONFIRM_TITLE, DELETE_CONFIRM_MESSAGE, [
+      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+    ]);
+  });
+};
 
 export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
   const theme = useTheme();
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const { currentlyRunning, isUpdateAvailable, isUpdatePending, isChecking, isDownloading, checkError, downloadError } = Updates.useUpdates();
 
   useEffect(() => {
@@ -14,6 +32,17 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
       Updates.reloadAsync();
     }
   }, [isUpdatePending]);
+
+  const onDeleteMyData = async () => {
+    const confirmed = await confirmDelete();
+    if (!confirmed) return;
+    try {
+      await apiClient.deleteAllSwipes();
+      setDeleteMessage('Your data has been deleted');
+    } catch (error) {
+      setDeleteMessage(error instanceof Error ? error.message : 'Failed to delete data');
+    }
+  };
 
   const onFetchUpdateAsync = async () => {
     try {
@@ -37,6 +66,14 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
       </View>
       <View style={styles.drawerBody}>
         <DrawerItemList {...props} />
+        <DrawerItem
+          label="Delete My Data"
+          labelStyle={{ color: theme.colors.error }}
+          onPress={onDeleteMyData}
+        />
+        {deleteMessage && (
+          <Text style={[styles.deleteMessage, { color: theme.colors.text.muted }]}>{deleteMessage}</Text>
+        )}
       </View>
       {__DEV__ && (
       <View style={[styles.drawerFooter, { borderTopColor: theme.colors.border }]}>
@@ -89,6 +126,11 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   commitText: {
     fontSize: 12,
+  } as TextStyle,
+  deleteMessage: {
+    fontSize: 14,
+    marginHorizontal: 20,
+    marginTop: 8,
   } as TextStyle,
   buttonContainer: {
     marginTop: 8,

@@ -98,6 +98,12 @@ class ApiClient {
     const queryString = '?' + new URLSearchParams({ user_id: userId }).toString();
     await this.request(`/api/swipes/${swipeId}${queryString}`, { method: 'DELETE' });
   }
+
+  async deleteAllSwipes(): Promise<{ deleted: number }> {
+    const userId = await getUserId();
+    const queryString = '?' + new URLSearchParams({ user_id: userId }).toString();
+    return this.request(`/api/swipes/destroy_all${queryString}`, { method: 'DELETE' });
+  }
 }
 
 export const apiClient = new ApiClient();
