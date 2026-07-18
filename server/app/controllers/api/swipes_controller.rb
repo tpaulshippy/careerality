@@ -59,6 +59,15 @@ class Api::SwipesController < ApplicationController
     end
   end
 
+  def destroy_all
+    if params[:user_id].blank?
+      render json: { error: "user_id is required" }, status: :bad_request
+      return
+    end
+    deleted = Swipe.where(user_id: params[:user_id]).delete_all
+    render json: { deleted: deleted }
+  end
+
   private
 
   def swipe_params

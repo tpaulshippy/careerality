@@ -106,6 +106,22 @@ describe('ApiClient', () => {
     });
   });
 
+  it('deleteAllSwipes sends DELETE to destroy_all with user_id and returns deleted count', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ deleted: 3 }),
+    }) as unknown as typeof fetch;
+
+    const result = await apiClient.deleteAllSwipes();
+
+    const fetchMock = global.fetch as jest.Mock;
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain('/api/swipes/destroy_all');
+    expect(url).toContain('user_id=test-user-id');
+    expect(options.method).toBe('DELETE');
+    expect(result).toEqual({ deleted: 3 });
+  });
+
   it('non-ok response throws API error', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,

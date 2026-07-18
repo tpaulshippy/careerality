@@ -4,6 +4,7 @@ Rails.application.routes.draw do
     resources :swipes, only: [ :index, :create, :destroy ] do
       collection do
         get :liked
+        delete :destroy_all
       end
     end
     resources :roi, only: [ :index, :show ] do

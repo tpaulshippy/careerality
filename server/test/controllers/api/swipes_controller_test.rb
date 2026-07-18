@@ -81,4 +81,46 @@ class Api::SwipesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
     assert Swipe.exists?(id: swipe.id)
   end
+
+  test "destroy_all deletes all swipes for the user" do
+    Swipe.create!(career_id: @career.id, user_id: @user, direction: "right")
+    Swipe.create!(career_id: @career.id, user_id: @user, direction: "left")
+    assert_difference("Swipe.count", -2) do
+      delete "/api/swipes/destroy_all", params: { user_id: @user }
+    end
+    assert_response :success
+    assert_equal 0, Swipe.where(user_id: @user).count
+  end
+
+  test "destroy_all leaves other users' swipes" do
+    Swipe.create!(career_id: @career.id, user_id: @user, direction: "right")
+    other = Swipe.create!(career_id: @career.id, user_id: "other", direction: "right")
+    assert_difference("Swipe.count", -1) do
+      delete "/api/swipes/destroy_all", params: { user_id: @user }
+    end
+    assert_response :success
+    assert Swipe.exists?(id: other.id)
+  end
+
+  test "destroy_all returns deleted count" do
+    Swipe.create!(career_id: @career.id, user_id: @user, direction: "right")
+    Swipe.create!(career_id: @career.id, user_id: @user, direction: "left")
+    delete "/api/swipes/destroy_all", params: { user_id: @user }
+    assert_response :success
+    assert_equal 2, JSON.parse(response.body)["deleted"]
+  end
+
+  test "destroy_all returns 400 without user_id" do
+    assert_no_difference("Swipe.count") do
+      delete "/api/swipes/destroy_all"
+    end
+    assert_response :bad_request
+  end
+
+  test "destroy_all returns 400 for blank user_id" do
+    assert_no_difference("Swipe.count") do
+      delete "/api/swipes/destroy_all", params: { user_id: "" }
+    end
+    assert_response :bad_request
+  end
 end
