@@ -15,12 +15,9 @@ import { Picker } from '@react-native-picker/picker';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useTheme } from '../hooks/useTheme';
 import { apiClient } from '../api/client';
+import { FilterState, SortOption } from '../types';
 
-export interface FilterState {
-  stateCode: string;
-  minSalary: number;
-  maxSalary: number;
-}
+export type { FilterState };
 
 interface FilterSheetProps {
   visible: boolean;
@@ -33,7 +30,15 @@ const defaultFilters: FilterState = {
   stateCode: '99',
   minSalary: 0,
   maxSalary: 1000000,
+  sortBy: 'roi',
 };
+
+const SORT_OPTIONS: { key: SortOption; label: string }[] = [
+  { key: 'roi', label: 'Best ROI' },
+  { key: 'salary', label: 'Highest Salary' },
+  { key: 'breakeven', label: 'Fastest Break-even' },
+  { key: 'demand', label: 'Most In-Demand' },
+];
 
 export const FilterSheet: React.FC<FilterSheetProps> = ({
   visible,
@@ -63,6 +68,13 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
     fetchStates();
   }, []);
 
+  // Pin the national option (area_code "99") first instead of leaving "U.S."
+  // sorted alphabetically between Texas and Utah.
+  const national = states.find(s => s.area_code === '99');
+  const orderedStates = national
+    ? [{ ...national, area_name: 'National (all states)' }, ...states.filter(s => s.area_code !== '99')]
+    : states;
+
   const handleApply = () => {
     onApply(filters);
     onClose();
@@ -76,6 +88,10 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
 
   const updateStateCode = (stateCode: string) => {
     setFilters(prev => ({ ...prev, stateCode }));
+  };
+
+  const updateSortBy = (sortBy: SortOption) => {
+    setFilters(prev => ({ ...prev, sortBy }));
   };
 
   const handleSalaryChange = (selectedMin: number, selectedMax: number) => {
@@ -117,7 +133,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
               >
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-                    State Code
+                    Location
                   </Text>
                   {statesLoading ? (
                     <ActivityIndicator size="small" color={theme.colors.primary} />
@@ -134,7 +150,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                       }}
                       itemStyle={{ fontSize: 14, height: 100 }}
                     >
-                      {states.map((state) => (
+                      {orderedStates.map((state) => (
                         <Picker.Item
                           key={state.area_code}
                           label={state.area_name}
@@ -143,6 +159,37 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                       ))}
                     </Picker>
                   )}
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
+                    Sort By
+                  </Text>
+                  {SORT_OPTIONS.map((option) => (
+                    <TouchableOpacity
+                      key={option.key}
+                      style={[
+                        styles.optionRow,
+                        { borderColor: theme.colors.border },
+                        filters.sortBy === option.key && {
+                          backgroundColor: theme.colors.primaryLight,
+                          borderColor: theme.colors.primary,
+                        },
+                      ]}
+                      onPress={() => updateSortBy(option.key)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.optionRowText,
+                          { color: theme.colors.text.primary },
+                          filters.sortBy === option.key && { color: theme.colors.primary },
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
 
                 <View style={styles.section}>
@@ -264,6 +311,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'nowrap',
   } as ViewStyle,
+  optionRow: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  } as ViewStyle,
+  optionRowText: {
+    fontSize: 16,
+    textAlign: 'center',
+  } as TextStyle,
   footer: {
     flexDirection: 'row',
     gap: 12,

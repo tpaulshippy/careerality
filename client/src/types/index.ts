@@ -80,10 +80,13 @@ export interface Swipe {
   createdAt: Date;
 }
 
+export type SortOption = 'roi' | 'salary' | 'breakeven' | 'demand';
+
 export interface FilterState {
-  stateCode: string | null;
-  salaryMin: number | null;
-  salaryMax: number | null;
+  stateCode: string;
+  minSalary: number;
+  maxSalary: number;
+  sortBy: SortOption;
 }
 
 export type SwipeHistory = Swipe[];
