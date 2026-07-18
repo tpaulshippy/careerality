@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, Image, Linking } from 'react-native';
 import { Card } from './Card';
 import { Section } from './Section';
@@ -6,9 +6,18 @@ import { InfoRow } from './InfoRow';
 import { SkillBadge } from './SkillBadge';
 import { OccupationIconBadge } from './OccupationIconBadge';
 import { CareerROI, CareerImage } from '../types';
-import { formatCurrency } from '../hooks/useFormatters';
+import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
 import { getOccupationGroup } from '../utils/occupationGroup';
+import { getImageUrl } from '../utils/careerImage';
+
+const JOB_ZONE_LABELS: Record<number, string> = {
+  1: 'Little to no preparation',
+  2: 'Some preparation',
+  3: 'Medium preparation',
+  4: 'Considerable preparation',
+  5: 'Extensive preparation',
+};
 
 interface CareerDetailViewProps {
   career: CareerROI;
@@ -18,6 +27,18 @@ interface CareerDetailViewProps {
 
 export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, images, onClose }) => {
   const theme = useTheme();
+  const imageUrl = getImageUrl(career.occupation_code);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
+
+  const isNational = career.area_code === '99' || career.area_name === 'U.S.';
+  const showColIndex = !isNational && career.adjusted_salary !== career.annual_median_salary;
+  const jobZoneLabel = JOB_ZONE_LABELS[career.job_zone]
+    ? `${JOB_ZONE_LABELS[career.job_zone]} (Zone ${career.job_zone})`
+    : `Zone ${career.job_zone}`;
 
   const handleVideoPress = () => {
     if (career.video_url) {
@@ -38,9 +59,18 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
           <OccupationIconBadge groupName={getOccupationGroup(career.occupation_code)} size={48} />
           <View style={styles.headerText}>
             <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>{career.occupation_name}</Text>
-            <Text style={[styles.occupationCode, { color: theme.colors.text.secondary }]}>{career.occupation_code}</Text>
           </View>
         </View>
+
+        {!imageFailed && (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.careerImage}
+            resizeMode="cover"
+            testID="career-detail-image"
+            onError={() => setImageFailed(true)}
+          />
+        )}
 
         {career.day_in_life_full && (
           <View style={styles.dayInLifeSection}>
@@ -76,18 +106,21 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
         </Section>
 
         <Section title="Investment">
+          <InfoRow label="ROI" value={formatPercent(career.roi_percentage)} highlight />
           <InfoRow label="Education Cost" value={formatCurrency(career.education_cost)} />
           <InfoRow label="Years to Breakeven" value={`${career.years_to_breakeven} years`} />
         </Section>
 
         <Section title="Location">
           <InfoRow label="Area" value={career.area_name} />
-          <InfoRow label="Cost of Living Index" value={career.cost_of_living_index} />
+          {showColIndex && (
+            <InfoRow label="Cost of Living Index" value={career.cost_of_living_index} />
+          )}
         </Section>
 
         <Section title="Education & Skills">
           <InfoRow label="Education Level" value={career.education_level} />
-          <InfoRow label="Job Zone" value={career.job_zone.toString()} />
+          <InfoRow label="Preparation" value={jobZoneLabel} />
           {career.skills && career.skills.length > 0 && (
             <View style={styles.skillsContainer}>
               <Text style={[styles.skillsLabel, { color: theme.colors.text.secondary }]}>Skills</Text>
@@ -134,10 +167,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   } as TextStyle,
-  occupationCode: {
-    fontSize: 14,
+  careerImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
     marginBottom: 20,
-  } as TextStyle,
+  } as ViewStyle,
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
