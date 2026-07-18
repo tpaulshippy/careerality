@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle, ActivityIndic
 import { useFocusEffect } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
-import { Header, CareerDetailView, OccupationIconBadge } from '../components';
+import { CareerDetailView, OccupationIconBadge } from '../components';
 import { useTheme } from '../hooks/useTheme';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { getOccupationGroup } from '../utils/occupationGroup';
@@ -97,8 +97,6 @@ export const LikedScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Header title="Liked Careers" subtitle="Occupations you're interested in" />
-      
       {records.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyTitle, { color: theme.colors.text.primary }]}>
@@ -140,13 +138,13 @@ export const LikedScreen: React.FC = () => {
                   
                   <View style={styles.statsRow}>
                     <Text style={[styles.stat, { color: theme.colors.text.primary }]}>
-                      {formatCurrency(record.annual_median_salary)}
+                      {formatCurrency(record.annual_median_salary)} median
                     </Text>
                     <Text style={[styles.stat, { color: theme.colors.primary }]}>
-                      {formatPercent(record.roi_percentage)}
+                      {formatPercent(record.roi_percentage)} ROI
                     </Text>
                     <Text style={[styles.stat, { color: theme.colors.text.secondary }]}>
-                      {record.years_to_breakeven}yr
+                      {record.years_to_breakeven}yr break-even
                     </Text>
                   </View>
                 </View>
@@ -239,6 +237,7 @@ const styles = StyleSheet.create({
   occupationName: {
     fontSize: 16,
     fontWeight: 'bold',
+    paddingRight: 28,
   } as TextStyle,
   areaName: {
     fontSize: 14,
