@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle, Button, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, Button, Alert, Platform, Linking } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList, DrawerItem, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useTheme } from '../hooks/useTheme';
 import { GIT_COMMIT_PREFIX } from '../constants/version';
@@ -66,6 +66,16 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
       </View>
       <View style={styles.drawerBody}>
         <DrawerItemList {...props} />
+        <DrawerItem
+          label="Privacy Policy"
+          labelStyle={{ color: theme.colors.text.secondary }}
+          onPress={() => Linking.openURL('https://careerality.app/privacy')}
+        />
+        <DrawerItem
+          label="Support"
+          labelStyle={{ color: theme.colors.text.secondary }}
+          onPress={() => Linking.openURL('https://careerality.app/support')}
+        />
         <DrawerItem
           label="Delete My Data"
           labelStyle={{ color: theme.colors.error }}

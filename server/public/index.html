@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Careerality — Discover Careers That Actually Pay Off</title>
+  <meta name="description" content="A swipe-based career exploration app that matches you with realistic career paths based on real ROI data. Salary, education costs, break-even timelines, and day-in-the-life narratives.">
+  <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:title" content="Careerality — Discover Careers That Actually Pay Off">
+  <meta property="og:description" content="Swipe through real career paths with honest ROI data. Not job titles — real days lived by real people.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://careerality.app">
+  <meta property="og:image" content="https://careerality.app/og-image.png">
+  <link rel="canonical" href="https://careerality.app">
+  <style>
+    :root {
+      --blue: #136399;
+      --blue-light: #1a7fc4;
+      --blue-dark: #0d4a75;
+      --dark: #0a0f1a;
+      --dark-surface: #111827;
+      --dark-card: #1f2937;
+      --text: #f9fafb;
+      --text-secondary: #9ca3af;
+      --accent: #22d3ee;
+      --green: #10b981;
+      --radius: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10, 15, 26, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1080px; margin: 0 auto; padding: 16px 24px;
+    }
+    .nav-logo { font-size: 20px; font-weight: 700; color: var(--text); text-decoration: none; }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a {
+      color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--blue); color: #fff !important; padding: 10px 22px;
+      border-radius: 10px; font-weight: 600; transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--blue-light); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 120px 24px 80px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(19,99,153,0.2) 0%, transparent 60%);
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 800;
+      line-height: 1.15; margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: clamp(1.05rem, 2.2vw, 1.25rem); color: var(--text-secondary);
+      max-width: 620px; margin: 0 auto 36px;
+    }
+    .hero-cta {
+      display: inline-flex; align-items: center; gap: 12px;
+      background: var(--blue); color: #fff; padding: 16px 36px;
+      border-radius: 14px; font-size: 1.1rem; font-weight: 700;
+      text-decoration: none; transition: all 0.25s; box-shadow: 0 4px 24px rgba(19,99,153,0.4);
+    }
+    .hero-cta:hover { background: var(--blue-light); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(19,99,153,0.5); }
+    .hero-cta svg { width: 22px; height: 22px; }
+    .hero-sub { color: var(--text-secondary); font-size: 14px; margin-top: 16px; }
+
+    /* SECTION */
+    section { padding: 100px 0; }
+    .section-label {
+      font-size: 13px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .section-desc {
+      color: var(--text-secondary); font-size: 1.05rem; max-width: 640px; margin-bottom: 48px;
+    }
+
+    /* FEATURES GRID */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;
+    }
+    .feature-card {
+      background: var(--dark-card); border-radius: var(--radius); padding: 32px 28px;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .feature-card:hover { border-color: var(--blue); transform: translateY(-4px); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px; display: flex;
+      align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px;
+      background: rgba(19,99,153,0.15);
+    }
+    .feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+
+    /* HOW IT WORKS */
+    .steps { display: flex; flex-direction: column; gap: 0; position: relative; }
+    .steps::before {
+      content: ''; position: absolute; left: 28px; top: 56px; bottom: 56px;
+      width: 2px; background: rgba(19,99,153,0.3);
+    }
+    .step {
+      display: flex; gap: 28px; align-items: flex-start; padding: 28px 0;
+    }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem;
+      background: var(--blue); color: #fff; flex-shrink: 0; position: relative; z-index: 1;
+    }
+    .step-content h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+    .step-content p { color: var(--text-secondary); font-size: 0.95rem; }
+
+    /* DATA SOURCES */
+    .data-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;
+    }
+    .data-card {
+      background: var(--dark-card); border-radius: 12px; padding: 24px 20px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .data-card h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+    .data-card p { color: var(--text-secondary); font-size: 0.85rem; }
+    .data-tag {
+      display: inline-block; background: rgba(19,99,153,0.15); color: var(--accent);
+      font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
+      margin-top: 10px;
+    }
+
+    /* CTA */
+    .cta-section {
+      text-align: center; padding: 100px 24px;
+      background: radial-gradient(ellipse at 50% 100%, rgba(19,99,153,0.15) 0%, transparent 60%);
+    }
+    .cta-section h2 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; margin-bottom: 16px;
+    }
+    .cta-section p { color: var(--text-secondary); margin-bottom: 32px; font-size: 1.05rem; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.06); padding: 40px 24px;
+      text-align: center; color: var(--text-secondary); font-size: 14px;
+    }
+    footer a { color: var(--text-secondary); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+    .footer-links { display: flex; justify-content: center; gap: 28px; margin-bottom: 16px; flex-wrap: wrap; }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .steps::before { left: 27px; }
+      section { padding: 64px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Careerality</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#data">Data Sources</a>
+      <a href="#download" class="nav-cta">Download Free</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div>
+    <h1>Discover Careers<br>That Actually Pay Off</h1>
+    <p>A swipe-based career exploration app that matches you with realistic career paths built on real ROI data — not vague advice.</p>
+    <a href="#download" class="hero-cta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Free on iOS
+    </a>
+    <p class="hero-sub">Available on the App Store. Android coming soon.</p>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <p class="section-label">Why Careerality</p>
+    <h2 class="section-title">Career guidance that's honest, data-driven, and personal</h2>
+    <p class="section-desc">Traditional career advice is either vague ("follow your passion") or disconnected from financial reality. Careerality bridges the gap.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Real ROI Data</h3>
+        <p>Every career shows its actual return on investment: median salary, education cost, break-even timeline, and cost-of-living adjusted earnings. Built on BLS, O*NET, and IPEDS data.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📖</div>
+        <h3>Day-in-the-Life Narratives</h3>
+        <p>Not generic job descriptions — authentic snapshots of what a real workday feels like. See the tradeoffs, the routine, and the human reality before you invest years in a path.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👆</div>
+        <h3>Swipe to Explore</h3>
+        <p>An intuitive dating-style interface that makes career exploration feel natural. Swipe right to explore further, left to skip. The more you swipe, the better your recommendations.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Smart Filtering</h3>
+        <p>Filter by state, salary range, and education pathway. Sort by ROI, salary, break-even speed, or job market demand. Find exactly what matters to you.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <h3>Location-Aware</h3>
+        <p>Salary and cost-of-living are adjusted for where you actually live. A $60K salary in Mississippi is very different from $60K in San Francisco — we show you the difference.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>Market Demand</h3>
+        <p>See projected job growth, annual openings, and demand rankings so you know whether a career path has a future — not just a present.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works" style="background: var(--dark-surface);">
+  <div class="container">
+    <p class="section-label">How It Works</p>
+    <h2 class="section-title">From curiosity to clarity in minutes</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Swipe through careers</h3>
+          <p>Browse real career paths one card at a time. Each shows a day-in-the-life narrative, salary data, education cost, and break-even timeline.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Tell us what you like</h3>
+          <p>After swiping right, tap what interested you — salary, environment, skills, security, or balance. This trains the algorithm to surface better matches.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Review your liked careers</h3>
+          <p>Your right-swiped careers live in the Liked tab, ready to compare. See salary, ROI%, and break-even at a glance for every career you're considering.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>Dive into the details</h3>
+          <p>Tap any career for the full picture: day-in-the-life narrative, education requirements, skills breakdown, market demand, and career images.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="container">
+    <p class="section-label">Trusted Data</p>
+    <h2 class="section-title">Built on authoritative public data</h2>
+    <p class="section-desc">No sponsored placements. No commercial bias. Every number comes from publicly available government databases.</p>
+    <div class="data-grid">
+      <div class="data-card">
+        <h4>Bureau of Labor Statistics</h4>
+        <p>Occupational Employment and Wage Statistics (OEWS) — salary data, employment statistics, and job outlook.</p>
+        <span class="data-tag">May 2024</span>
+      </div>
+      <div class="data-card">
+        <h4>O*NET</h4>
+        <p>Skills, abilities, work activities, and job zone classifications for 1,000+ occupations.</p>
+        <span class="data-tag">Continuously updated</span>
+      </div>
+      <div class="data-card">
+        <h4>NCES / IPEDS</h4>
+        <p>Education costs, tuition, and program duration for various degree paths across institutions.</p>
+        <span class="data-tag">2023–24</span>
+      </div>
+      <div class="data-card">
+        <h4>EPI Family Budget</h4>
+        <p>Cost-of-living and expenditure data used to calculate regional purchasing power by state.</p>
+        <span class="data-tag">2026</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section" id="download">
+  <h2>Start exploring careers today</h2>
+  <p>Free on the App Store. No account required.</p>
+  <a href="https://apps.apple.com/app/careerality/idYOUR_APP_ID" class="hero-cta" style="display: inline-flex;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Download on the App Store
+  </a>
+</section>
+
+<footer>
+  <div class="footer-links">
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/support">Support</a>
+    <a href="/delete-data">Delete My Data</a>
+    <a href="https://github.com/tpaulshippy/careerality">Open Source</a>
+  </div>
+  <p>&copy; 2026 Careerality. Made with intention.</p>
+</footer>
+
+</body>
+</html>
