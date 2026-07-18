@@ -16,11 +16,13 @@ test:
   database: server_test
 
 production:
+  # Rails uses DATABASE_URL for the primary database when it is set.
   primary: &primary_production
     <<: *default
     database: careerality
-    username: postgres
-    password: postgres
+    username: <%= ENV.fetch("CAREERALITY_DATABASE_USERNAME", "careerality") %>
+    password: <%= ENV["CAREERALITY_DATABASE_PASSWORD"] %>
+    host: <%= ENV.fetch("CAREERALITY_DATABASE_HOST", "localhost") %>
   cache:
     <<: *primary_production
     database: careerality_cache

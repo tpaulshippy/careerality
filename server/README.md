@@ -1,24 +1,32 @@
-# README
+# Careerality Server
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Rails 8 API for the Careerality app.
 
-Things you may want to cover:
+## Setup
 
-* Ruby version
+    bin/setup
 
-* System dependencies
+Requires Ruby (see `.ruby-version`) and PostgreSQL.
 
-* Configuration
+## Running the app
 
-* Database creation
+    bin/rails server
 
-* Database initialization
+## Running the tests
 
-* How to run the test suite
+    bin/rails test
 
-* Services (job queues, cache servers, search engines, etc.)
+## Environment variables
 
-* Deployment instructions
+### All environments
 
-* ...
+- `CORS_ORIGINS` — comma-separated list of allowed CORS origins.
+  Defaults to `https://careerality.app`.
+
+### Production
+
+- `DATABASE_URL` — full connection URL for the primary database. When set,
+  Rails uses it and ignores the individual settings below.
+- `CAREERALITY_DATABASE_USERNAME` — database user (default: `careerality`).
+- `CAREERALITY_DATABASE_PASSWORD` — database password (no default).
+- `CAREERALITY_DATABASE_HOST` — database host (default: `localhost`).
