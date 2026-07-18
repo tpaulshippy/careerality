@@ -147,6 +147,20 @@ export const LikedScreen: React.FC = () => {
                       {record.years_to_breakeven}yr break-even
                     </Text>
                   </View>
+
+                  {record.day_in_life_summary && (
+                    <Text style={[styles.dayInLifeSnippet, { color: theme.colors.text.secondary }]} numberOfLines={2}>
+                      {record.day_in_life_summary}
+                    </Text>
+                  )}
+                  <TouchableOpacity
+                    onPress={() => handleCardPress(record)}
+                    style={styles.dayInLifeLink}
+                  >
+                    <Text style={[styles.dayInLifeLinkText, { color: theme.colors.primary }]}>
+                      View full Day in the Life →
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </TouchableOpacity>
@@ -251,5 +265,17 @@ const styles = StyleSheet.create({
   stat: {
     fontSize: 13,
     marginRight: 12,
+  } as TextStyle,
+  dayInLifeSnippet: {
+    fontSize: 13,
+    marginTop: 8,
+    lineHeight: 18,
+  } as TextStyle,
+  dayInLifeLink: {
+    marginTop: 6,
+  } as ViewStyle,
+  dayInLifeLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
   } as TextStyle,
 });

@@ -8,7 +8,8 @@ class Api::SwipesController < ApplicationController
     records = Swipe
       .where(user_id: params[:user_id], direction: "right")
       .joins("LEFT JOIN career_roi ON career_roi.id = swipes.career_id")
-      .select("swipes.id AS swipe_id, swipes.created_at AS swiped_at, career_roi.id, career_roi.occupation_code, career_roi.occupation_name, career_roi.area_code, career_roi.area_name, career_roi.annual_median_salary, career_roi.education_cost, career_roi.years_to_breakeven, career_roi.roi_percentage, career_roi.job_zone, career_roi.education_level, career_roi.skills, career_roi.cost_of_living_index, career_roi.adjusted_salary, career_roi.industry_code, career_roi.industry_name, career_roi.demand_rank, career_roi.avg_annual_openings, career_roi.projected_growth_percent, career_roi.demand_score")
+      .joins("LEFT JOIN career_contents ON career_contents.occupation_code = career_roi.occupation_code")
+      .select("swipes.id AS swipe_id, swipes.created_at AS swiped_at, career_roi.id, career_roi.occupation_code, career_roi.occupation_name, career_roi.area_code, career_roi.area_name, career_roi.annual_median_salary, career_roi.education_cost, career_roi.years_to_breakeven, career_roi.roi_percentage, career_roi.job_zone, career_roi.education_level, career_roi.skills, career_roi.cost_of_living_index, career_roi.adjusted_salary, career_roi.industry_code, career_roi.industry_name, career_roi.demand_rank, career_roi.avg_annual_openings, career_roi.projected_growth_percent, career_roi.demand_score, career_contents.day_in_life_summary, career_contents.day_in_life_full, career_contents.video_url")
       .order("swipes.created_at DESC")
 
     render json: { records: records.filter_map { |r|
@@ -34,6 +35,9 @@ class Api::SwipesController < ApplicationController
         avg_annual_openings: r.avg_annual_openings,
         projected_growth_percent: r.projected_growth_percent,
         demand_score: r.demand_score,
+        day_in_life_summary: r.day_in_life_summary,
+        day_in_life_full: r.day_in_life_full,
+        video_url: r.video_url,
         swipe_id: r.swipe_id,
         swiped_at: r.swiped_at
       }
