@@ -103,18 +103,23 @@ server `rails test` 17/17 pass.
 Each task = one branch + one PR, linted and tested, with before/after screenshots
 for UI changes (harness documented in Appendix A). Status tracked here.
 
-| Task | Area | Addresses | Branch |
+| Task | Area | Addresses | Branch / PR |
 |------|------|-----------|--------|
-| 1. Release hygiene: remove DEBUG footer, gate drawer dev panel behind `__DEV__`, add eslint ignores | client | B1, B2, B3 | `fix/release-hygiene` |
-| 2. SwipeCard: add ROI%, replace Job Zone w/ education level, whole-dollar formatting, image fallback, fix overflow | client | U1–U5 | `feat/swipecard-roi` |
-| 3. Liked screen: labeled stats, fix ✕/title collision, drop duplicated hero header | client | U10–U12 | `fix/liked-screen-polish` |
-| 4. Detail view: add ROI%, de-emphasize SOC code, plain-English job zone, R2 image gallery, hide COL index when national | client | U8, U9 | `feat/detail-view-roi` |
-| 5. Server hardening: env-driven CORS origins + DB credentials | server | B5 | `fix/server-prod-config` |
-| 6. Data: repair `transform.py` indentation; compile-check all scripts | data | D1 | `fix/transform-syntax` |
-| 7. Wire FeedbackModal into right-swipe flow; submit `feedback` to API | client | U7 | `feat/swipe-feedback` (stacked on 1) |
-| 8. Filter sheet: "Location" label, pinned national option, sort control | client | U13, U14 | `feat/filter-sort` (stacked on 7) |
-| 9. Delete-my-data: `DELETE /api/swipes` (all for user) + drawer action with confirmation | server+client | B4 (partially; privacy policy page still needed externally) | `feat/delete-my-data` (stacked on 8) |
-| 10. Data: EPI cost-of-living parser + tests; scrub literal `"None"` video URLs | data | D2 (loader side), D4 | `fix/col-and-video-data` |
+| 1. Release hygiene: remove DEBUG footer, gate drawer dev panel behind `__DEV__`, add eslint ignores | client | B1, B2, B3 | [#16](https://github.com/tpaulshippy/careerality/pull/16) |
+| 2. SwipeCard: add ROI%, whole-dollar formatting, image fallback, fix overflow | client | U1–U5 | [#19](https://github.com/tpaulshippy/careerality/pull/19) |
+| 3. Liked screen: labeled stats, fix ✕/title collision, drop duplicated hero header | client | U10–U12 | [#21](https://github.com/tpaulshippy/careerality/pull/21) |
+| 4. Detail view: add ROI%, drop SOC code, plain-English job zone, career image, hide COL index when national | client | U8, U9 | [#22](https://github.com/tpaulshippy/careerality/pull/22) |
+| 5. Server hardening: env-driven CORS origins + DB credentials | server | B5 | [#17](https://github.com/tpaulshippy/careerality/pull/17) |
+| 6. Data: repair `transform.py` indentation; compile-check all scripts | data | D1 | [#18](https://github.com/tpaulshippy/careerality/pull/18) |
+| 7. Wire FeedbackModal into right-swipe flow; submit `feedback` to API | client | U7 | [#23](https://github.com/tpaulshippy/careerality/pull/23) (stacked on #16) |
+| 8. Filter sheet: "Location" label, pinned national option, sort control | client | U13, U14 | [#25](https://github.com/tpaulshippy/careerality/pull/25) (stacked on #23) |
+| 9. Delete-my-data: `DELETE /api/swipes/destroy_all` + drawer action with confirmation | server+client | B4 (partially; privacy policy page still needed externally) | [#24](https://github.com/tpaulshippy/careerality/pull/24) (stacked on #23) |
+| 10. Data: EPI cost-of-living parser + tests; scrub literal `"None"` video URLs | data | D2 (loader side), D4 | [#20](https://github.com/tpaulshippy/careerality/pull/20) |
+
+**Merge order for the stacked chain:** #16 → #23 → {#24, #25} (each PR notes its base).
+
+### Minor item surfaced during the work (not yet PR'd)
+- `tsc --noEmit` reports a pre-existing style-typing error in `CareerDetailView.tsx` (`ViewStyle` vs `ImageStyle` on `galleryImage`) — the repo has no typecheck script/gate; a one-line fix (type the style as `ImageStyle`) can ride along with any future client PR.
 
 ### Documented but **not** addressed in this pass (need infra/product decisions)
 - **D3** — regenerating 150 missing images requires working FLUX infrastructure.
