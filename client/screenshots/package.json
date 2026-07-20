@@ -1,0 +1,12 @@
+{
+  "name": "careerality-screenshots",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture": "node capture.mjs",
+    "proxy": "node proxy.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}
