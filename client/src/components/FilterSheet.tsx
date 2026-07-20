@@ -307,6 +307,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 12,
   } as TextStyle,
+  inputLabel: {
+    fontSize: 14,
+  } as TextStyle,
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'nowrap',

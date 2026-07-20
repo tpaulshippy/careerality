@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle, Image, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, ImageStyle, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   cardImage: {
     width: '100%',
     height: 200,
-  } as ViewStyle,
+  } as ImageStyle,
   imageLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
