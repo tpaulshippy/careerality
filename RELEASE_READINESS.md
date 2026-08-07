@@ -3,8 +3,7 @@
 Audit of the Careerality codebase (client, server, data) against the goal of a
 minimally-useful App Store / Google Play release, combining documentation review,
 static code analysis, and hands-on UI testing of the app via `react-native-web`
-driven by Playwright against the production API (screenshots in
-[`docs/screenshots/audit-2026-07/`](docs/screenshots/audit-2026-07/)).
+driven by Playwright against the production API.
 
 ---
 
@@ -27,8 +26,8 @@ server `rails test` 17/17 pass.
 
 | # | Finding | Evidence |
 |---|---------|----------|
-| B1 | **Debug footer rendered in production UI.** `DiscoverScreen.tsx` renders `DEBUG: careers=20 idx=0 cards=20 loadingMore=n …` on the main screen. | [01](docs/screenshots/audit-2026-07/01-discover-light.png), [07](docs/screenshots/audit-2026-07/07-after-swipes-light.png) |
-| B2 | **Drawer shows internal dev/ops panel.** Build hash, update channel, runtime version, expo-updates state ("UpdateAvail: no", etc.) and a "CHECK FOR UPDATE" button are user-visible. Fine for internal testing, not for store builds. | [02](docs/screenshots/audit-2026-07/02-drawer-light.png) |
+| B1 | **Debug footer rendered in production UI.** `DiscoverScreen.tsx` renders `DEBUG: careers=20 idx=0 cards=20 loadingMore=n …` on the main screen. | UI audit evidence |
+| B2 | **Drawer shows internal dev/ops panel.** Build hash, update channel, runtime version, expo-updates state ("UpdateAvail: no", etc.) and a "CHECK FOR UPDATE" button are user-visible. Fine for internal testing, not for store builds. | UI audit evidence |
 | B3 | **`npm run lint` is broken.** `eslint.config.mjs` has no `ignores`, so linting covers `dist/`, `android/`, `ios/` build output → 5,072 errors / 751 warnings. CI-quality gate is effectively absent. (`npx eslint src App.tsx index.ts` is clean.) | `client/eslint.config.mjs` |
 | B4 | **No privacy policy or data-deletion mechanism.** App Store (5.1.1) and Google Play both require a privacy policy URL and in-app account/data deletion. The app stores swipe history server-side keyed by `user_id` with no way to view or wipe it. No `DELETE`-all endpoint exists server-side either. | `server/app/controllers/api/swipes_controller.rb`, drawer |
 | B5 | **Production server config unsafe.** `config/database.yml` hardcodes `postgres/postgres` for production; CORS allows a single Tailscale dev IP (`http://100.96.176.38:8081`), which also breaks any legitimate web/Expo-Web usage. | `server/config/database.yml`, `server/config/initializers/cors.rb` |
@@ -40,35 +39,35 @@ server `rails test` 17/17 pass.
 ### Discover / SwipeCard — the core screen
 | # | Finding | Evidence |
 |---|---------|----------|
-| U1 | **ROI% — the app's headline metric — is not on the card.** Card shows Salary / Education Cost / Break-even / Job Zone, but never the ROI the whole app is named for. | [01](docs/screenshots/audit-2026-07/01-discover-light.png) |
-| U2 | **"Job Zone 5" is jargon.** Users don't know O*NET job zones; the number communicates nothing. Show education level instead (already in the payload). | [01](docs/screenshots/audit-2026-07/01-discover-light.png) |
-| U3 | **Inconsistent currency formatting.** Salary `$67,260` vs Education Cost `$45,675.85` (cents). Round to whole dollars everywhere. | [06](docs/screenshots/audit-2026-07/06-after-like-light.png) |
-| U4 | **Careers without images render a huge blank hole** (150 of 1,082 careers have no image — FLUX generation failures). No fallback/placeholder. | [07](docs/screenshots/audit-2026-07/07-after-swipes-light.png) |
-| U5 | **Card content overflows the card frame** — the "Tap for details" hint and debug line spill past the card's rounded boundary on longer cards. | [06](docs/screenshots/audit-2026-07/06-after-like-light.png) |
-| U6 | **"0 of 20 reviewed" is misleading** — 20 is the page size, not the catalog size (~1,082). Shows no real progress. | [01](docs/screenshots/audit-2026-07/01-discover-light.png) |
+| U1 | **ROI% — the app's headline metric — is not on the card.** Card shows Salary / Education Cost / Break-even / Job Zone, but never the ROI the whole app is named for. | UI audit evidence |
+| U2 | **"Job Zone 5" is jargon.** Users don't know O*NET job zones; the number communicates nothing. Show education level instead (already in the payload). | UI audit evidence |
+| U3 | **Inconsistent currency formatting.** Salary `$67,260` vs Education Cost `$45,675.85` (cents). Round to whole dollars everywhere. | UI audit evidence |
+| U4 | **Careers without images render a huge blank hole** (150 of 1,082 careers have no image — FLUX generation failures). No fallback/placeholder. | UI audit evidence |
+| U5 | **Card content overflows the card frame** — the "Tap for details" hint and debug line spill past the card's rounded boundary on longer cards. | UI audit evidence |
+| U6 | **"0 of 20 reviewed" is misleading** — 20 is the page size, not the catalog size (~1,082). Shows no real progress. | UI audit evidence |
 | U7 | **The swipe-feedback loop described in the README ("What interested you?") is dead code.** `FeedbackModal` is built but never rendered by any screen; swipes POST no feedback, so the personalization loop cannot learn. | grep: `FeedbackModal` only referenced in tests/`index.ts` |
 
 ### Career detail view
 | # | Finding | Evidence |
 |---|---------|----------|
-| U8 | **No ROI% in the detail view either**; SOC code `29-1181.00` shown prominently under the title (internal identifier); "Cost of Living Index 100.0" raw jargon; "Job Zone 5" unexplained. | [04](docs/screenshots/audit-2026-07/04-detail-light.png), [05](docs/screenshots/audit-2026-07/05-detail-scrolled-light.png) |
+| U8 | **No ROI% in the detail view either**; SOC code `29-1181.00` shown prominently under the title (internal identifier); "Cost of Living Index 100.0" raw jargon; "Job Zone 5" unexplained. | UI audit evidence |
 | U9 | **Image gallery is wired but never fed.** `CareerDetailView` accepts `images[]`, but no caller passes it and the API doesn't return images — the 932 generated images on R2 only ever appear as the single swipe-card thumbnail. | `CareerDetailView.tsx`, `server/app/models/career_roi.rb` |
 
 ### Liked screen
 | # | Finding | Evidence |
 |---|---------|----------|
-| U10 | **Unlabeled stat row** — `$67,260  9.1%  2yr` forces users to guess that 9.1% is ROI and 2yr is break-even. | [08](docs/screenshots/audit-2026-07/08-liked-light.png) |
-| U11 | **Remove ✕ button collides with long titles** ("Cardiovascular Technologists and✕Technicians"). | [08](docs/screenshots/audit-2026-07/08-liked-light.png) |
-| U12 | **Duplicated header** — nav header "Liked Careers" plus an in-screen hero repeating "Liked Careers / Occupations you're interested in" wastes vertical space (also on Data Sources). | [08](docs/screenshots/audit-2026-07/08-liked-light.png), [09](docs/screenshots/audit-2026-07/09-datasources-light.png) |
+| U10 | **Unlabeled stat row** — `$67,260  9.1%  2yr` forces users to guess that 9.1% is ROI and 2yr is break-even. | UI audit evidence |
+| U11 | **Remove ✕ button collides with long titles** ("Cardiovascular Technologists and✕Technicians"). | UI audit evidence |
+| U12 | **Duplicated header** — nav header "Liked Careers" plus an in-screen hero repeating "Liked Careers / Occupations you're interested in" wastes vertical space (also on Data Sources). | UI audit evidence |
 
 ### Filter sheet
 | # | Finding | Evidence |
 |---|---------|----------|
-| U13 | **"STATE CODE" label is jargon** — should be "Location". The picker also mixes "U.S." into the state list alphabetically instead of pinning it at top as "National (all states)". | [03](docs/screenshots/audit-2026-07/03-filter-light.png) |
+| U13 | **"STATE CODE" label is jargon** — should be "Location". The picker also mixes "U.S." into the state list alphabetically instead of pinning it at top as "National (all states)". | UI audit evidence |
 | U14 | **No sort control** although the API supports `sort=roi|salary|breakeven|demand`; no education-pathway filter (promised in README). | `FilterSheet.tsx`, `roi_controller.rb` |
 
 ### Working well (keep)
-- Day-in-the-life narratives are high quality and distinctive; dark mode works end-to-end ([10](docs/screenshots/audit-2026-07/10-discover-dark.png)); state filter works ([12](docs/screenshots/audit-2026-07/12-texas-filter.png)); undo works; liked-career round-trip persists server-side; empty states exist ([13](docs/screenshots/audit-2026-07/13-liked-empty.png)).
+- Day-in-the-life narratives are high quality and distinctive; dark mode works end-to-end; state filter works; undo works; liked-career round-trip persists server-side; empty states exist.
 
 ---
 
@@ -146,6 +145,5 @@ The harness lives outside the repo in `/tmp/opencode/`:
    afterwards delete test swipes:
    `curl "https://careerality.app/api/swipes?user_id=<UUID>"` then
    `curl -X DELETE "https://careerality.app/api/swipes/<id>?user_id=<UUID>"`.
-6. **PR screenshots**: commit before/after PNGs under
-   `docs/screenshots/<branch-name>/` and reference them in the PR body via
-   `https://raw.githubusercontent.com/tpaulshippy/careerality/<branch>/docs/screenshots/<branch>/<file>.png`.
+6. **PR screenshots**: keep release assets under
+   `app-store/ios/screenshots/`.
