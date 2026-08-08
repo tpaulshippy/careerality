@@ -1,0 +1,38 @@
+name: OTA Update
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  ota:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci --legacy-peer-deps
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Export and push OTA update
+        working-directory: client
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CI: '1'
+          EXPO_PUBLIC_API_URL: https://careerality.app
+        run: |
+          rm -rf dist
+          npx expo export --platform ios --no-bytecode --output-dir dist --clear
+          npx eas update --branch production --environment production \
+            --input-dir dist --skip-bundler \
+            --message "${{ github.event.head_commit.message || format('OTA from {0}', github.ref_name) }}"
