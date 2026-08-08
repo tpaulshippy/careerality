@@ -26,7 +26,8 @@ jobs:
           git pull
           cd server
           bundle install
-          RAILS_ENV=production bundle exec rails db:migrate
+          SERVICE_ENV="$(systemctl show careerality --property=Environment --value)"
+          env $SERVICE_ENV RAILS_ENV=production bundle exec rails db:migrate
           sudo systemctl restart careerality
           sudo systemctl is-active --quiet careerality
           curl --fail --silent --show-error --max-time 15 \
