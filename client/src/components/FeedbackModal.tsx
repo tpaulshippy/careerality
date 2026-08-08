@@ -3,7 +3,7 @@ import { View, Text, Modal, StyleSheet, ViewStyle, TextStyle, TouchableOpacity, 
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './Button';
 
-export type InterestLevel = 'very_interested' | 'somewhat_interested' | 'not_for_me';
+export type InterestLevel = 'very_interested' | 'somewhat_interested' | 'mild_interest';
 
 interface FeedbackModalProps {
   visible: boolean;
@@ -15,7 +15,7 @@ interface FeedbackModalProps {
 const interestOptions: { key: InterestLevel; label: string }[] = [
   { key: 'very_interested', label: 'Very Interested' },
   { key: 'somewhat_interested', label: 'Somewhat Interested' },
-  { key: 'not_for_me', label: 'Mild Interest' },
+  { key: 'mild_interest', label: 'Mild Interest' },
 ];
 
 export const FeedbackModal: React.FC<FeedbackModalProps> = ({ 
