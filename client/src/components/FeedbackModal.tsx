@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TextInput, StyleSheet, ViewStyle, TextStyle, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, Modal, StyleSheet, ViewStyle, TextStyle, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './Button';
 
@@ -8,7 +8,7 @@ export type InterestLevel = 'very_interested' | 'somewhat_interested' | 'not_for
 interface FeedbackModalProps {
   visible: boolean;
   careerName: string;
-  onSubmit: (interest: InterestLevel, notes: string) => void;
+  onSubmit: (interest: InterestLevel) => void;
   onClose: () => void;
 }
 
@@ -26,19 +26,16 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
 }) => {
   const theme = useTheme();
   const [selectedInterest, setSelectedInterest] = useState<InterestLevel | null>(null);
-  const [notes, setNotes] = useState('');
 
   const handleSubmit = () => {
     if (selectedInterest) {
-      onSubmit(selectedInterest, notes);
+      onSubmit(selectedInterest);
       setSelectedInterest(null);
-      setNotes('');
     }
   };
 
   const handleClose = () => {
     setSelectedInterest(null);
-    setNotes('');
     onClose();
   };
 
@@ -82,23 +79,6 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
                   </TouchableOpacity>
                 ))}
               </View>
-
-              <TextInput
-                style={[
-                  styles.notesInput,
-                  { 
-                    borderColor: theme.colors.border, 
-                    color: theme.colors.text.primary,
-                    backgroundColor: theme.colors.background,
-                  },
-                ]}
-                placeholder="Add notes (optional)"
-                placeholderTextColor={theme.colors.text.muted}
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-                numberOfLines={3}
-              />
 
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
@@ -161,15 +141,6 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     textAlign: 'center',
-  } as TextStyle,
-  notesInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: 20,
   } as TextStyle,
   buttonContainer: {
     flexDirection: 'row',

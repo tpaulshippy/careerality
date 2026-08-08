@@ -10,7 +10,7 @@ let mockSwipedCareer: CareerROI | null = null;
 interface CapturedFeedbackModalProps {
   visible: boolean;
   careerName: string;
-  onSubmit: (interest: InterestLevel, notes: string) => void;
+  onSubmit: (interest: InterestLevel) => void;
   onClose: () => void;
 }
 
@@ -169,28 +169,11 @@ describe('DiscoverScreen', () => {
     expect(submitSwipeMock).not.toHaveBeenCalled();
 
     await act(async () => {
-      mockFeedbackModalProps?.onSubmit('very_interested', 'great pay');
+      mockFeedbackModalProps?.onSubmit('very_interested');
     });
 
-    expect(submitSwipeMock).toHaveBeenCalledWith(42, 'right', 'very_interested: great pay');
+    expect(submitSwipeMock).toHaveBeenCalledWith(42, 'right', 'very_interested');
     await waitFor(() => expect(mockFeedbackModalProps?.visible).toBe(false));
-  });
-
-  it('submits feedback with the interest key only when no notes are given', async () => {
-    mockSwipedCareer = career;
-    await render(<DiscoverScreen />);
-    await waitFor(() => expect(mockSwipeControlsProps).not.toBeNull());
-
-    await act(async () => {
-      mockSwipeControlsProps?.onLike();
-    });
-    await waitFor(() => expect(mockFeedbackModalProps?.visible).toBe(true));
-
-    await act(async () => {
-      mockFeedbackModalProps?.onSubmit('somewhat_interested', '  ');
-    });
-
-    expect(submitSwipeMock).toHaveBeenCalledWith(42, 'right', 'somewhat_interested');
   });
 
   it('submits the right swipe without feedback when the modal is dismissed', async () => {

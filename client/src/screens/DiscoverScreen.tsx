@@ -144,13 +144,11 @@ export const DiscoverScreen: React.FC = () => {
     }
   };
 
-  const handleFeedbackSubmit = useCallback((interest: InterestLevel, notes: string) => {
+  const handleFeedbackSubmit = useCallback((interest: InterestLevel) => {
     const career = feedbackCareer;
     setFeedbackCareer(null);
     if (career) {
-      const trimmedNotes = notes.trim();
-      const feedback = trimmedNotes ? `${interest}: ${trimmedNotes}` : interest;
-      submitSwipe(career.id, 'right', feedback);
+      submitSwipe(career.id, 'right', interest);
     }
   }, [feedbackCareer]);
 
