@@ -29,7 +29,7 @@ Enhance career cards with richer visual and descriptive content:
 
 **Data Flow:**
 1. Build prompt from database O*NET data + occupation metadata
-2. Generate images using local image model (FLUX.1-schnell)
+2. Generate images using the local `x/flux2-klein:latest` image model through Ollama
 3. Upload to Cloudflare R2
 4. Store URLs in database (multiple per occupation)
 
@@ -100,7 +100,7 @@ t.timestamps
 ## Decisions
 
 - **LLM**: Local (Ollama with Llama/Mistral via RubyLLM)
-- **Image Generation**: Local (FLUX.1-schnell)
+- **Image Generation**: Local `x/flux2-klein:latest` model through Ollama
 - **Generation Timing**: Upfront for all careers
 - **Data source**: career_profiles table in database
 - **Storage**: Cloudflare R2 for images
