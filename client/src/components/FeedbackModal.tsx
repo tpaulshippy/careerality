@@ -15,7 +15,7 @@ interface FeedbackModalProps {
 const interestOptions: { key: InterestLevel; label: string }[] = [
   { key: 'very_interested', label: 'Very Interested' },
   { key: 'somewhat_interested', label: 'Somewhat Interested' },
-  { key: 'not_for_me', label: 'Not for Me' },
+  { key: 'not_for_me', label: 'Mild Interest' },
 ];
 
 export const FeedbackModal: React.FC<FeedbackModalProps> = ({ 
