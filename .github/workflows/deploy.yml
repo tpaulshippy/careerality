@@ -21,10 +21,15 @@ jobs:
           echo "$SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@$SERVER_HOST << 'EOF'
+          set -euo pipefail
           cd /home/careerality/repo
           git pull
           cd server
           bundle install
-          RAILS_ENV=production bundle exec rails db:migrate || true
+          RAILS_ENV=production bundle exec rails db:migrate
           sudo systemctl restart careerality
+          sudo systemctl is-active --quiet careerality
+          curl --fail --silent --show-error --max-time 15 \
+            -H 'Host: careerality.app' \
+            http://127.0.0.1:3002/up
           EOF
