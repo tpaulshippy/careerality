@@ -10,9 +10,29 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
+      - name: Checkout deploy commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Build web export
+        working-directory: client
+        env:
+          EXPO_PUBLIC_API_URL: https://careerality.app
+        run: |
+          npm ci --legacy-peer-deps
+          npm run web:build
+
       - name: Deploy to server
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
@@ -20,10 +40,15 @@ jobs:
         run: |
           echo "$SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@$SERVER_HOST << 'EOF'
+          tar -C client/dist -cf - . | ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@$SERVER_HOST '
           set -euo pipefail
           cd /home/careerality/repo
-          git pull
+          git pull --ff-only
+          rm -rf server/public/app.next
+          mkdir -p server/public/app.next
+          tar -xf - -C server/public/app.next
+          rm -rf server/public/app
+          mv server/public/app.next server/public/app
           cd server
           bundle install
           SERVICE_ENV="$(systemctl show careerality --property=Environment --value)"
@@ -31,6 +56,6 @@ jobs:
           sudo systemctl restart careerality
           sudo systemctl is-active --quiet careerality
           curl --fail --silent --show-error --max-time 15 \
-            -H 'Host: careerality.app' \
+            -H "Host: careerality.app" \
             http://127.0.0.1:3002/up
-          EOF
+          '

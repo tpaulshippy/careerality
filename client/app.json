@@ -36,7 +36,11 @@
       "permissions": []
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "experiments": {
+      "baseUrl": "/app"
     },
     "updates": {
       "url": "https://u.expo.dev/1f9cb470-a9c4-44d7-aa40-4f6e3f02641d",
