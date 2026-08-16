@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Careerality — Discover Careers That Actually Pay Off</title>
-  <meta name="description" content="A swipe-based career exploration app that matches you with realistic career paths based on real ROI data. Salary, education costs, break-even timelines, and day-in-the-life narratives.">
+  <meta name="description" content="Explore realistic career paths with real ROI data, day-in-the-life narratives, and personalized recommendations on the web or iPhone.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta property="og:title" content="Careerality — Discover Careers That Actually Pay Off">
@@ -87,6 +87,15 @@
     .hero-cta:hover { background: var(--blue-light); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(19,99,153,0.5); }
     .hero-cta svg { width: 22px; height: 22px; }
     .hero-sub { color: var(--text-secondary); font-size: 14px; margin-top: 16px; }
+    .hero-actions, .cta-actions {
+      display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;
+    }
+    .hero-cta.secondary {
+      background: transparent; border: 1px solid rgba(255,255,255,0.18); box-shadow: none;
+    }
+    .hero-cta.secondary:hover {
+      background: rgba(255,255,255,0.06); border-color: var(--accent); box-shadow: none;
+    }
 
     /* SECTION */
     section { padding: 100px 0; }
@@ -190,7 +199,7 @@
       <a href="#features">Features</a>
       <a href="#how-it-works">How It Works</a>
       <a href="#data">Data Sources</a>
-      <a href="#download" class="nav-cta">Coming Soon</a>
+      <a href="#download" class="nav-cta">Get the app</a>
     </div>
   </div>
 </nav>
@@ -199,10 +208,15 @@
   <div>
     <h1>Discover Careers<br>That Actually Pay Off</h1>
     <p>A swipe-based career exploration app that matches you with realistic career paths built on real ROI data — not vague advice.</p>
-    <a href="#download" class="hero-cta">
-      Coming Soon
-    </a>
-    <p class="hero-sub">Launching on iOS and Android.</p>
+    <div class="hero-actions">
+      <a href="https://apps.apple.com/us/app/careerality/id6760988670" class="hero-cta" target="_blank" rel="noopener">
+        Download on the App Store
+      </a>
+      <a href="https://careerality.app/app" class="hero-cta secondary">
+        Open the web app
+      </a>
+    </div>
+    <p class="hero-sub">Available now on iPhone, iPad, and the web.</p>
   </div>
 </section>
 
@@ -314,11 +328,16 @@
 </section>
 
 <section class="cta-section" id="download">
-  <h2>Launching soon on iOS and Android</h2>
-  <p>Follow our progress on GitHub.</p>
-  <a href="https://github.com/tpaulshippy/careerality" class="hero-cta" style="display: inline-flex;">
-    View on GitHub
-  </a>
+  <h2>Find a career that pays off</h2>
+  <p>Start exploring on the web or take Careerality with you on iPhone and iPad.</p>
+  <div class="cta-actions">
+    <a href="https://apps.apple.com/us/app/careerality/id6760988670" class="hero-cta" target="_blank" rel="noopener">
+      Download on the App Store
+    </a>
+    <a href="https://careerality.app/app" class="hero-cta secondary">
+      Open the web app
+    </a>
+  </div>
 </section>
 
 <footer>
