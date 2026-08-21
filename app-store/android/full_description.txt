@@ -1,3 +1,5 @@
+Careerality is not affiliated with, endorsed by, or representing any government agency or entity. It is an independent app that helps you explore careers using publicly available government data.
+
 Choosing a career is one of the biggest decisions you will ever make, yet most people fly blind. Careerality helps you decide with real data, not guesswork.
 
 SWIPE TO DISCOVER
@@ -16,12 +18,12 @@ After each swipe, tell us what drew you in or turned you off - salary, work envi
 DIVE DEEPER
 Tap any career for a detailed breakdown: day-in-the-life content, salary data, education requirements, and ROI analysis. Like careers to save them to your list and revisit them anytime.
 
-BUILT ON PUBLIC DATA
-Careerality is powered by authoritative, publicly available sources:
-- U.S. Bureau of Labor Statistics (OES, QCEW, National Compensation Survey)
-- O*NET Database and ESCO for career profiles and skills
-- IPEDS for education costs
-- Economic Policy Institute Family Budget Calculator for cost of living
+DATA SOURCES
+Careerality is powered by authoritative, publicly available government sources. The original sources are:
+- U.S. Bureau of Labor Statistics (OES, QCEW, National Compensation Survey): https://www.bls.gov
+- O*NET Database and ESCO for career profiles and skills: https://www.onetcenter.org
+- IPEDS for education costs: https://nces.ed.gov/ipeds
+- Economic Policy Institute Family Budget Calculator for cost of living: https://www.epi.org
 
 No sponsored placements. No vague advice. Just honest, data-driven career exploration - whether you are a student picking a first path or an adult considering a change.
 
