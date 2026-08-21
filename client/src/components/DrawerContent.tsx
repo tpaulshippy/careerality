@@ -8,6 +8,7 @@ import * as Updates from 'expo-updates';
 
 const DELETE_CONFIRM_TITLE = 'Delete My Data';
 const DELETE_CONFIRM_MESSAGE = 'This permanently deletes all of your swipe history. This cannot be undone.';
+const DISCLAIMER_TEXT = 'Careerality is an independent app and is not affiliated with, endorsed by, or representing any government agency or entity.';
 
 const confirmDelete = (): Promise<boolean> => {
   // react-native-web does not render Alert.alert, so fall back to window.confirm on web.
@@ -84,6 +85,9 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
         {deleteMessage && (
           <Text style={[styles.deleteMessage, { color: theme.colors.text.muted }]}>{deleteMessage}</Text>
         )}
+        <Text style={[styles.disclaimer, { borderTopColor: theme.colors.border, color: theme.colors.text.muted }]}>
+          {DISCLAIMER_TEXT}
+        </Text>
       </View>
       {__DEV__ && (
       <View style={[styles.drawerFooter, { borderTopColor: theme.colors.border }]}>
@@ -141,6 +145,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginHorizontal: 20,
     marginTop: 8,
+  } as TextStyle,
+  disclaimer: {
+    fontSize: 12,
+    marginTop: 12,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
   } as TextStyle,
   buttonContainer: {
     marginTop: 8,
