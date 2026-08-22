@@ -78,6 +78,30 @@ describe('buildCompareRows', () => {
     expect(salaryRow?.worstIndex).toBeNull();
   });
 
+  it('skips best highlight when the top value is tied but worst is unique', () => {
+    const rows = buildCompareRows([
+      career({ id: 1, annual_median_salary: '95000' }),
+      career({ id: 2, annual_median_salary: '95000' }),
+      career({ id: 3, annual_median_salary: '60000' }),
+    ]);
+
+    const salaryRow = rows.find((row) => row.key === 'median_salary');
+    expect(salaryRow?.bestIndex).toBeNull();
+    expect(salaryRow?.worstIndex).toBe(2);
+  });
+
+  it('skips worst highlight when the bottom value is tied but best is unique', () => {
+    const rows = buildCompareRows([
+      career({ id: 1, annual_median_salary: '120000' }),
+      career({ id: 2, annual_median_salary: '45000' }),
+      career({ id: 3, annual_median_salary: '45000' }),
+    ]);
+
+    const salaryRow = rows.find((row) => row.key === 'median_salary');
+    expect(salaryRow?.bestIndex).toBe(0);
+    expect(salaryRow?.worstIndex).toBeNull();
+  });
+
   it('formats metric display values', () => {
     const rows = buildCompareRows([
       career({ id: 1, annual_median_salary: '123456', roi_percentage: '88.4' }),

@@ -103,8 +103,15 @@ export const buildCompareRows = (careers: CareerROI[]): CompareRow[] =>
       config.direction
     );
     if (bounds) {
-      bestIndex = cells.findIndex((cell) => cell.value === bounds.best);
-      worstIndex = cells.findIndex((cell) => cell.value === bounds.worst);
+      const present = cells.map((cell) => cell.value).filter((v): v is number => v !== null);
+      const bestIsUnique = present.filter((value) => value === bounds.best).length === 1;
+      const worstIsUnique = present.filter((value) => value === bounds.worst).length === 1;
+      if (bestIsUnique) {
+        bestIndex = cells.findIndex((cell) => cell.value === bounds.best);
+      }
+      if (worstIsUnique) {
+        worstIndex = cells.findIndex((cell) => cell.value === bounds.worst);
+      }
     }
 
     return {

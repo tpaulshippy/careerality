@@ -90,6 +90,8 @@ export const LikedScreen: React.FC = () => {
     navigation.navigate('Compare', { ids: selectedIds });
   }, [navigation, selectedIds]);
 
+  const showCompareBar = compareMode && selectedIds.length > 0;
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
@@ -161,7 +163,7 @@ export const LikedScreen: React.FC = () => {
             )}
           </View>
 
-          <ScrollView contentContainerStyle={styles.list}>
+          <ScrollView contentContainerStyle={[styles.list, showCompareBar && styles.listWithBar]}>
             {records.map(record => {
               const isSelected = selectedIds.includes(record.id);
               return (
@@ -321,6 +323,8 @@ const styles = StyleSheet.create({
   } as TextStyle,
   list: {
     paddingVertical: 16,
+  } as ViewStyle,
+  listWithBar: {
     paddingBottom: 100,
   } as ViewStyle,
   toolbar: {

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -70,6 +70,16 @@ export const CompareScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const [failedThumbs, setFailedThumbs] = useState<number[]>([]);
+
+  const routeIds = route.params?.ids;
+  useEffect(() => {
+    if (!routeIds) return;
+    setIds(prev =>
+      prev.length === routeIds.length && prev.every((id, index) => id === routeIds[index])
+        ? prev
+        : routeIds
+    );
+  }, [routeIds]);
 
   const fetchLiked = useCallback(async () => {
     setLoading(true);
