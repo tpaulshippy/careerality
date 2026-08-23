@@ -1,13 +1,19 @@
 name: OTA Update
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
 
 jobs:
   ota:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,4 +40,4 @@ jobs:
           npx expo export --platform ios --no-bytecode --output-dir dist --clear
           npx eas update --channel testflight --environment production \
             --input-dir dist --skip-bundler \
-            --message "Manual OTA from ${{ github.sha }}"
+            --message "Automatic OTA from ${{ github.event.workflow_run.head_commit.message || github.event.workflow_run.head_sha }}"
