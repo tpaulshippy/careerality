@@ -165,7 +165,7 @@ export default function App() {
           {() => (
             <DataSourcesScreen
               experimentalEnabled={experimentalScreens}
-              onEnableExperimental={() => setExperimentalScreens(true)}
+              onToggleExperimental={(enabled) => setExperimentalScreens(enabled)}
             />
           )}
         </Drawer.Screen>
