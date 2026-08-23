@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
 import { useSwipe } from '../hooks/useSwipe';
@@ -10,6 +10,9 @@ import { FilterSheet, FilterState } from '../components/FilterSheet';
 import { SortOption } from '../types';
 import { FeedbackModal, InterestLevel } from '../components/FeedbackModal';
 import { useTheme } from '../hooks/useTheme';
+import { useGamification } from '../hooks/useGamification';
+import { XpPill } from '../components/XpPill';
+import { LevelUpOverlay } from '../components/LevelUpOverlay';
 
 const SORT_LABELS: Record<SortOption, string> = {
   roi: 'ROI',
@@ -26,6 +29,7 @@ interface DiscoverScreenProps {
 export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled }) => {
   const theme = useTheme();
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<{ Discover: { stateCode?: string } | undefined }, 'Discover'>>();
   const [careers, setCareers] = useState<CareerROI[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -35,6 +39,8 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
   const [cardReset] = useState(0);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const [feedbackCareer, setFeedbackCareer] = useState<CareerROI | null>(null);
+  const [celebrateLevel, setCelebrateLevel] = useState<number | null>(null);
+  const heldLevelRef = useRef<number | null>(null);
   const fetchKeyRef = useRef(0);
   const currentPageRef = useRef(1);
   const hasMoreRef = useRef(true);
@@ -43,6 +49,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
   const loadingMoreRef = useRef(false);
 
   const { filters, setStateCode, setSalaryMin, setSalaryMax, setSortBy } = useFilters();
+  const gamification = useGamification();
   const { cards, swipeLeft, swipeRight, undo, currentIndex, resetSwipes } = useSwipe(careers);
 
   useEffect(() => {
@@ -109,6 +116,17 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
     fetchCareers();
   }, [fetchCareers]);
 
+  // Apply a state filter handed over from the Map screen (Discover is often
+  // already mounted, so persisted-storage updates alone wouldn't refetch).
+  const appliedRouteStateRef = useRef<string | null>(null);
+  useEffect(() => {
+    const routeStateCode = route.params?.stateCode;
+    if (routeStateCode && routeStateCode !== appliedRouteStateRef.current) {
+      appliedRouteStateRef.current = routeStateCode;
+      setStateCode(routeStateCode);
+    }
+  }, [route.params?.stateCode, setStateCode]);
+
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       if (careers.length === 0 && !loading && !error) {
@@ -122,18 +140,23 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
     const career = swipeLeft();
     if (career) {
       submitSwipe(career.id, 'left');
+      const result = gamification.trackEvent({ type: 'swipe_left', career });
+      if (result?.leveledUp) setCelebrateLevel(result.newLevel);
     }
     checkAndLoadMore();
-  }, [swipeLeft]);
+  }, [swipeLeft, gamification]);
 
   const handleSwipeRight = useCallback(() => {
     const career = swipeRight();
     if (career) {
       // Hold the POST until the feedback modal resolves; card advances immediately.
       setFeedbackCareer(career);
+      const result = gamification.trackEvent({ type: 'swipe_right', career });
+      // Hold the celebration until the feedback modal closes so it isn't buried.
+      if (result?.leveledUp) heldLevelRef.current = result.newLevel;
     }
     checkAndLoadMore();
-  }, [swipeRight]);
+  }, [swipeRight, gamification]);
 
   const checkAndLoadMore = useCallback(() => {
     if (!loadingMoreRef.current && hasMoreRef.current && currentIndexRef.current >= careersLengthRef.current - 5) {
@@ -154,14 +177,25 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
     setFeedbackCareer(null);
     if (career) {
       submitSwipe(career.id, 'right', interest);
+      const result = gamification.trackEvent({ type: 'feedback' });
+      if (result?.leveledUp) {
+        setCelebrateLevel(result.newLevel);
+      } else if (heldLevelRef.current !== null) {
+        setCelebrateLevel(heldLevelRef.current);
+      }
     }
-  }, [feedbackCareer]);
+    heldLevelRef.current = null;
+  }, [feedbackCareer, gamification]);
 
   const handleFeedbackClose = useCallback(() => {
     const career = feedbackCareer;
     setFeedbackCareer(null);
     if (career) {
       submitSwipe(career.id, 'right');
+    }
+    if (heldLevelRef.current !== null) {
+      setCelebrateLevel(heldLevelRef.current);
+      heldLevelRef.current = null;
     }
   }, [feedbackCareer]);
 
@@ -178,7 +212,9 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
 
   const handleViewDetails = useCallback((career: CareerROI) => {
     setDetailCareer(career);
-  }, []);
+    const result = gamification.trackEvent({ type: 'detail_view', career });
+    if (result?.leveledUp) setCelebrateLevel(result.newLevel);
+  }, [gamification]);
 
   const handleCloseDetails = useCallback(() => {
     setDetailCareer(null);
@@ -295,6 +331,9 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
           sortBy: filters.sortBy,
         }}
       />
+
+      <XpPill gain={gamification.xpPill} onDismiss={gamification.dismissXpPill} />
+      <LevelUpOverlay level={celebrateLevel} onDismiss={() => setCelebrateLevel(null)} />
 
       <FeedbackModal
         visible={feedbackCareer !== null}

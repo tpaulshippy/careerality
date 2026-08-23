@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Text, StyleSheet, TextStyle, View, ViewStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DiscoverScreen, DataSourcesScreen, LikedScreen, ActionPlansScreen, SearchScreen, RealityCheckScreen, InsightsScreen } from './src/screens';
+import { DiscoverScreen, DataSourcesScreen, LikedScreen, ActionPlansScreen, CompareScreen, MapScreen, ProgressScreen, SearchScreen, RealityCheckScreen, InsightsScreen } from './src/screens';
 import { CustomDrawerContent, OnboardingQuiz } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
 import { useLocalStorage } from './src/hooks/useLocalStorage';
@@ -124,6 +124,16 @@ export default function App() {
           {() => <DiscoverScreen searchEnabled={experimentalScreens} />}
         </Drawer.Screen>
         <Drawer.Screen
+          name="Map"
+          component={MapScreen}
+          options={{
+            title: 'Map',
+            drawerIcon: () => (
+              <Text style={styles.icon}>🗺️</Text>
+            ),
+          }}
+        />
+        <Drawer.Screen
           name="Liked"
           component={LikedScreen}
           options={{
@@ -140,6 +150,16 @@ export default function App() {
             title: 'Action Plans',
             drawerIcon: () => (
               <Text style={styles.icon}>🎯</Text>
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="Progress"
+          component={ProgressScreen}
+          options={{
+            title: 'Your Progress',
+            drawerIcon: () => (
+              <Text style={styles.icon}>🏆</Text>
             ),
           }}
         />
@@ -165,7 +185,7 @@ export default function App() {
           {() => (
             <DataSourcesScreen
               experimentalEnabled={experimentalScreens}
-              onEnableExperimental={() => setExperimentalScreens(true)}
+              onToggleExperimental={(enabled) => setExperimentalScreens(enabled)}
             />
           )}
         </Drawer.Screen>
@@ -193,6 +213,14 @@ export default function App() {
             }}
           />
         )}
+        <Drawer.Screen
+          name="Compare"
+          component={CompareScreen}
+          options={{
+            title: 'Compare',
+            drawerItemStyle: { display: 'none' },
+          }}
+        />
       </Drawer.Navigator>
       </NavigationContainer>
       {showQuiz && <OnboardingQuiz onFinish={handleQuizFinish} />}

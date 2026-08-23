@@ -5,6 +5,9 @@ module.exports = {
     addListener: jest.fn(() => jest.fn()),
     navigate: jest.fn(),
   }),
+  useRoute: () => ({
+    params: {},
+  }),
   useFocusEffect: (cb) => {
     React.useEffect(() => {
       cb();
