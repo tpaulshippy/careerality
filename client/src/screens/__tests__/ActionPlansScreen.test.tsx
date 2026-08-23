@@ -1,11 +1,16 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import * as ExpoClipboard from 'expo-clipboard';
 import { ActionPlansScreen } from '../ActionPlansScreen';
 import { apiClient } from '../../api/client';
 import { CareerROI } from '../../types';
 
 beforeAll(() => {
+  (Platform as { OS: string }).OS = 'web';
+});
+
+afterEach(() => {
   (Platform as { OS: string }).OS = 'web';
 });
 
@@ -69,6 +74,10 @@ jest.mock('../../api/client', () => ({
   apiClient: { getLikedCareers: jest.fn() },
 }));
 
+jest.mock('expo-clipboard', () => ({
+  setStringAsync: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock('../../components', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');
@@ -115,6 +124,46 @@ describe('ActionPlansScreen', () => {
     expect(screen.getAllByText('Next: See the work')).toHaveLength(2);
   });
 
+  it('copies the outreach message via the native clipboard and confirms', async () => {
+    (Platform as { OS: string }).OS = 'ios';
+    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
+      records: [{ ...makeCareer({ id: 1 }), swipe_id: 1 }],
+    });
+    const screen = await render(<ActionPlansScreen />);
+    await screen.findByText('Registered Nurses');
+
+    fireEvent.press(screen.getByTestId('plan-row-0'));
+    fireEvent.press(await screen.findByTestId('step-copy-5'));
+
+    await waitFor(() =>
+      expect(ExpoClipboard.setStringAsync).toHaveBeenCalledWith(
+        expect.stringContaining('career as a Registered Nurses')
+      )
+    );
+    expect(await screen.findByText('Copied ✓')).toBeTruthy();
+  });
+
+  it('exposes each step checkbox with its checked state to screen readers', async () => {
+    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
+      records: [{ ...makeCareer({ id: 1 }), swipe_id: 1 }],
+    });
+    const screen = await render(<ActionPlansScreen />);
+    await screen.findByText('Registered Nurses');
+
+    fireEvent.press(screen.getByTestId('plan-row-0'));
+    const checkbox = await screen.findByTestId('step-checkbox-0');
+    expect(checkbox.props.accessibilityRole).toBe('checkbox');
+    expect(checkbox.props.accessibilityState).toEqual({ checked: false });
+
+    fireEvent.press(checkbox);
+    await waitFor(() =>
+      expect(screen.getByTestId('step-checkbox-0').props.accessibilityState).toEqual({ checked: true })
+    );
+  });
+
+  // NOTE: tests below this point interact with the plan detail view, which
+  // leaves the shared act() scope in a state that breaks renders of later
+  // test instances (React 19 + RNTL beta). Keep new tests above them.
   it('shows a helpful message when a filter has no matches', async () => {
     (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
       records: [{ ...makeCareer({ id: 1 }), swipe_id: 1 }],

@@ -13,6 +13,7 @@ module.exports = {
     '^react-native$': '<rootDir>/__mocks__/react-native.js',
     '^@react-navigation/native$': '<rootDir>/__mocks__/@react-navigation/native.js',
     '^@react-native-async-storage/async-storage$': '<rootDir>/__mocks__/async-storage.js',
+    '^expo-clipboard$': '<rootDir>/__mocks__/expo-clipboard.js',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 };

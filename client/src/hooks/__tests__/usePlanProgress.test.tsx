@@ -1,9 +1,14 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePlanProgress, planProgressKey } from '../usePlanProgress';
 
 // Force the web localStorage code path in useLocalStorage
 beforeAll(() => {
+  (Platform as { OS: string }).OS = 'web';
+});
+
+afterEach(() => {
   (Platform as { OS: string }).OS = 'web';
 });
 
@@ -109,5 +114,38 @@ describe('usePlanProgress', () => {
 
     expect(planProgressKey('29-1171.00', 'watch-workers')).toBe('29-1171.00:watch-workers');
     expect(result.current.progressFor('27-2021.00')).toBe(0);
+  });
+
+  it('preserves toggles made before the stored value finishes loading', async () => {
+    // Simulate the native path, where the initial read is genuinely async.
+    (Platform as { OS: string }).OS = 'ios';
+    let resolveRead: (value: string | null) => void = () => {};
+    (AsyncStorage.getItem as jest.Mock).mockImplementationOnce(
+      () => new Promise<string | null>(resolve => { resolveRead = resolve; })
+    );
+    const stored = JSON.stringify({ [planProgressKey('11-1011.00', 'see-the-work')]: true });
+    const { result } = renderHook(() => usePlanProgress());
+
+    act(() => {
+      result.current.toggleStep('29-1141.00', 'see-the-work');
+    });
+    expect(result.current.isComplete('29-1141.00', 'see-the-work')).toBe(true);
+
+    await act(async () => {
+      resolveRead(stored);
+    });
+    expect(result.current.isComplete('29-1141.00', 'see-the-work')).toBe(true);
+    expect(result.current.isComplete('11-1011.00', 'see-the-work')).toBe(true);
+    expect(result.current.progressFor('29-1141.00')).toBeCloseTo(1 / 6);
+
+    await waitFor(() =>
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        'careerality_plan_progress',
+        JSON.stringify({
+          ...JSON.parse(stored),
+          [planProgressKey('29-1141.00', 'see-the-work')]: true,
+        })
+      )
+    );
   });
 });

@@ -11,9 +11,11 @@ import {
   TouchableOpacity,
   Image,
   Linking,
+  Platform,
   Animated as RNAnimated,
   Alert,
 } from 'react-native';
+import * as ExpoClipboard from 'expo-clipboard';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
@@ -148,6 +150,15 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
 /* ---------- Helpers ---------- */
 
 const copyToClipboard = async (text: string): Promise<boolean> => {
+  if (Platform.OS !== 'web') {
+    // navigator.clipboard does not exist in the native runtimes.
+    try {
+      await ExpoClipboard.setStringAsync(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   try {
     if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text);
@@ -455,6 +466,8 @@ const StepRow: React.FC<StepRowProps> = ({ step, index, checked, onToggle, chips
         onPress={onToggle}
         activeOpacity={0.7}
         testID={`step-checkbox-${index}`}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked }}
       >
         <View
           style={[styles.checkbox, { borderColor: checked ? theme.colors.success : theme.colors.border }]}

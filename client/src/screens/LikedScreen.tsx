@@ -121,6 +121,8 @@ export const LikedScreen: React.FC = () => {
                 onPress={() => navigation.navigate('ActionPlans', { occupationCode: record.occupation_code })}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 testID={`plan-button-${record.swipe_id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Open action plan for ${record.occupation_name}`}
               >
                 <Text style={styles.planButtonText}>🎯</Text>
               </TouchableOpacity>

@@ -23,10 +23,13 @@ export const slugify = (value: string): string => encodeURIComponent(value.trim(
  * Extracts a searchable state/place name from an area_name.
  * "New York-Newark-Jersey City, NY-NJ" -> "New York"
  * "New Jersey" -> "New Jersey"
- * "U.S." -> null (national row, no location filter)
+ * National rows (area_code "99", whatever their label) -> null.
  */
-export const extractStateName = (areaName: string | undefined): string | null => {
-  if (!areaName || areaName === 'U.S.') return null;
+export const extractStateName = (
+  areaName: string | undefined,
+  areaCode?: string | null,
+): string | null => {
+  if (!areaName || areaCode === '99' || areaName === 'U.S.') return null;
   const primary = areaName.split(',')[0].trim();
   if (!primary) return null;
   return primary.split('-')[0].trim() || null;
@@ -65,7 +68,7 @@ export const buildPlan = (career: CareerROI): ActionPlan => {
   const skill = career.skills && career.skills.length > 0 ? career.skills[0] : null;
   const courseQuery = skill ?? name;
 
-  const stateName = extractStateName(career.area_name);
+  const stateName = extractStateName(career.area_name, career.area_code);
   const openingsNote =
     career.avg_annual_openings != null
       ? ` Around ${career.avg_annual_openings.toLocaleString('en-US')} openings open up each year in this area.`

@@ -57,6 +57,12 @@ describe('extractStateName', () => {
     expect(extractStateName(undefined)).toBeNull();
     expect(extractStateName('')).toBeNull();
   });
+
+  it('treats national area_code rows as unfiltered regardless of their label', () => {
+    expect(extractStateName('National', '99')).toBeNull();
+    expect(extractStateName('U.S.', '99')).toBeNull();
+    expect(extractStateName('New Jersey', '48')).toBe('New Jersey');
+  });
 });
 
 describe('excerptText', () => {
@@ -135,6 +141,7 @@ describe('buildPlan', () => {
 
   it('adds location and openings note to job postings step when available', () => {
     const career = baseCareer({
+      area_code: '36',
       area_name: 'New York-Newark-Jersey City, NY-NJ',
       avg_annual_openings: 1234,
     });
@@ -150,6 +157,12 @@ describe('buildPlan', () => {
     const step = buildPlan(baseCareer({ avg_annual_openings: null })).steps[2];
     expect(step.url).not.toContain('location=');
     expect(step.description).not.toContain('openings open up');
+  });
+
+  it('does not add a location param when a national row uses a non-U.S. label', () => {
+    const step = buildPlan(baseCareer({ area_code: '99', area_name: 'National' })).steps[2];
+    expect(step.url).not.toContain('location=');
+    expect(step.description).not.toContain('in National');
   });
 
   it('links to BLS OOH finder with growth note when projected growth is present', () => {
@@ -188,6 +201,7 @@ describe('buildPlan', () => {
     const plan = buildPlan(
       baseCareer({
         occupation_name: "Lawyers, All Other",
+        area_code: '08',
         area_name: 'Denver-Aurora-Lakewood, CO',
       })
     );
