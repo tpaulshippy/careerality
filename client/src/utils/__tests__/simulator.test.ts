@@ -48,9 +48,19 @@ describe('salaryAtExperience', () => {
     expect(salaryAtExperience(100000, -3)).toBeCloseTo(100000, 6);
   });
 
+  it('treats non-finite years as zero experience', () => {
+    expect(salaryAtExperience(100000, NaN)).toBeCloseTo(100000, 6);
+    expect(salaryAtExperience(100000, Infinity)).toBeCloseTo(100000, 6);
+  });
+
   it('handles non-finite medians defensively', () => {
     expect(salaryAtExperience(NaN, 10)).toBe(0);
     expect(salaryAtExperience(Infinity, 10)).toBe(0);
+  });
+
+  it('returns zero for non-positive medians', () => {
+    expect(salaryAtExperience(0, 5)).toBe(0);
+    expect(salaryAtExperience(-50000, 5)).toBe(0);
   });
 });
 
@@ -155,6 +165,12 @@ describe('takeHome', () => {
 
   it('returns all zeros at zero gross', () => {
     expect(takeHome(0)).toEqual({ gross: 0, federal: 0, fica: 0, net: 0, monthlyNet: 0 });
+  });
+
+  it('clamps non-finite and negative gross to zero', () => {
+    for (const gross of [NaN, Infinity, -40000]) {
+      expect(takeHome(gross)).toEqual({ gross: 0, federal: 0, fica: 0, net: 0, monthlyNet: 0 });
+    }
   });
 });
 
@@ -283,6 +299,15 @@ describe('breakEvenProgress', () => {
     const result = breakEvenProgress({ medianAnnual: 50000, educationCost: 30000, yearsExperience: 0 });
     expect(result.cumulativeEarnings).toBe(0);
     expect(result.breakEvenYear).toBeNull();
+  });
+
+  it('terminates on non-finite or negative years of experience', () => {
+    for (const yearsExperience of [Infinity, NaN, -5]) {
+      const result = breakEvenProgress({ medianAnnual: 50000, educationCost: 30000, yearsExperience });
+      expect(result.cumulativeEarnings).toBe(0);
+      expect(result.breakEvenYear).toBeNull();
+      expect(Number.isFinite(result.cumulativeEarnings)).toBe(true);
+    }
   });
 
   it('is monotonic: more experience never lowers cumulative earnings or delays breakeven', () => {

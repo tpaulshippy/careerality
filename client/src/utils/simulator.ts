@@ -78,9 +78,10 @@ export interface BudgetResult {
  * median, capped at MAX_SALARY_MULTIPLIER x median.
  */
 export function salaryAtExperience(medianAnnual: number, years: number): number {
-  if (!Number.isFinite(medianAnnual)) return 0;
+  if (!Number.isFinite(medianAnnual) || medianAnnual <= 0) return 0;
+  const safeYears = Number.isFinite(years) ? Math.max(0, years) : 0;
   const cappedMultiplier = Math.min(
-    Math.pow(1 + ANNUAL_SALARY_GROWTH_RATE, Math.max(0, years)),
+    Math.pow(1 + ANNUAL_SALARY_GROWTH_RATE, safeYears),
     MAX_SALARY_MULTIPLIER
   );
   return medianAnnual * cappedMultiplier;
@@ -117,10 +118,11 @@ export interface TakeHomeResult {
 }
 
 export function takeHome(gross: number): TakeHomeResult {
-  const federal = federalTaxEstimate(gross);
-  const fica = ficaEstimate(gross);
-  const net = gross - federal - fica;
-  return { gross, federal, fica, net, monthlyNet: net / 12 };
+  const safeGross = Number.isFinite(gross) && gross > 0 ? gross : 0;
+  const federal = federalTaxEstimate(safeGross);
+  const fica = ficaEstimate(safeGross);
+  const net = safeGross - federal - fica;
+  return { gross: safeGross, federal, fica, net, monthlyNet: net / 12 };
 }
 
 /**
@@ -209,9 +211,10 @@ export interface BreakEvenResult {
 export function breakEvenProgress(input: BreakEvenInput): BreakEvenResult {
   const { medianAnnual, educationCost, yearsExperience } = input;
   const cost = Number.isFinite(educationCost) && educationCost > 0 ? educationCost : 0;
+  const years = Number.isFinite(yearsExperience) ? Math.max(0, Math.floor(yearsExperience)) : 0;
   let cumulative = 0;
   let breakEvenYear: number | null = null;
-  for (let year = 1; year <= Math.max(0, Math.floor(yearsExperience)); year++) {
+  for (let year = 1; year <= years; year++) {
     cumulative += salaryAtExperience(medianAnnual, year - 1);
     if (breakEvenYear === null && cost > 0 && cumulative >= cost) {
       breakEvenYear = year;

@@ -60,7 +60,13 @@ export const CareerPickerModal: React.FC<CareerPickerModalProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      fetchKeyRef.current++;
+      setLoading(false);
+      setError(null);
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const trimmed = query.trim();
     if (trimmed.length === 0) {

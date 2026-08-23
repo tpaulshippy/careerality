@@ -379,35 +379,35 @@ export const RealityCheckScreen: React.FC = () => {
                   {v.detail}
                 </Text>
                 <Text style={[styles.verdictNet, { color: theme.colors.text.primary }]}>
-                  {formatCurrency(salary)} gross → {formatCurrency(th.monthlyNet)}/mo take-home
+                  {formatCurrency(salary)}/yr gross → {formatCurrency(th.monthlyNet)}/mo take-home
                 </Text>
               </View>
 
               <View style={styles.waterfall}>
                 <WaterfallRow
                   label="Gross"
-                  amount={formatCurrency(th.gross)}
+                  amount={`${formatCurrency(th.gross)}/yr`}
                   widthPct={widthOf(th.gross)}
                   color={theme.colors.primary}
                   textColor={theme.colors.text.primary}
                 />
                 <WaterfallRow
                   label="Federal tax"
-                  amount={`−${formatCurrency(th.federal)}`}
+                  amount={`−${formatCurrency(th.federal)}/yr`}
                   widthPct={widthOf(th.federal)}
                   color={theme.colors.error}
                   textColor={theme.colors.text.primary}
                 />
                 <WaterfallRow
                   label="FICA"
-                  amount={`−${formatCurrency(th.fica)}`}
+                  amount={`−${formatCurrency(th.fica)}/yr`}
                   widthPct={widthOf(th.fica)}
                   color={theme.colors.warning}
                   textColor={theme.colors.text.primary}
                 />
                 <WaterfallRow
                   label="Take-home"
-                  amount={`${formatCurrency(th.net)} (${formatCurrency(th.monthlyNet)}/mo)`}
+                  amount={`${formatCurrency(th.net)}/yr (${formatCurrency(th.monthlyNet)}/mo)`}
                   widthPct={widthOf(th.net)}
                   color={theme.colors.success}
                   textColor={theme.colors.text.primary}
