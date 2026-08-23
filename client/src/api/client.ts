@@ -32,6 +32,16 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const { signal } = options;
+    let externalAbort = false;
+    const onExternalAbort = () => {
+      externalAbort = true;
+      controller.abort();
+    };
+    if (signal) {
+      if (signal.aborted) onExternalAbort();
+      else signal.addEventListener('abort', onExternalAbort, { once: true });
+    }
     try {
       const response = await fetch(url, {
         ...options,
@@ -52,11 +62,13 @@ class ApiClient {
         (err instanceof DOMException && err.name === 'AbortError') ||
         (err instanceof Error && err.name === 'AbortError')
       ) {
+        if (externalAbort) throw err;
         throw new ApiTimeoutError();
       }
       throw err;
     } finally {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onExternalAbort);
     }
   }
 
@@ -76,6 +88,11 @@ class ApiClient {
     const payload: SwipePayload = { career_id: careerId, user_id: userId, direction };
     if (feedback) payload.feedback = feedback;
     await this.post('/api/swipes', payload);
+  }
+
+  async searchCareers(query: string, signal?: AbortSignal): Promise<RoiResponse> {
+    const queryString = '?' + new URLSearchParams({ q: query }).toString();
+    return this.request<RoiResponse>(`/api/roi/search${queryString}`, { method: 'GET', signal });
   }
 
   async getCareers(params?: Record<string, string | number>): Promise<RoiResponse> {
