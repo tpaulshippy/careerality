@@ -23,7 +23,11 @@ const confirmDelete = (): Promise<boolean> => {
   });
 };
 
-export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
+interface CustomDrawerContentProps extends DrawerContentComponentProps {
+  onRetakeOnboarding?: () => void;
+}
+
+export const CustomDrawerContent: React.FC<CustomDrawerContentProps> = ({ onRetakeOnboarding, ...props }) => {
   const theme = useTheme();
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const { currentlyRunning, isUpdateAvailable, isUpdatePending, isChecking, isDownloading, checkError, downloadError } = Updates.useUpdates();
@@ -84,6 +88,13 @@ export const CustomDrawerContent: React.FC<DrawerContentComponentProps> = (props
         />
         {deleteMessage && (
           <Text style={[styles.deleteMessage, { color: theme.colors.text.muted }]}>{deleteMessage}</Text>
+        )}
+        {onRetakeOnboarding && (
+          <DrawerItem
+            label="Retake intro quiz"
+            labelStyle={{ color: theme.colors.text.secondary }}
+            onPress={onRetakeOnboarding}
+          />
         )}
         <Text style={[styles.disclaimer, { borderTopColor: theme.colors.border, color: theme.colors.text.muted }]}>
           {DISCLAIMER_TEXT}

@@ -8,6 +8,8 @@ export { FilterChip } from './FilterChip';
 export { FilterSheet } from './FilterSheet';
 export { Header } from './Header';
 export { InfoRow } from './InfoRow';
+export { OnboardingQuiz } from './OnboardingQuiz';
+
 export { Loading } from './Loading';
 export { Section } from './Section';
 export { SkillBadge } from './SkillBadge';
