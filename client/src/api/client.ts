@@ -1,6 +1,6 @@
 import { API_BASE } from '../constants/dataSources';
 import { getUserId } from '../utils/userId';
-import { RoiResponse, LikedResponse } from '../types';
+import { CareerROI, RoiResponse, LikedResponse } from '../types';
 
 export interface SwipePayload {
   career_id: number;
@@ -102,6 +102,22 @@ class ApiClient {
       Object.entries(allParams).map(([k, v]) => [k, String(v)])
     ).toString();
     return this.get<RoiResponse>(`/api/roi${queryString}`);
+  }
+
+  async searchCareers(query: string, areaCode?: string): Promise<RoiResponse> {
+    const params: Record<string, string> = { q: query };
+    if (areaCode) params.area = areaCode;
+    const queryString = '?' + new URLSearchParams(params).toString();
+    return this.get<RoiResponse>(`/api/roi/search${queryString}`);
+  }
+
+  async getStates(): Promise<{ states: { area_code: string; area_name: string }[] }> {
+    return this.get<{ states: { area_code: string; area_name: string }[] }>('/api/areas/states');
+  }
+
+  async getCareerInArea(occupationCode: string, areaCode: string): Promise<CareerROI> {
+    const code = encodeURIComponent(occupationCode);
+    return this.get<CareerROI>(`/api/roi/${code}?area=${encodeURIComponent(areaCode)}`);
   }
 
   async getLikedCareers(): Promise<LikedResponse> {

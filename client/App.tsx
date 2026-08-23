@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Text, StyleSheet, TextStyle, View, ViewStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DiscoverScreen, DataSourcesScreen, LikedScreen, SearchScreen } from './src/screens';
+import { DiscoverScreen, DataSourcesScreen, LikedScreen, SearchScreen, RealityCheckScreen } from './src/screens';
 import { CustomDrawerContent, OnboardingQuiz } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
 import { useLocalStorage } from './src/hooks/useLocalStorage';
@@ -126,13 +126,23 @@ export default function App() {
             ),
           }}
         />
-        <Drawer.Screen 
-          name="Liked" 
+        <Drawer.Screen
+          name="Liked"
           component={LikedScreen}
           options={{
             title: 'Liked Careers',
             drawerIcon: () => (
               <Text style={styles.icon}>❤️</Text>
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="RealityCheck"
+          component={RealityCheckScreen}
+          options={{
+            title: 'Reality Check',
+            drawerIcon: () => (
+              <Text style={styles.icon}>💵</Text>
             ),
           }}
         />
