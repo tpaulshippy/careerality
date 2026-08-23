@@ -9,6 +9,7 @@ import { useLocalStorage } from './src/hooks/useLocalStorage';
 import { useFilters } from './src/hooks/useFilters';
 import { lightColors, darkColors } from './src/constants/theme';
 import { ONBOARDING_STORAGE_KEYS, OnboardingPayload } from './src/utils/onboarding';
+import { EXPERIMENTAL_SCREENS_STORAGE_KEY } from './src/constants/features';
 
 const Drawer = createDrawerNavigator();
 
@@ -45,6 +46,10 @@ export default function App() {
     false,
   );
   const [, setEduPrefStored] = useLocalStorage(ONBOARDING_STORAGE_KEYS.eduPref, 'any');
+  const [experimentalScreens, setExperimentalScreens] = useLocalStorage(
+    EXPERIMENTAL_SCREENS_STORAGE_KEY,
+    false,
+  );
   // App owns all persistence so queued writes always process even though the
   // quiz unmounts on finish (writes from an unmounting component are dropped).
   const { setStateCode, setSalaryMin, setSortBy } = useFilters();
@@ -93,6 +98,7 @@ export default function App() {
       <NavigationContainer theme={navigationTheme}>
         <Drawer.Navigator
           key={navEpoch}
+          initialRouteName="Discover"
           drawerContent={(props) => (
             <CustomDrawerContent {...props} onRetakeOnboarding={handleRetakeOnboarding} />
           )}
@@ -107,25 +113,16 @@ export default function App() {
         }}
       >
         <Drawer.Screen
-          name="Search"
-          component={SearchScreen}
-          options={{
-            title: 'Search',
-            drawerIcon: () => (
-              <Text style={styles.icon}>🔎</Text>
-            ),
-          }}
-        />
-        <Drawer.Screen
           name="Discover"
-          component={DiscoverScreen}
           options={{
             title: 'Discover',
             drawerIcon: () => (
               <Text style={styles.icon}>🔍</Text>
             ),
           }}
-        />
+        >
+          {() => <DiscoverScreen searchEnabled={experimentalScreens} />}
+        </Drawer.Screen>
         <Drawer.Screen
           name="Liked"
           component={LikedScreen}
@@ -137,17 +134,7 @@ export default function App() {
           }}
         />
         <Drawer.Screen
-          name="RealityCheck"
-          component={RealityCheckScreen}
-          options={{
-            title: 'Reality Check',
-            drawerIcon: () => (
-              <Text style={styles.icon}>💵</Text>
-            ),
-          }}
-        />
-        <Drawer.Screen 
-          name="Insights" 
+          name="Insights"
           component={InsightsScreen}
           options={{
             title: 'My Insights',
@@ -156,16 +143,46 @@ export default function App() {
             ),
           }}
         />
-        <Drawer.Screen 
-          name="DataSources" 
-          component={DataSourcesScreen}
+        <Drawer.Screen
+          name="DataSources"
           options={{
             title: 'Data Sources',
             drawerIcon: () => (
               <Text style={styles.icon}>📁</Text>
             ),
           }}
-        />
+        >
+          {() => (
+            <DataSourcesScreen
+              experimentalEnabled={experimentalScreens}
+              onEnableExperimental={() => setExperimentalScreens(true)}
+            />
+          )}
+        </Drawer.Screen>
+        {experimentalScreens && (
+          <Drawer.Screen
+            name="Search"
+            component={SearchScreen}
+            options={{
+              title: 'Search',
+              drawerIcon: () => (
+                <Text style={styles.icon}>🔎</Text>
+              ),
+            }}
+          />
+        )}
+        {experimentalScreens && (
+          <Drawer.Screen
+            name="RealityCheck"
+            component={RealityCheckScreen}
+            options={{
+              title: 'Reality Check',
+              drawerIcon: () => (
+                <Text style={styles.icon}>💵</Text>
+              ),
+            }}
+          />
+        )}
       </Drawer.Navigator>
       </NavigationContainer>
       {showQuiz && <OnboardingQuiz onFinish={handleQuizFinish} />}

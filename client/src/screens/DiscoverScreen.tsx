@@ -18,7 +18,12 @@ const SORT_LABELS: Record<SortOption, string> = {
   demand: 'Demand',
 };
 
-export const DiscoverScreen: React.FC = () => {
+interface DiscoverScreenProps {
+  // Search lives behind the experimental-screens flag; hidden unless enabled.
+  searchEnabled?: boolean;
+}
+
+export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled }) => {
   const theme = useTheme();
   const navigation = useNavigation();
   const [careers, setCareers] = useState<CareerROI[]>([]);
@@ -221,9 +226,11 @@ export const DiscoverScreen: React.FC = () => {
           </Text>
         )}
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigation.navigate('Search')} aria-label="Search careers">
-            <Text style={styles.searchShortcut}>🔍</Text>
-          </TouchableOpacity>
+          {searchEnabled && (
+            <TouchableOpacity onPress={() => navigation.navigate('Search')} aria-label="Search careers">
+              <Text style={styles.searchShortcut}>🔍</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={() => setFilterSheetVisible(true)}>
             <Text style={{ color: theme.colors.primary }}>
               {filters.sortBy !== 'roi' ? `Filter · ${SORT_LABELS[filters.sortBy]}` : 'Filter'}
