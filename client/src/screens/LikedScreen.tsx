@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
 import { CareerDetailView, OccupationIconBadge } from '../components';
@@ -15,6 +15,7 @@ interface LikedRecord extends CareerROI {
 
 export const LikedScreen: React.FC = () => {
   const theme = useTheme();
+  const navigation = useNavigation<{ navigate: (name: string, params?: { occupationCode?: string }) => void }>();
   const [records, setRecords] = useState<LikedRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +116,14 @@ export const LikedScreen: React.FC = () => {
               onPress={() => handleCardPress(record)}
               activeOpacity={0.7}
             >
+              <TouchableOpacity
+                style={[styles.planButton, { backgroundColor: theme.colors.primaryLight }]}
+                onPress={() => navigation.navigate('ActionPlans', { occupationCode: record.occupation_code })}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                testID={`plan-button-${record.swipe_id}`}
+              >
+                <Text style={styles.planButtonText}>🎯</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.removeButton}
                 onPress={() => handleRemove(record.swipe_id)}
@@ -236,6 +245,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1,
   } as ViewStyle,
+  planButton: {
+    position: 'absolute',
+    top: 10,
+    right: 42,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  } as ViewStyle,
+  planButtonText: {
+    fontSize: 14,
+    lineHeight: 18,
+  } as TextStyle,
   removeButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -251,7 +275,7 @@ const styles = StyleSheet.create({
   occupationName: {
     fontSize: 16,
     fontWeight: 'bold',
-    paddingRight: 28,
+    paddingRight: 72,
   } as TextStyle,
   areaName: {
     fontSize: 14,
