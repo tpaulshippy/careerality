@@ -6,12 +6,12 @@ import { Button } from '../components/Button';
 
 interface DataSourcesScreenProps {
   experimentalEnabled?: boolean;
-  onEnableExperimental?: () => void;
+  onToggleExperimental?: (enabled: boolean) => void;
 }
 
 export const DataSourcesScreen: React.FC<DataSourcesScreenProps> = ({
   experimentalEnabled,
-  onEnableExperimental,
+  onToggleExperimental,
 }) => {
   const theme = useTheme();
   
@@ -47,11 +47,16 @@ export const DataSourcesScreen: React.FC<DataSourcesScreenProps> = ({
         </Text>
       </View>
 
-      {onEnableExperimental && !experimentalEnabled && (
+      {onToggleExperimental && (
         <View style={styles.experimental}>
-          <Button title="Enable experimental features" onPress={onEnableExperimental} />
+          <Button
+            title={experimentalEnabled ? 'Disable experimental features' : 'Enable experimental features'}
+            onPress={() => onToggleExperimental(!experimentalEnabled)}
+          />
           <Text style={[styles.experimentalNote, { color: theme.colors.text.muted }]}>
-            Adds Search and Reality Check to the menu. These features are still in development.
+            {experimentalEnabled
+              ? 'Search and Reality Check are visible in the menu.'
+              : 'Adds Search and Reality Check to the menu. These features are still in development.'}
           </Text>
         </View>
       )}
