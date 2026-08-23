@@ -26,7 +26,6 @@ import {
   StateMetrics,
   colorForMetrics,
   computeDomain,
-  computeStateMetrics,
   formatLegendLabel,
   formatMetricValue,
   getColorValue,
@@ -57,13 +56,13 @@ const toApiFips = (fips: string): string => fips.replace(/^0+/, '') || fips;
 const fetchStateRecords = async (fips: string): Promise<CareerROI[]> => {
   const apiCode = toApiFips(fips);
   const first = await apiClient.get<RoiResponse>(
-    `/api/roi?area_code=${encodeURIComponent(apiCode)}&page=1`,
+    `/api/roi?area_code=${encodeURIComponent(apiCode)}&sort=roi&page=1`,
   );
   const records = [...(first.records ?? [])];
   const pages = Math.min(first.pagy?.pages ?? 1, MAX_PAGES_PER_STATE);
   for (let page = 2; page <= pages; page++) {
     const next = await apiClient.get<RoiResponse>(
-      `/api/roi?area_code=${encodeURIComponent(apiCode)}&page=${page}`,
+      `/api/roi?area_code=${encodeURIComponent(apiCode)}&sort=roi&page=${page}`,
     );
     records.push(...(next.records ?? []));
   }
@@ -74,7 +73,14 @@ const buildMapData = async (
   fipsList: string[],
   onProgress: (done: number, total: number) => void,
 ): Promise<{ data: MapData; failures: number }> => {
+  const summary = await apiClient.get<{ states: Record<string, StateMetrics> }>(
+    '/api/roi/map_summary',
+  );
   const metrics: Record<string, StateMetrics> = {};
+  for (const fips of fipsList) {
+    const stateMetrics = summary.states[toApiFips(fips)];
+    if (stateMetrics) metrics[fips] = stateMetrics;
+  }
   const topCareers: Record<string, CareerROI[]> = {};
   const queue = [...fipsList];
   let done = 0;
@@ -92,7 +98,7 @@ const buildMapData = async (
           records = await fetchStateRecords(fips);
         }
         if (records.length > 0) {
-          metrics[fips] = computeStateMetrics(records);
+          // The summary is calculated over all state rows; records are only used for the detail sheet.
           topCareers[fips] = [...records]
             .sort((a, b) => (Number(b.roi_percentage) || 0) - (Number(a.roi_percentage) || 0))
             .slice(0, 5);

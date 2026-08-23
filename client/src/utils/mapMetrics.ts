@@ -1,6 +1,6 @@
 import { CareerROI } from '../types';
 
-export type MetricKey = 'avg_salary' | 'adjusted_salary' | 'high_roi' | 'demand';
+export type MetricKey = 'avg_salary' | 'adjusted_salary' | 'median_roi' | 'demand' | 'high_roi';
 
 export interface MetricDef {
   key: MetricKey;
@@ -14,6 +14,7 @@ export interface StateMetrics {
   hasRecords: boolean;
   avgSalary: number | null;
   adjustedSalary: number | null;
+  medianRoi: number | null;
   highRoiCount: number;
   demandCount: number;
   demandAvgRank: number | null;
@@ -24,12 +25,12 @@ export const HIGH_ROI_THRESHOLD = 15;
 export const METRICS: MetricDef[] = [
   { key: 'avg_salary', label: 'Avg salary', inverted: false },
   { key: 'adjusted_salary', label: 'Adjusted salary', inverted: false },
-  { key: 'high_roi', label: 'High ROI count', inverted: false },
+  { key: 'median_roi', label: 'Median ROI', inverted: false },
   { key: 'demand', label: 'Demand hotspots', inverted: true },
 ];
 
 const METRIC_BY_KEY: Record<MetricKey, MetricDef> = Object.fromEntries(
-  METRICS.map(m => [m.key, m]),
+  [...METRICS, { key: 'high_roi', label: 'High ROI count', inverted: false }].map(m => [m.key, m]),
 ) as Record<MetricKey, MetricDef>;
 
 export const getMetricDef = (key: MetricKey): MetricDef => METRIC_BY_KEY[key];
@@ -43,9 +44,17 @@ const toNumber = (value: unknown): number | null => {
 const mean = (values: number[]): number | null =>
   values.length === 0 ? null : values.reduce((sum, v) => sum + v, 0) / values.length;
 
+const median = (values: number[]): number | null => {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+};
+
 export const computeStateMetrics = (records: CareerROI[]): StateMetrics => {
   const salaries: number[] = [];
   const adjustedSalaries: number[] = [];
+  const rois: number[] = [];
   let highRoiCount = 0;
   let demandCount = 0;
   const demandRanks: number[] = [];
@@ -59,7 +68,10 @@ export const computeStateMetrics = (records: CareerROI[]): StateMetrics => {
     const adjusted = toNumber(record.adjusted_salary);
     if (adjusted !== null) adjustedSalaries.push(adjusted);
     const roi = toNumber(record.roi_percentage);
-    if (roi !== null && roi >= HIGH_ROI_THRESHOLD) highRoiCount += 1;
+    if (roi !== null) {
+      rois.push(roi);
+      if (roi >= HIGH_ROI_THRESHOLD) highRoiCount += 1;
+    }
     const hasDemandInfo =
       toNumber(record.demand_score) !== null || record.demand_rank != null;
     if (hasDemandInfo) {
@@ -73,6 +85,7 @@ export const computeStateMetrics = (records: CareerROI[]): StateMetrics => {
     hasRecords,
     avgSalary: mean(salaries),
     adjustedSalary: mean(adjustedSalaries),
+    medianRoi: median(rois),
     highRoiCount,
     demandCount,
     demandAvgRank: mean(demandRanks),
@@ -90,6 +103,8 @@ export const getStateMetricValue = (
       return metrics.avgSalary;
     case 'adjusted_salary':
       return metrics.adjustedSalary;
+    case 'median_roi':
+      return metrics.medianRoi;
     case 'high_roi':
       // Record presence, not salary presence, decides whether ROI data exists.
       return metrics.hasRecords ? metrics.highRoiCount : null;
@@ -110,6 +125,8 @@ export const formatMetricValue = (key: MetricKey, value: number | null): string 
     case 'avg_salary':
     case 'adjusted_salary':
       return `$${Math.round(value).toLocaleString('en-US')}`;
+    case 'median_roi':
+      return `${value.toFixed(1)}% median ROI`;
     case 'high_roi':
       return `${value} career${value === 1 ? '' : 's'} with ROI ≥ ${HIGH_ROI_THRESHOLD}%`;
     case 'demand':
@@ -124,6 +141,8 @@ export const formatLegendLabel = (key: MetricKey, value: number): string => {
     case 'avg_salary':
     case 'adjusted_salary':
       return `$${Math.round(value / 1000)}k`;
+    case 'median_roi':
+      return `${value.toFixed(1)}%`;
     case 'high_roi':
       return String(Math.round(value));
     case 'demand':

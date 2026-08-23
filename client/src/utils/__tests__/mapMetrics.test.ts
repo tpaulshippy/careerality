@@ -56,6 +56,16 @@ describe('computeStateMetrics', () => {
     expect(metrics.adjustedSalary).toBe(40000);
   });
 
+  it('calculates median ROI for state comparisons', () => {
+    const metrics = computeStateMetrics([
+      makeRecord({ roi_percentage: '6' }),
+      makeRecord({ roi_percentage: '12' }),
+      makeRecord({ roi_percentage: '9' }),
+      makeRecord({ roi_percentage: '30' }),
+    ]);
+    expect(metrics.medianRoi).toBe(10.5);
+  });
+
   it('returns empty-safe results for an empty record list', () => {
     const metrics = computeStateMetrics([]);
     expect(metrics.avgSalary).toBeNull();

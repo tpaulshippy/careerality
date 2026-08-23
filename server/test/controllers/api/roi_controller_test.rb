@@ -95,4 +95,18 @@ class Api::RoiControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes ids, target.id
     assert_includes ids, other.id
   end
+
+  test "map summary aggregates state rows" do
+    make_roi("16-6003.00", area_code: "7", demand_score: 0.5, roi_percentage: 6.0)
+    make_roi("16-6004.00", area_code: "7", demand_score: nil, roi_percentage: 14.0)
+    make_roi("16-6005.00", area_code: "7", demand_score: 0.2, roi_percentage: 20.0)
+    make_roi("16-6006.00", area_code: "99", demand_score: 0.9, roi_percentage: 40.0)
+
+    get map_summary_api_roi_index_path
+    assert_response :success
+    summary = response.parsed_body.fetch("states").fetch("7")
+    assert_equal 1, summary["highRoiCount"]
+    assert_equal 14.0, summary["medianRoi"]
+    assert_equal 2, summary["demandCount"]
+  end
 end

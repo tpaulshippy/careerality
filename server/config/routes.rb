@@ -13,6 +13,7 @@ Rails.application.routes.draw do
         get :by_roi
         get :by_breakeven
         get :search
+        get :map_summary
       end
     end
     resources :areas, only: [] do

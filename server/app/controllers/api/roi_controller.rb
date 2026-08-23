@@ -113,6 +113,36 @@ pagy, records = pagy(roi_records.includes(:career_content), items: 50)
     end
   end
 
+  def map_summary
+    rows = CareerRoi
+      .where("area_code ~ ? AND area_code <> ?", "^[0-9]{1,2}$", "99")
+      .group(:area_code)
+      .pluck(
+        :area_code,
+        Arel.sql("COUNT(*)"),
+        Arel.sql("AVG(annual_median_salary)"),
+        Arel.sql("AVG(adjusted_salary)"),
+        Arel.sql("PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY roi_percentage)"),
+        Arel.sql("COUNT(*) FILTER (WHERE roi_percentage >= #{HIGH_ROI_THRESHOLD})"),
+        Arel.sql("COUNT(*) FILTER (WHERE demand_score IS NOT NULL OR demand_rank IS NOT NULL)"),
+        Arel.sql("AVG(demand_rank) FILTER (WHERE demand_rank IS NOT NULL)")
+      )
+
+    render json: {
+      states: rows.to_h do |area_code, count, avg_salary, adjusted_salary, median_roi, high_roi_count, demand_count, demand_avg_rank|
+        [area_code, {
+          hasRecords: count.positive?,
+          avgSalary: avg_salary&.to_f,
+          adjustedSalary: adjusted_salary&.to_f,
+          medianRoi: median_roi&.to_f,
+          highRoiCount: high_roi_count,
+          demandCount: demand_count,
+          demandAvgRank: demand_avg_rank&.to_f
+        }]
+      end
+    }
+  end
+
   private
 
   def area_name
@@ -121,4 +151,6 @@ pagy, records = pagy(roi_records.includes(:career_content), items: 50)
     area_name = CareerRoi.where(area_code: area_code).pick(:area_name)
     area_name || "State #{area_code}"
   end
+
+  HIGH_ROI_THRESHOLD = 15
 end
