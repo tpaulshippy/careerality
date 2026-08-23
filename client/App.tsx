@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Text, StyleSheet, TextStyle, View, ViewStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DiscoverScreen, DataSourcesScreen, LikedScreen, CompareScreen, SearchScreen, RealityCheckScreen, InsightsScreen } from './src/screens';
+import { DiscoverScreen, DataSourcesScreen, LikedScreen, CompareScreen, ProgressScreen, SearchScreen, RealityCheckScreen, InsightsScreen } from './src/screens';
 import { CustomDrawerContent, OnboardingQuiz } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
 import { useLocalStorage } from './src/hooks/useLocalStorage';
@@ -130,6 +130,16 @@ export default function App() {
             title: 'Liked Careers',
             drawerIcon: () => (
               <Text style={styles.icon}>❤️</Text>
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="Progress"
+          component={ProgressScreen}
+          options={{
+            title: 'Your Progress',
+            drawerIcon: () => (
+              <Text style={styles.icon}>🏆</Text>
             ),
           }}
         />

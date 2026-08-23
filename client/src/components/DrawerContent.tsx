@@ -4,10 +4,11 @@ import { DrawerContentScrollView, DrawerItemList, DrawerItem, DrawerContentCompo
 import { useTheme } from '../hooks/useTheme';
 import { GIT_COMMIT_PREFIX } from '../constants/version';
 import { apiClient } from '../api/client';
+import { resetGamification } from '../hooks/useGamification';
 import * as Updates from 'expo-updates';
 
 const DELETE_CONFIRM_TITLE = 'Delete My Data';
-const DELETE_CONFIRM_MESSAGE = 'This permanently deletes all of your swipe history. This cannot be undone.';
+const DELETE_CONFIRM_MESSAGE = 'This permanently deletes all of your swipe history and progress. This cannot be undone.';
 const DISCLAIMER_TEXT = 'Careerality is an independent app and is not affiliated with, endorsed by, or representing any government agency or entity.';
 
 const confirmDelete = (): Promise<boolean> => {
@@ -43,6 +44,7 @@ export const CustomDrawerContent: React.FC<CustomDrawerContentProps> = ({ onReta
     if (!confirmed) return;
     try {
       await apiClient.deleteAllSwipes();
+      await resetGamification();
       setDeleteMessage('Your data has been deleted');
     } catch (error) {
       setDeleteMessage(error instanceof Error ? error.message : 'Failed to delete data');
