@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
 import { useSwipe } from '../hooks/useSwipe';
@@ -29,6 +29,7 @@ interface DiscoverScreenProps {
 export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled }) => {
   const theme = useTheme();
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<{ Discover: { stateCode?: string } | undefined }, 'Discover'>>();
   const [careers, setCareers] = useState<CareerROI[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -114,6 +115,17 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
   useEffect(() => {
     fetchCareers();
   }, [fetchCareers]);
+
+  // Apply a state filter handed over from the Map screen (Discover is often
+  // already mounted, so persisted-storage updates alone wouldn't refetch).
+  const appliedRouteStateRef = useRef<string | null>(null);
+  useEffect(() => {
+    const routeStateCode = route.params?.stateCode;
+    if (routeStateCode && routeStateCode !== appliedRouteStateRef.current) {
+      appliedRouteStateRef.current = routeStateCode;
+      setStateCode(routeStateCode);
+    }
+  }, [route.params?.stateCode, setStateCode]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
