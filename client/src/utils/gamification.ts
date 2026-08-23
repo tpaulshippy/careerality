@@ -60,9 +60,14 @@ export interface GamificationState {
 export const GAMIFICATION_STATE_VERSION = 1;
 const MAX_EVENTS = 200;
 const DAY_MS = 86_400_000;
+/** Idempotency markers only matter for the current UTC day; keep a small tail. */
+const IDEMPOTENCY_RETENTION_DAYS = 2;
 
 const GRADUATE_EDUCATION_PATTERN = /master|doctoral|professional|graduate/i;
-const SKILL_FIRST_EDUCATION_PATTERN = /less than high school|high school diploma|no formal/i;
+// Data loaders emit "Postsecondary certificate" and "Some college"/
+// "Some college, no degree"; all are non-degree paths (data/load.py, data/transform.py).
+const SKILL_FIRST_EDUCATION_PATTERN =
+  /less than high school|high school diploma|postsecondary certificate|some college|no formal/i;
 
 // ---------------------------------------------------------------------------
 // Date helpers (UTC-safe)
@@ -91,7 +96,7 @@ export const shiftDateKey = (key: string, days: number): string =>
 
 /**
  * Cumulative XP required to reach `level`.
- * Reaching level n costs 100 * n * (n + 1) / 2 XP on top of level n-1,
+ * Each level costs 100 more XP than the one before it (level n needs 100 * (n - 1)),
  * so xpForLevel(1)=0, xpForLevel(2)=100, xpForLevel(3)=300, xpForLevel(4)=600...
  */
 export const xpForLevel = (level: number): number => {
@@ -324,6 +329,19 @@ const noopResult = (state: GamificationState, level: number): AwardResult => ({
 const uniqPush = (list: string[], value: string): string[] =>
   list.includes(value) ? list : [...list, value];
 
+/** Drops idempotency markers too old to ever match again, bounding the map size. */
+const pruneDailyIdempotency = (
+  map: Record<string, number>,
+  today: string,
+): Record<string, number> => {
+  const cutoff = shiftDateKey(today, -(IDEMPOTENCY_RETENTION_DAYS - 1));
+  const pruned: Record<string, number> = {};
+  for (const key of Object.keys(map)) {
+    if (key.slice(0, 10) >= cutoff) pruned[key] = map[key];
+  }
+  return pruned;
+};
+
 const applyLikeAggregates = (state: GamificationState, career: CareerROI): void => {
   if (career.occupation_code) {
     state.likedGroups = uniqPush(state.likedGroups, getOccupationGroup(career.occupation_code));
@@ -380,7 +398,7 @@ export const award = (state: GamificationState, event: XpEvent, now: Date = new 
     }
 
     const next: GamificationState = { ...state };
-    next.dailyIdempotency = { ...state.dailyIdempotency, [key]: 1 };
+    next.dailyIdempotency = pruneDailyIdempotency({ ...state.dailyIdempotency, [key]: 1 }, dateKey);
     return commitAward(next, event, now, dateKey, previousLevel);
   }
 

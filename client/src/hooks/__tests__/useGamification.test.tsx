@@ -1,8 +1,14 @@
 import React from 'react';
 import { render, act } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useGamification, UseGamificationResult } from '../useGamification';
-import { XpEvent } from '../../utils/gamification';
+import {
+  useGamification,
+  UseGamificationResult,
+  resetGamification,
+  __resetGamificationForTests,
+  GAMIFICATION_STORAGE_KEY,
+} from '../useGamification';
+import { AwardResult, XpEvent } from '../../utils/gamification';
 import { CareerROI } from '../../types';
 
 let latest: UseGamificationResult | null = null;
@@ -69,8 +75,11 @@ const writtenState = (): {
 
 describe('useGamification', () => {
   beforeEach(async () => {
+    // Tear down the module-level singleton so each test re-hydrates from storage.
+    __resetGamificationForTests();
     await AsyncStorage.clear();
     (AsyncStorage.setItem as jest.Mock).mockClear();
+    (AsyncStorage.removeItem as jest.Mock).mockClear();
   });
 
   it('starts empty', async () => {
@@ -146,5 +155,88 @@ describe('useGamification', () => {
       latest?.dismissXpPill();
     });
     expect(latest?.xpPill).toBeNull();
+  });
+
+  it('queues events fired before hydration and replays them', async () => {
+    // Hold the storage read open so hydration stays pending.
+    let resolveRead: (value: string | null) => void = () => undefined;
+    (AsyncStorage.getItem as jest.Mock).mockImplementationOnce(
+      () => new Promise<string | null>((resolve) => {
+        resolveRead = resolve;
+      }),
+    );
+
+    latest = null;
+    await render(<Probe />);
+    await flush();
+    const view = latest as UseGamificationResult | null;
+    expect(view?.isLoaded).toBe(false);
+    let result: AwardResult | null | undefined;
+    await act(async () => {
+      result = view?.trackEvent({ type: 'swipe_right', career: career(1) });
+    });
+    // Hydration pending: the event is queued, nothing applied yet.
+    expect(result).toBeNull();
+    expect(view?.state.xp).toBe(0);
+
+    await act(async () => {
+      resolveRead(null);
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    });
+
+    const hydrated = latest as UseGamificationResult | null;
+    expect(hydrated?.isLoaded).toBe(true);
+    expect(hydrated?.state.xp).toBe(10);
+    expect(writtenState().xp).toBe(10);
+  });
+
+  it('shares one store across mounted consumers', async () => {
+    const results: UseGamificationResult[] = [];
+    const ProbeA = (): null => {
+      results[0] = useGamification();
+      return null;
+    };
+    const ProbeB = (): null => {
+      results[1] = useGamification();
+      return null;
+    };
+
+    await render(
+      <>
+        <ProbeA />
+        <ProbeB />
+      </>,
+    );
+    await flush();
+
+    await act(async () => {
+      results[0]?.trackEvent({ type: 'swipe_right', career: career(1) });
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    });
+    // Re-read after the commit so both probes reflect the shared store.
+    expect(results[0]?.state.xp).toBe(10);
+    expect(results[1]?.state.xp).toBe(10);
+    expect(results[1]?.state.totalReviews).toBe(1);
+  });
+
+  it('resetGamification wipes storage and resets mounted consumers', async () => {
+    await mount();
+    await track({ type: 'swipe_right', career: career(1) }, { type: 'feedback' });
+    expect(latest?.state.xp).toBe(20);
+
+    await act(async () => {
+      await resetGamification();
+    });
+
+    expect(latest?.state.xp).toBe(0);
+    expect(latest?.state.totalReviews).toBe(0);
+    expect(latest?.state.achievements).toEqual({});
+    const removals = (AsyncStorage.removeItem as jest.Mock).mock.calls;
+    expect(removals[removals.length - 1][0]).toBe(GAMIFICATION_STORAGE_KEY);
+
+    // Remount stays empty because the stored blob was removed.
+    await mount();
+    expect(latest?.state.xp).toBe(0);
+    expect(latest?.isLoaded).toBe(true);
   });
 });

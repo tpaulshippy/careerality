@@ -37,6 +37,8 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({ level, onDismiss
 
   useEffect(() => {
     if (level === null) return undefined;
+    // Reset from the previous run so every celebration starts its full fall.
+    animsRef.current.forEach((value) => value.setValue(0));
     const animations = pieces.map((piece, i) =>
       Animated.sequence([
         Animated.delay(piece.delay),
@@ -54,7 +56,7 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({ level, onDismiss
   if (level === null) return null;
 
   return (
-    <Modal transparent visible animationType="fade" statusBarTranslucent>
+    <Modal transparent visible animationType="fade" statusBarTranslucent onRequestClose={onDismiss}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onDismiss}>
         {pieces.map((piece, i) => (
           <Animated.View

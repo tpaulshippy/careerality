@@ -213,6 +213,27 @@ describe('daily idempotency', () => {
     }
     expect(state.xp).toBe(30);
   });
+
+  it('prunes idempotency markers older than their useful window', () => {
+    let state = empty();
+    state = award(state, { type: 'compare', subjectId: 'stale' }, at('2026-01-01T00:00:00Z')).state;
+    state = award(state, { type: 'detail_view', career: mkCareer({ id: 7 }) }, at('2026-03-09T12:00:00Z')).state;
+
+    const freshDay = award(state, { type: 'detail_view', career: mkCareer({ id: 8 }) }, at('2026-03-10T12:00:00Z'));
+    expect(freshDay.awarded).toBe(true);
+    const keys = Object.keys(freshDay.state.dailyIdempotency);
+    expect(keys.some((key) => key.includes('stale'))).toBe(false);
+    expect(keys).toContain('2026-03-10|detail_view|8');
+    // Yesterday stays within the retention tail...
+    expect(keys).toContain('2026-03-09|detail_view|7');
+    // ...and today's markers still dedupe within the day.
+    const dup = award(
+      freshDay.state,
+      { type: 'detail_view', career: mkCareer({ id: 8 }) },
+      at('2026-03-10T18:00:00Z'),
+    );
+    expect(dup.awarded).toBe(false);
+  });
 });
 
 describe('streaks', () => {
@@ -367,12 +388,21 @@ describe('achievements', () => {
   it('skill-first detects no-degree careers', () => {
     const def = ACHIEVEMENTS.find((a) => a.id === 'skill-first')!;
     expect(def.check(computeStats(empty()))).toBe(false);
-    const noDegree = swipeRight(empty(), mkCareer({ education_level: 'Less than high school' })).state;
-    expect(def.check(computeStats(noDegree))).toBe(true);
-    const hs = swipeRight(empty(), mkCareer({ education_level: 'High school diploma' })).state;
-    expect(def.check(computeStats(hs))).toBe(true);
-    const degree = swipeRight(empty(), mkCareer({ education_level: 'Some college' })).state;
-    expect(def.check(computeStats(degree))).toBe(false);
+    // Levels emitted by data/load.py and data/transform.py.
+    for (const level of [
+      'Less than high school',
+      'High school diploma',
+      'Postsecondary certificate',
+      'Some college',
+      'Some college, no degree',
+    ]) {
+      const liked = swipeRight(empty(), mkCareer({ education_level: level })).state;
+      expect(def.check(computeStats(liked))).toBe(true);
+    }
+    for (const level of ["Associate's degree", "Bachelor's degree", "Master's degree"]) {
+      const liked = swipeRight(empty(), mkCareer({ education_level: level })).state;
+      expect(def.check(computeStats(liked))).toBe(false);
+    }
   });
 
   it('unlocks achievements inside award with unlock timestamps', () => {
