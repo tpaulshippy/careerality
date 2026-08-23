@@ -91,5 +91,5 @@ export const useLocalStorage = <T>(key: string, initialValue: T): UseLocalStorag
 
   // Fourth element lets callers gate rendering until persisted state has loaded
   // (e.g. first-launch onboarding must not flash over returning users).
-  return [isLoaded ? storedValue : initialValue, setValue, removeValue, isLoaded];
+  return [storedValue, setValue, removeValue, isLoaded];
 };

@@ -63,7 +63,7 @@ export default function App() {
   }, [showMatchBanner]);
 
   if (!onboardedLoaded) {
-    return <View style={styles.root} />;
+    return <View style={[styles.root, { backgroundColor: theme.colors.background }]} />;
   }
 
   const showQuiz = quizActiveOverride ?? !onboardedFlag;
@@ -89,7 +89,7 @@ export default function App() {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
       <NavigationContainer theme={navigationTheme}>
         <Drawer.Navigator
           key={navEpoch}
@@ -158,7 +158,6 @@ export default function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: lightColors.background,
   } as ViewStyle,
   icon: {
     fontSize: 20,
