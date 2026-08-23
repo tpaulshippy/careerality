@@ -236,7 +236,6 @@ export const SearchScreen: React.FC = () => {
             placeholder="Search careers…"
             placeholderTextColor={theme.colors.text.muted}
             value={query}
-            autoFocus
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"

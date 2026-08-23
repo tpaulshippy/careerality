@@ -32,6 +32,6 @@ jobs:
         run: |
           rm -rf dist
           npx expo export --platform ios --no-bytecode --output-dir dist --clear
-          npx eas update --branch production --environment production \
+          npx eas update --channel testflight --environment production \
             --input-dir dist --skip-bundler \
             --message "Manual OTA from ${{ github.sha }}"
