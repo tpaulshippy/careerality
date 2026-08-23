@@ -1,6 +1,7 @@
 export { Button } from './Button';
 export { Card } from './Card';
 export { CareerDetailView } from './CareerDetailView';
+export { CareerPickerModal } from './CareerPickerModal';
 export { CustomDrawerContent } from './DrawerContent';
 export { ErrorView } from './ErrorView';
 export { FeedbackModal } from './FeedbackModal';
