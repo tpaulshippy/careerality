@@ -21,7 +21,12 @@ const SORT_LABELS: Record<SortOption, string> = {
   demand: 'Demand',
 };
 
-export const DiscoverScreen: React.FC = () => {
+interface DiscoverScreenProps {
+  // Search lives behind the experimental-screens flag; hidden unless enabled.
+  searchEnabled?: boolean;
+}
+
+export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled }) => {
   const theme = useTheme();
   const navigation = useNavigation();
   const [careers, setCareers] = useState<CareerROI[]>([]);
@@ -244,11 +249,18 @@ export const DiscoverScreen: React.FC = () => {
             {currentIndex} of {cards.length} reviewed
           </Text>
         )}
-        <TouchableOpacity onPress={() => setFilterSheetVisible(true)}>
-          <Text style={{ color: theme.colors.primary }}>
-            {filters.sortBy !== 'roi' ? `Filter · ${SORT_LABELS[filters.sortBy]}` : 'Filter'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {searchEnabled && (
+            <TouchableOpacity onPress={() => navigation.navigate('Search')} aria-label="Search careers">
+              <Text style={styles.searchShortcut}>🔍</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => setFilterSheetVisible(true)}>
+            <Text style={{ color: theme.colors.primary }}>
+              {filters.sortBy !== 'roi' ? `Filter · ${SORT_LABELS[filters.sortBy]}` : 'Filter'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.cardContainer}>
@@ -382,4 +394,12 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 4,
   } as ViewStyle,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  } as ViewStyle,
+  searchShortcut: {
+    fontSize: 18,
+  } as TextStyle,
 });

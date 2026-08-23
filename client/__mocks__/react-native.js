@@ -1,10 +1,11 @@
-const animValue = () => ({
-  setValue: jest.fn(),
-  stopAnimation: jest.fn(),
-  addListener: jest.fn(() => jest.fn()),
-  removeListener: jest.fn(),
-  interpolate: jest.fn(() => ({ valueOf: () => 0 })),
-});
+class AnimatedValue {
+  constructor(v) { this._value = v; }
+  setValue(v) { this._value = v; }
+  stopAnimation() {}
+  interpolate(config) { return config.outputRange[0]; }
+  addListener() { return 1; }
+  removeListener() {}
+}
 
 module.exports = {
   View: 'View',
@@ -32,7 +33,7 @@ module.exports = {
     back: () => (t) => t,
   },
   Animated: {
-    Value: jest.fn(() => animValue()),
+    Value: AnimatedValue,
     timing: () => ({ start: (cb) => cb && cb({ finished: true }), stop: jest.fn() }),
     sequence: () => ({ start: (cb) => cb && cb({ finished: true }), stop: jest.fn() }),
     parallel: () => ({ start: (cb) => cb && cb({ finished: true }), stop: jest.fn() }),
