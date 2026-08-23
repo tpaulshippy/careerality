@@ -193,6 +193,20 @@ export const MapScreen: React.FC = () => {
   const selectedTopCareers =
     selectedFips !== null ? data.topCareers[selectedFips] ?? [] : [];
 
+  const rankedStates = useMemo(() => {
+    return US_STATES_PATHS.map(state => ({
+      ...state,
+      value: getStateMetricValue(data.metrics[state.fips], metricKey),
+    }))
+      .filter(state => state.value !== null)
+      .sort((a, b) => {
+        const aValue = a.value as number;
+        const bValue = b.value as number;
+        return activeMetric.inverted ? aValue - bValue : bValue - aValue;
+      })
+      .slice(0, 5);
+  }, [data.metrics, metricKey, activeMetric.inverted]);
+
   if (status === 'loading') {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -286,6 +300,47 @@ export const MapScreen: React.FC = () => {
               )}
             </View>
           </View>
+        </View>
+
+        <View style={styles.rankingsSection}>
+          <View style={styles.rankingsHeader}>
+            <View style={styles.rankingsHeading}>
+              <Text style={[styles.rankingsTitle, { color: theme.colors.text.primary }]}>
+                Best states for {activeMetric.label.toLowerCase()}
+              </Text>
+              <Text style={[styles.rankingsSubtitle, { color: theme.colors.text.secondary }]}>
+                Tap a state to see its strongest career options.
+              </Text>
+            </View>
+            {rankedStates.length > 0 && (
+              <Text style={[styles.rankingsCount, { color: theme.colors.text.muted }]}>Top 5</Text>
+            )}
+          </View>
+
+          {rankedStates.length === 0 ? (
+            <View style={[styles.emptyRanking, { backgroundColor: theme.colors.surface }]}>
+              <Text style={[styles.emptyRankingText, { color: theme.colors.text.secondary }]}>No ranked states yet</Text>
+            </View>
+          ) : (
+            rankedStates.map((state, index) => (
+              <TouchableOpacity
+                key={state.fips}
+                style={[styles.stateRankingRow, { backgroundColor: theme.colors.surface }]}
+                onPress={() => setSelectedFips(state.fips)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.rankNumber, { color: theme.colors.text.muted }]}>0{index + 1}</Text>
+                <View style={styles.rankStateInfo}>
+                  <Text style={[styles.rankStateName, { color: theme.colors.text.primary }]}>{state.name}</Text>
+                  <Text style={[styles.rankStateHint, { color: theme.colors.text.secondary }]}>View career options</Text>
+                </View>
+                <Text style={[styles.rankValue, { color: theme.colors.primary }]}>
+                  {formatMetricValue(metricKey, state.value)}
+                </Text>
+                <Text style={[styles.rankArrow, { color: theme.colors.text.muted }]}>›</Text>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         <Text style={[styles.sourceNote, { color: theme.colors.text.muted }]}>
@@ -414,6 +469,75 @@ const styles = StyleSheet.create({
   legendSegment: {
     flex: 1,
   } as ViewStyle,
+  rankingsSection: {
+    marginTop: 24,
+  } as ViewStyle,
+  rankingsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  } as ViewStyle,
+  rankingsHeading: {
+    flex: 1,
+  } as ViewStyle,
+  rankingsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  } as TextStyle,
+  rankingsSubtitle: {
+    fontSize: 13,
+    marginTop: 3,
+  } as TextStyle,
+  rankingsCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
+  } as TextStyle,
+  stateRankingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 68,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  } as ViewStyle,
+  rankNumber: {
+    width: 28,
+    fontSize: 13,
+    fontWeight: '700',
+  } as TextStyle,
+  rankStateInfo: {
+    flex: 1,
+    marginRight: 8,
+  } as ViewStyle,
+  rankStateName: {
+    fontSize: 16,
+    fontWeight: '700',
+  } as TextStyle,
+  rankStateHint: {
+    fontSize: 12,
+    marginTop: 3,
+  } as TextStyle,
+  rankValue: {
+    maxWidth: 142,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'right',
+  } as TextStyle,
+  rankArrow: {
+    fontSize: 24,
+    lineHeight: 24,
+    marginLeft: 8,
+  } as TextStyle,
+  emptyRanking: {
+    borderRadius: 12,
+    padding: 18,
+  } as ViewStyle,
+  emptyRankingText: {
+    fontSize: 14,
+    textAlign: 'center',
+  } as TextStyle,
   legendLabel: {
     fontSize: 12,
     marginHorizontal: 6,
