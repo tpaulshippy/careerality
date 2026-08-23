@@ -2,8 +2,17 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { DATA_SOURCES } from '../constants/dataSources';
 import { useTheme } from '../hooks/useTheme';
+import { Button } from '../components/Button';
 
-export const DataSourcesScreen: React.FC = () => {
+interface DataSourcesScreenProps {
+  experimentalEnabled?: boolean;
+  onEnableExperimental?: () => void;
+}
+
+export const DataSourcesScreen: React.FC<DataSourcesScreenProps> = ({
+  experimentalEnabled,
+  onEnableExperimental,
+}) => {
   const theme = useTheme();
   
   return (
@@ -37,6 +46,15 @@ export const DataSourcesScreen: React.FC = () => {
           This application is for informational purposes only. Salary figures and career projections are based on historical data and may not guarantee future earnings. Employment outcomes vary based on individual factors, location, economic conditions, and other variables. Always conduct your own research and consult with financial and career advisors before making investment decisions about education.
         </Text>
       </View>
+
+      {onEnableExperimental && !experimentalEnabled && (
+        <View style={styles.experimental}>
+          <Button title="Enable experimental features" onPress={onEnableExperimental} />
+          <Text style={[styles.experimentalNote, { color: theme.colors.text.muted }]}>
+            Adds Search and Reality Check to the menu. These features are still in development.
+          </Text>
+        </View>
+      )}
 
       <Text style={[styles.modeIndicator, { color: theme.colors.text.muted }]}>
         Mode: {theme.isDark ? 'Dark' : 'Light'}
@@ -121,6 +139,15 @@ const styles = StyleSheet.create({
   } as TextStyle,
   disclaimerText: {
     fontSize: 12,
+  } as TextStyle,
+  experimental: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  } as ViewStyle,
+  experimentalNote: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   } as TextStyle,
   modeIndicator: {
     textAlign: 'center',

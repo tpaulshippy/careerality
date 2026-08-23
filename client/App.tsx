@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Text, StyleSheet, TextStyle, View, ViewStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DiscoverScreen, DataSourcesScreen, LikedScreen, ActionPlansScreen } from './src/screens';
+import { DiscoverScreen, DataSourcesScreen, LikedScreen, ActionPlansScreen, SearchScreen, RealityCheckScreen, InsightsScreen } from './src/screens';
 import { CustomDrawerContent, OnboardingQuiz } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
 import { useLocalStorage } from './src/hooks/useLocalStorage';
 import { useFilters } from './src/hooks/useFilters';
 import { lightColors, darkColors } from './src/constants/theme';
 import { ONBOARDING_STORAGE_KEYS, OnboardingPayload } from './src/utils/onboarding';
+import { EXPERIMENTAL_SCREENS_STORAGE_KEY } from './src/constants/features';
 
 const Drawer = createDrawerNavigator();
 
@@ -45,6 +46,10 @@ export default function App() {
     false,
   );
   const [, setEduPrefStored] = useLocalStorage(ONBOARDING_STORAGE_KEYS.eduPref, 'any');
+  const [experimentalScreens, setExperimentalScreens] = useLocalStorage(
+    EXPERIMENTAL_SCREENS_STORAGE_KEY,
+    false,
+  );
   // App owns all persistence so queued writes always process even though the
   // quiz unmounts on finish (writes from an unmounting component are dropped).
   const { setStateCode, setSalaryMin, setSortBy } = useFilters();
@@ -93,6 +98,7 @@ export default function App() {
       <NavigationContainer theme={navigationTheme}>
         <Drawer.Navigator
           key={navEpoch}
+          initialRouteName="Discover"
           drawerContent={(props) => (
             <CustomDrawerContent {...props} onRetakeOnboarding={handleRetakeOnboarding} />
           )}
@@ -106,18 +112,19 @@ export default function App() {
           drawerLabelStyle: { marginLeft: 8, fontSize: 16 },
         }}
       >
-        <Drawer.Screen 
-          name="Discover" 
-          component={DiscoverScreen}
+        <Drawer.Screen
+          name="Discover"
           options={{
             title: 'Discover',
             drawerIcon: () => (
               <Text style={styles.icon}>🔍</Text>
             ),
           }}
-        />
-        <Drawer.Screen 
-          name="Liked" 
+        >
+          {() => <DiscoverScreen searchEnabled={experimentalScreens} />}
+        </Drawer.Screen>
+        <Drawer.Screen
+          name="Liked"
           component={LikedScreen}
           options={{
             title: 'Liked Careers',
@@ -136,16 +143,56 @@ export default function App() {
             ),
           }}
         />
-        <Drawer.Screen 
-          name="DataSources" 
-          component={DataSourcesScreen}
+        <Drawer.Screen
+          name="Insights"
+          component={InsightsScreen}
+          options={{
+            title: 'My Insights',
+            drawerIcon: () => (
+              <Text style={styles.icon}>📊</Text>
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="DataSources"
           options={{
             title: 'Data Sources',
             drawerIcon: () => (
               <Text style={styles.icon}>📁</Text>
             ),
           }}
-        />
+        >
+          {() => (
+            <DataSourcesScreen
+              experimentalEnabled={experimentalScreens}
+              onEnableExperimental={() => setExperimentalScreens(true)}
+            />
+          )}
+        </Drawer.Screen>
+        {experimentalScreens && (
+          <Drawer.Screen
+            name="Search"
+            component={SearchScreen}
+            options={{
+              title: 'Search',
+              drawerIcon: () => (
+                <Text style={styles.icon}>🔎</Text>
+              ),
+            }}
+          />
+        )}
+        {experimentalScreens && (
+          <Drawer.Screen
+            name="RealityCheck"
+            component={RealityCheckScreen}
+            options={{
+              title: 'Reality Check',
+              drawerIcon: () => (
+                <Text style={styles.icon}>💵</Text>
+              ),
+            }}
+          />
+        )}
       </Drawer.Navigator>
       </NavigationContainer>
       {showQuiz && <OnboardingQuiz onFinish={handleQuizFinish} />}

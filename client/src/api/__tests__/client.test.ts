@@ -70,6 +70,25 @@ describe('ApiClient', () => {
     expect(err.message).toBe('Request timed out');
   });
 
+  it('rethrows AbortError instead of ApiTimeoutError when the caller aborts', async () => {
+    global.fetch = jest.fn(((_url: string, options: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        options.signal?.addEventListener('abort', () => {
+          reject(new DOMException('The operation was aborted', 'AbortError'));
+        });
+      });
+    }) as unknown as typeof fetch);
+
+    const controller = new AbortController();
+    const promise = apiClient.searchCareers('nursing', controller.signal);
+    const errPromise = promise.catch(e => e);
+    controller.abort();
+
+    const err = await errPromise;
+    expect(err).not.toBeInstanceOf(ApiTimeoutError);
+    expect(err.name).toBe('AbortError');
+  });
+
   it('submitSwipe includes feedback in the POST body when provided', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
