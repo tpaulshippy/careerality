@@ -17,8 +17,7 @@ interface LikedRecord extends CareerROI {
 
 export const LikedScreen: React.FC = () => {
   const theme = useTheme();
-  const navigation = useNavigation<{ navigate: (name: string, params?: { occupationCode?: string }) => void }>();
-  const navigation = useNavigation<{ navigate: (name: string, params?: object) => void }>();
+  const navigation = useNavigation<{ navigate: (name: string, params?: { occupationCode?: string; ids?: number[] }) => void }>();
   const [records, setRecords] = useState<LikedRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
