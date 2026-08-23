@@ -136,6 +136,9 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     addListener: jest.fn(() => jest.fn()),
   }),
+  useRoute: () => ({
+    params: {},
+  }),
 }));
 
 const submitSwipeMock = apiClient.submitSwipe as jest.Mock;
