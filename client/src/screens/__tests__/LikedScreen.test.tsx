@@ -57,7 +57,7 @@ describe('LikedScreen', () => {
     (apiClient.getLikedCareers as jest.Mock).mockReset();
   });
 
-  it('gives each plan button an accessible role and career-specific label', async () => {
+  it('gives each plan button an accessible role and career-specific label when plans are enabled', async () => {
     (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
       records: [
         { ...makeCareer({ id: 1 }), swipe_id: 7 },
@@ -67,7 +67,7 @@ describe('LikedScreen', () => {
         },
       ],
     });
-    const screen = await render(<LikedScreen />);
+    const screen = await render(<LikedScreen plansEnabled />);
     await screen.findByText('Registered Nurses');
 
     const nursesButton = screen.getByTestId('plan-button-7');
@@ -76,5 +76,16 @@ describe('LikedScreen', () => {
 
     const devsButton = screen.getByTestId('plan-button-8');
     expect(devsButton.props.accessibilityLabel).toBe('Open action plan for Software Developers');
+  });
+
+  it('hides plan buttons when plans are disabled', async () => {
+    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
+      records: [{ ...makeCareer({ id: 1 }), swipe_id: 7 }],
+    });
+    const screen = await render(<LikedScreen />);
+    await screen.findByText('Registered Nurses');
+
+    expect(screen.queryByTestId('plan-button-7')).toBeNull();
+    expect(screen.getByText('✕')).toBeTruthy();
   });
 });

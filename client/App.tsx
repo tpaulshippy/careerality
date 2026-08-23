@@ -135,24 +135,27 @@ export default function App() {
         />
         <Drawer.Screen
           name="Liked"
-          component={LikedScreen}
           options={{
             title: 'Liked Careers',
             drawerIcon: () => (
               <Text style={styles.icon}>❤️</Text>
             ),
           }}
-        />
-        <Drawer.Screen
-          name="ActionPlans"
-          component={ActionPlansScreen}
-          options={{
-            title: 'Action Plans',
-            drawerIcon: () => (
-              <Text style={styles.icon}>🎯</Text>
-            ),
-          }}
-        />
+        >
+          {() => <LikedScreen plansEnabled={experimentalScreens} />}
+        </Drawer.Screen>
+        {experimentalScreens && (
+          <Drawer.Screen
+            name="ActionPlans"
+            component={ActionPlansScreen}
+            options={{
+              title: 'Action Plans',
+              drawerIcon: () => (
+                <Text style={styles.icon}>🎯</Text>
+              ),
+            }}
+          />
+        )}
         <Drawer.Screen
           name="Progress"
           component={ProgressScreen}

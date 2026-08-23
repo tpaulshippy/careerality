@@ -55,8 +55,8 @@ export const DataSourcesScreen: React.FC<DataSourcesScreenProps> = ({
           />
           <Text style={[styles.experimentalNote, { color: theme.colors.text.muted }]}>
             {experimentalEnabled
-              ? 'Search and Reality Check are visible in the menu.'
-              : 'Adds Search and Reality Check to the menu. These features are still in development.'}
+              ? 'Search, Reality Check, and Action Plans are visible in the menu.'
+              : 'Adds Search, Reality Check, and Action Plans to the menu. These features are still in development.'}
           </Text>
         </View>
       )}

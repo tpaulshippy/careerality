@@ -15,7 +15,12 @@ interface LikedRecord extends CareerROI {
   swiped_at: string;
 }
 
-export const LikedScreen: React.FC = () => {
+interface LikedScreenProps {
+  // Action plans live behind the experimental-screens flag; hidden unless enabled.
+  plansEnabled?: boolean;
+}
+
+export const LikedScreen: React.FC<LikedScreenProps> = ({ plansEnabled }) => {
   const theme = useTheme();
   const navigation = useNavigation<{ navigate: (name: string, params?: { occupationCode?: string; ids?: number[] }) => void }>();
   const [records, setRecords] = useState<LikedRecord[]>([]);
@@ -183,16 +188,18 @@ export const LikedScreen: React.FC = () => {
                 >
                   {!compareMode && (
                     <>
-                      <TouchableOpacity
-                        style={[styles.planButton, { backgroundColor: theme.colors.primaryLight }]}
-                        onPress={() => navigation.navigate('ActionPlans', { occupationCode: record.occupation_code })}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        testID={`plan-button-${record.swipe_id}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Open action plan for ${record.occupation_name}`}
-                      >
-                        <Text style={styles.planButtonText}>🎯</Text>
-                      </TouchableOpacity>
+                      {plansEnabled && (
+                        <TouchableOpacity
+                          style={[styles.planButton, { backgroundColor: theme.colors.primaryLight }]}
+                          onPress={() => navigation.navigate('ActionPlans', { occupationCode: record.occupation_code })}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          testID={`plan-button-${record.swipe_id}`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Open action plan for ${record.occupation_name}`}
+                        >
+                          <Text style={styles.planButtonText}>🎯</Text>
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity
                         style={styles.removeButton}
                         onPress={() => handleRemove(record.swipe_id)}
