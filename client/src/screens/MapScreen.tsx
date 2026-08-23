@@ -51,9 +51,11 @@ interface MapData {
   topCareers: Record<string, CareerROI[]>;
 }
 
+/** The API indexes areas with unpadded FIPS codes ("1"), our paths use padded ones ("01"). */
+const toApiFips = (fips: string): string => fips.replace(/^0+/, '') || fips;
+
 const fetchStateRecords = async (fips: string): Promise<CareerROI[]> => {
-  // The API indexes areas with unpadded FIPS codes ("1"), our paths use padded ones ("01").
-  const apiCode = fips.replace(/^0+/, '') || fips;
+  const apiCode = toApiFips(fips);
   const first = await apiClient.get<RoiResponse>(
     `/api/roi?area_code=${encodeURIComponent(apiCode)}&page=1`,
   );
@@ -176,11 +178,13 @@ export const MapScreen: React.FC = () => {
 
   const handleExplore = useCallback(() => {
     if (selectedFips === null) return;
-    setStateCode(selectedFips);
+    // Discover queries the API with area codes, which are unpadded FIPS.
+    const apiCode = toApiFips(selectedFips);
+    setStateCode(apiCode);
     setSelectedFips(null);
     // Discover may already be mounted, where the persisted filter alone
     // wouldn't trigger a refetch - pass it through as a param as well.
-    navigation.navigate({ name: 'Discover', params: { stateCode: selectedFips } } as never);
+    navigation.navigate({ name: 'Discover', params: { stateCode: apiCode } } as never);
   }, [selectedFips, setStateCode, navigation]);
 
   const selectedState = US_STATES_PATHS.find(s => s.fips === selectedFips);

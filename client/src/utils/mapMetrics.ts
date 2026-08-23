@@ -10,6 +10,8 @@ export interface MetricDef {
 }
 
 export interface StateMetrics {
+  /** Whether any ROI records exist for the state, regardless of field quality. */
+  hasRecords: boolean;
   avgSalary: number | null;
   adjustedSalary: number | null;
   highRoiCount: number;
@@ -47,9 +49,11 @@ export const computeStateMetrics = (records: CareerROI[]): StateMetrics => {
   let highRoiCount = 0;
   let demandCount = 0;
   const demandRanks: number[] = [];
+  let hasRecords = false;
 
   for (const record of records ?? []) {
     if (!record) continue;
+    hasRecords = true;
     const salary = toNumber(record.annual_median_salary);
     if (salary !== null) salaries.push(salary);
     const adjusted = toNumber(record.adjusted_salary);
@@ -66,6 +70,7 @@ export const computeStateMetrics = (records: CareerROI[]): StateMetrics => {
   }
 
   return {
+    hasRecords,
     avgSalary: mean(salaries),
     adjustedSalary: mean(adjustedSalaries),
     highRoiCount,
@@ -86,7 +91,8 @@ export const getStateMetricValue = (
     case 'adjusted_salary':
       return metrics.adjustedSalary;
     case 'high_roi':
-      return metrics.highRoiCount > 0 || metrics.avgSalary !== null ? metrics.highRoiCount : null;
+      // Record presence, not salary presence, decides whether ROI data exists.
+      return metrics.hasRecords ? metrics.highRoiCount : null;
     case 'demand': {
       // A state counts as having data when any career carries demand info,
       // even if ranks themselves are missing.

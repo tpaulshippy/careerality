@@ -1,5 +1,5 @@
 export interface UsStatePath {
-  /** USPS-state FIPS code as string, e.g. '01' */
+  /** Two-digit FIPS state code as string, e.g. '01' */
   fips: string;
   name: string;
   /** SVG path data inside the 960x600 viewBox */

@@ -128,6 +128,15 @@ describe('getStateMetricValue', () => {
     expect(getStateMetricValue(computeStateMetrics([]), 'high_roi')).toBeNull();
   });
 
+  it('reports high_roi as 0 when careers exist but salaries are missing', () => {
+    const metrics = computeStateMetrics([
+      makeRecord({ annual_median_salary: null as unknown as string, roi_percentage: '5' }),
+      makeRecord({ annual_median_salary: '', roi_percentage: '8' }),
+    ]);
+    expect(metrics.avgSalary).toBeNull();
+    expect(getStateMetricValue(metrics, 'high_roi')).toBe(0);
+  });
+
   it('treats demand states without numeric ranks as no-data for ranking', () => {
     const metrics = computeStateMetrics([
       makeRecord({ demand_score: 0.5, demand_rank: null }),
