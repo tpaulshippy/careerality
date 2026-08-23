@@ -90,3 +90,13 @@ export interface FilterState {
 }
 
 export type SwipeHistory = Swipe[];
+
+/* eslint-disable @typescript-eslint/no-namespace */
+declare global {
+  namespace ReactNavigation {
+    interface RootParamList {
+      Search: undefined;
+    }
+  }
+}
+/* eslint-enable @typescript-eslint/no-namespace */

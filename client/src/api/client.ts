@@ -32,6 +32,11 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const { signal } = options;
+    if (signal) {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
     try {
       const response = await fetch(url, {
         ...options,
@@ -76,6 +81,11 @@ class ApiClient {
     const payload: SwipePayload = { career_id: careerId, user_id: userId, direction };
     if (feedback) payload.feedback = feedback;
     await this.post('/api/swipes', payload);
+  }
+
+  async searchCareers(query: string, signal?: AbortSignal): Promise<RoiResponse> {
+    const queryString = '?' + new URLSearchParams({ q: query }).toString();
+    return this.request<RoiResponse>(`/api/roi/search${queryString}`, { method: 'GET', signal });
   }
 
   async getCareers(params?: Record<string, string | number>): Promise<RoiResponse> {
