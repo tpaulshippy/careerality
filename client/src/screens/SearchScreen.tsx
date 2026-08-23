@@ -74,8 +74,8 @@ const CareerResultRow: React.FC<{
           <View style={styles.demandChip}>
             <Text style={styles.demandChipText}>{`🔥 #${career.demand_rank}`}</Text>
           </View>
-          )}
-        </View>
+        )}
+      </View>
     </TouchableOpacity>
   );
 };

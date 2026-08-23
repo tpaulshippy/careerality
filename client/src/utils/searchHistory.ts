@@ -60,7 +60,7 @@ export const saveSearchHistory = async (
 ): Promise<void> => {
   if (!storage) return;
   try {
-    storage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_RECENT_SEARCHES)));
+    await storage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_RECENT_SEARCHES)));
   } catch {
     // Silently ignore storage errors
   }
