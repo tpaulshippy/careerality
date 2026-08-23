@@ -90,9 +90,13 @@ class ApiClient {
     await this.post('/api/swipes', payload);
   }
 
-  async searchCareers(query: string, signal?: AbortSignal): Promise<RoiResponse> {
-    const queryString = '?' + new URLSearchParams({ q: query }).toString();
-    return this.request<RoiResponse>(`/api/roi/search${queryString}`, { method: 'GET', signal });
+  async searchCareers(query: string, areaOrSignal?: string | AbortSignal, signal?: AbortSignal): Promise<RoiResponse> {
+    const areaCode = typeof areaOrSignal === 'string' ? areaOrSignal : undefined;
+    const resolvedSignal = signal ?? (areaOrSignal instanceof AbortSignal ? areaOrSignal : undefined);
+    const params: Record<string, string> = { q: query };
+    if (areaCode) params.area = areaCode;
+    const queryString = '?' + new URLSearchParams(params).toString();
+    return this.request<RoiResponse>(`/api/roi/search${queryString}`, { method: 'GET', signal: resolvedSignal });
   }
 
   async getCareers(params?: Record<string, string | number>): Promise<RoiResponse> {
@@ -102,13 +106,6 @@ class ApiClient {
       Object.entries(allParams).map(([k, v]) => [k, String(v)])
     ).toString();
     return this.get<RoiResponse>(`/api/roi${queryString}`);
-  }
-
-  async searchCareers(query: string, areaCode?: string): Promise<RoiResponse> {
-    const params: Record<string, string> = { q: query };
-    if (areaCode) params.area = areaCode;
-    const queryString = '?' + new URLSearchParams(params).toString();
-    return this.get<RoiResponse>(`/api/roi/search${queryString}`);
   }
 
   async getStates(): Promise<{ states: { area_code: string; area_name: string }[] }> {
