@@ -114,7 +114,11 @@ export const OnboardingQuiz: React.FC<OnboardingQuizProps> = ({ onFinish }) => {
             />
           ))}
         </View>
-        <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={handleSkip}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Text style={[styles.skipText, { color: theme.colors.text.muted }]}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -355,11 +359,13 @@ const styles = StyleSheet.create({
     width: 20,
   } as ViewStyle,
   skipText: {
-    position: 'absolute',
-    right: 0,
     fontSize: 15,
     fontWeight: '600',
   } as TextStyle,
+  skipButton: {
+    position: 'absolute',
+    right: 0,
+  } as ViewStyle,
   welcomeContent: {
     flexGrow: 1,
     alignItems: 'center',
@@ -418,12 +424,12 @@ const styles = StyleSheet.create({
   } as TextStyle,
   bullets: {
     alignSelf: 'stretch',
-    marginTop: 32,
+    marginTop: 24,
   } as ViewStyle,
   bulletRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
   } as ViewStyle,
   bulletIcon: {
     fontSize: 24,
@@ -512,7 +518,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     gap: 12,
-    paddingTop: 12,
+    paddingTop: 8,
   } as ViewStyle,
   backButton: {
     borderWidth: 1,
