@@ -100,3 +100,12 @@ declare global {
   }
 }
 /* eslint-enable @typescript-eslint/no-namespace */
+
+// Raw swipe row as returned by GET /api/swipes
+export interface SwipeApiRecord {
+  id: number;
+  career_id: number;
+  direction: 'left' | 'right';
+  feedback?: string | null;
+  created_at: string;
+}

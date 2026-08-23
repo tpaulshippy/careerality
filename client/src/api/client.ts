@@ -1,6 +1,6 @@
 import { API_BASE } from '../constants/dataSources';
 import { getUserId } from '../utils/userId';
-import { CareerROI, RoiResponse, LikedResponse } from '../types';
+import { CareerROI, RoiResponse, LikedResponse, SwipeApiRecord } from '../types';
 
 export interface SwipePayload {
   career_id: number;
@@ -121,6 +121,12 @@ class ApiClient {
     const userId = await getUserId();
     const queryString = '?' + new URLSearchParams({ user_id: userId }).toString();
     return this.get<LikedResponse>(`/api/swipes/liked${queryString}`);
+  }
+
+  async getSwipeHistory(): Promise<{ swipes: SwipeApiRecord[] }> {
+    const userId = await getUserId();
+    const queryString = '?' + new URLSearchParams({ user_id: userId }).toString();
+    return this.get<{ swipes: SwipeApiRecord[] }>(`/api/swipes${queryString}`);
   }
 
   async removeSwipe(swipeId: number): Promise<void> {
