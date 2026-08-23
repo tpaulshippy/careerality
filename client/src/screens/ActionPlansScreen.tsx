@@ -316,7 +316,7 @@ export const ActionPlansScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.list}>
         <Text style={[styles.screenIntro, { color: theme.colors.text.secondary }]}>
-          Six concrete steps to get ready for each career you love.
+          Six concrete steps to get ready for each career you love — take them in any order.
         </Text>
 
         <View style={styles.filterRow}>
@@ -358,7 +358,7 @@ export const ActionPlansScreen: React.FC = () => {
                     {planEntry.career.occupation_name}
                   </Text>
                   <Text style={[styles.rowTeaser, { color: theme.colors.text.secondary }]} numberOfLines={2}>
-                    {nextStep ? `Next: ${nextStep.title}` : 'All steps complete'}
+                    {nextStep ? `Try: ${nextStep.title}` : 'All steps complete'}
                   </Text>
                   <Text style={[styles.rowCount, { color: theme.colors.text.muted }]}>
                     {`${percent}% of 6 steps`}
@@ -486,7 +486,7 @@ const StepRow: React.FC<StepRowProps> = ({ step, index, checked, onToggle, chips
               checked && styles.stepTitleDone,
             ]}
           >
-            {`${index + 1}. ${step.title}`}
+            {step.title}
           </Text>
           {chips.map(chip => (
             <View key={chip} style={[styles.chipBadge, { backgroundColor: theme.colors.primaryLight }]}>

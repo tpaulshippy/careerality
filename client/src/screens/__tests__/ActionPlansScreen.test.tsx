@@ -121,7 +121,7 @@ describe('ActionPlansScreen', () => {
     const screen = await render(<ActionPlansScreen />);
     expect(await screen.findByText('Registered Nurses')).toBeTruthy();
     expect(screen.getByText('Software Developers')).toBeTruthy();
-    expect(screen.getAllByText('Next: See the work')).toHaveLength(2);
+    expect(screen.getAllByText('Try: See the work')).toHaveLength(2);
   });
 
   it('copies the outreach message via the native clipboard and confirms', async () => {
@@ -200,14 +200,14 @@ describe('ActionPlansScreen', () => {
     await screen.findByText('Registered Nurses');
 
     fireEvent.press(screen.getByTestId('plan-row-0'));
-    await screen.findByText('1. See the work');
+    await screen.findByText('See the work');
 
     fireEvent.press(screen.getByTestId('step-checkbox-0'));
     fireEvent.press(screen.getByTestId('step-checkbox-1'));
 
     fireEvent.press(screen.getByTestId('back-to-plans'));
     await screen.findByText('Registered Nurses');
-    expect(await screen.findByText('Next: Find live job postings')).toBeTruthy();
+    expect(await screen.findByText('Try: Find live job postings')).toBeTruthy();
     expect(screen.getByText('33% of 6 steps')).toBeTruthy();
   });
 });
