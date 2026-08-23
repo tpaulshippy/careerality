@@ -1,3 +1,4 @@
+export { CompareScreen } from './CompareScreen';
 export { DataSourcesScreen } from './DataSourcesScreen';
 export { DiscoverScreen } from './DiscoverScreen';
 export { InsightsScreen } from './InsightsScreen';
