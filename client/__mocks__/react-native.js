@@ -1,3 +1,10 @@
+class AnimatedValue {
+  constructor(v) { this._value = v; }
+  setValue(v) { this._value = v; }
+  interpolate(config) { return config.outputRange[0]; }
+  addListener() { return 1; }
+  removeListener() {}
+}
 module.exports = {
   View: 'View',
   Text: 'Text',
@@ -12,4 +19,9 @@ module.exports = {
   NativeModules: {},
   ActivityIndicator: 'ActivityIndicator',
   TouchableOpacity: 'TouchableOpacity',
+  Animated: {
+    Value: AnimatedValue,
+    timing: () => ({ start: (cb) => cb && cb({ finished: true }) }),
+    View: 'View',
+  },
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Text, StyleSheet, TextStyle, View, ViewStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DiscoverScreen, DataSourcesScreen, LikedScreen, SearchScreen, RealityCheckScreen } from './src/screens';
+import { DiscoverScreen, DataSourcesScreen, LikedScreen, SearchScreen, RealityCheckScreen, InsightsScreen } from './src/screens';
 import { CustomDrawerContent, OnboardingQuiz } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
 import { useLocalStorage } from './src/hooks/useLocalStorage';
@@ -143,6 +143,16 @@ export default function App() {
             title: 'Reality Check',
             drawerIcon: () => (
               <Text style={styles.icon}>💵</Text>
+            ),
+          }}
+        />
+        <Drawer.Screen 
+          name="Insights" 
+          component={InsightsScreen}
+          options={{
+            title: 'My Insights',
+            drawerIcon: () => (
+              <Text style={styles.icon}>📊</Text>
             ),
           }}
         />
