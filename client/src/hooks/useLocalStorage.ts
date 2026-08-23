@@ -4,12 +4,15 @@ import { Platform } from 'react-native';
 
 type SetValue<T> = T | ((prevValue: T) => T);
 
+// [value, setValue, removeValue, isLoaded]
+export type UseLocalStorageResult<T> = [T, (value: SetValue<T>) => void, () => void, boolean];
+
 const isAsyncStorageAvailable = (): boolean => {
   if (Platform.OS === 'web') return typeof window !== 'undefined' && !!window.localStorage;
   return !!AsyncStorage && !!AsyncStorage.getItem;
 };
 
-export const useLocalStorage = <T>(key: string, initialValue: T): [T, (value: SetValue<T>) => void, () => void] => {
+export const useLocalStorage = <T>(key: string, initialValue: T): UseLocalStorageResult<T> => {
   const isMounted = useRef(true);
 
   const readValue = useCallback(async (): Promise<T> => {
@@ -86,5 +89,7 @@ export const useLocalStorage = <T>(key: string, initialValue: T): [T, (value: Se
       }
     }, [initialValue, key]);
 
-  return [isLoaded ? storedValue : initialValue, setValue, removeValue];
+  // Fourth element lets callers gate rendering until persisted state has loaded
+  // (e.g. first-launch onboarding must not flash over returning users).
+  return [isLoaded ? storedValue : initialValue, setValue, removeValue, isLoaded];
 };

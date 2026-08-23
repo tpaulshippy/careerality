@@ -1,11 +1,14 @@
-import React from 'react';
-import { Text, StyleSheet, TextStyle, useColorScheme } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text, StyleSheet, TextStyle, View, ViewStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { DiscoverScreen, DataSourcesScreen, LikedScreen } from './src/screens';
-import { CustomDrawerContent } from './src/components';
+import { CustomDrawerContent, OnboardingQuiz } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
+import { useLocalStorage } from './src/hooks/useLocalStorage';
+import { useFilters } from './src/hooks/useFilters';
 import { lightColors, darkColors } from './src/constants/theme';
+import { ONBOARDING_STORAGE_KEYS, OnboardingPayload } from './src/utils/onboarding';
 
 const Drawer = createDrawerNavigator();
 
@@ -37,11 +40,62 @@ export default function App() {
   const colorScheme = useColorScheme();
   const theme = useTheme();
   const navigationTheme = colorScheme === 'dark' ? DarkNavigationTheme : LightNavigationTheme;
+  const [onboardedFlag, setOnboardedFlag, clearOnboarded, onboardedLoaded] = useLocalStorage(
+    ONBOARDING_STORAGE_KEYS.onboarded,
+    false,
+  );
+  const [, setEduPrefStored] = useLocalStorage(ONBOARDING_STORAGE_KEYS.eduPref, 'any');
+  // App owns all persistence so queued writes always process even though the
+  // quiz unmounts on finish (writes from an unmounting component are dropped).
+  const { setStateCode, setSalaryMin, setSortBy } = useFilters();
+  // Local override wins over the persisted flag because separate
+  // useLocalStorage instances of the same key do not re-sync at runtime.
+  const [quizActiveOverride, setQuizActiveOverride] = useState<boolean | null>(null);
+  const [showMatchBanner, setShowMatchBanner] = useState(false);
+  // Bumping this remounts the navigator so screens re-read persisted filters
+  // right after the quiz applies them.
+  const [navEpoch, setNavEpoch] = useState(0);
+
+  useEffect(() => {
+    if (!showMatchBanner) return;
+    const timer = setTimeout(() => setShowMatchBanner(false), 4000);
+    return () => clearTimeout(timer);
+  }, [showMatchBanner]);
+
+  if (!onboardedLoaded) {
+    return <View style={styles.root} />;
+  }
+
+  const showQuiz = quizActiveOverride ?? !onboardedFlag;
+
+  const handleRetakeOnboarding = () => {
+    clearOnboarded();
+    setShowMatchBanner(false);
+    setQuizActiveOverride(true);
+  };
+
+  const handleQuizFinish = (payload: OnboardingPayload | null) => {
+    setQuizActiveOverride(false);
+    setOnboardedFlag(true);
+    if (payload) {
+      setStateCode(payload.filterPatch.stateCode);
+      setSalaryMin(payload.filterPatch.minSalary);
+      setSortBy(payload.sortBy);
+      setEduPrefStored(payload.eduPref);
+      // Remount the navigator so Discover reads the freshly written filters.
+      setNavEpoch(prev => prev + 1);
+      setShowMatchBanner(true);
+    }
+  };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
-      <Drawer.Navigator
-        drawerContent={(props) => <CustomDrawerContent {...props} />}
+    <View style={styles.root}>
+      <NavigationContainer theme={navigationTheme}>
+        <Drawer.Navigator
+          key={navEpoch}
+          drawerContent={(props) => (
+            <CustomDrawerContent {...props} onRetakeOnboarding={handleRetakeOnboarding} />
+          )}
         screenOptions={{
           headerShown: true,
           headerStyle: { backgroundColor: theme.colors.primary },
@@ -83,12 +137,48 @@ export default function App() {
           }}
         />
       </Drawer.Navigator>
-    </NavigationContainer>
+      </NavigationContainer>
+      {showQuiz && <OnboardingQuiz onFinish={handleQuizFinish} />}
+      {showMatchBanner && !showQuiz && (
+        <View
+          style={[
+            styles.matchBanner,
+            { backgroundColor: theme.colors.surface, shadowColor: '#000' },
+          ]}
+        >
+          <Text style={[styles.matchBannerText, { color: theme.colors.text.primary }]}>
+            ✓ Showing careers matched to your setup
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: lightColors.background,
+  } as ViewStyle,
   icon: {
     fontSize: 20,
+  } as TextStyle,
+  matchBanner: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    right: 16,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  } as ViewStyle,
+  matchBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   } as TextStyle,
 });
