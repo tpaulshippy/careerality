@@ -17,7 +17,7 @@ interface LikedRecord extends CareerROI {
 
 export const LikedScreen: React.FC = () => {
   const theme = useTheme();
-  const navigation = useNavigation<{ navigate: (name: string, params?: object) => void }>();
+  const navigation = useNavigation<{ navigate: (name: string, params?: { occupationCode?: string; ids?: number[] }) => void }>();
   const [records, setRecords] = useState<LikedRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -182,13 +182,25 @@ export const LikedScreen: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   {!compareMode && (
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => handleRemove(record.swipe_id)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Text style={[styles.removeButtonText, { color: theme.colors.text.muted }]}>✕</Text>
-                    </TouchableOpacity>
+                    <>
+                      <TouchableOpacity
+                        style={[styles.planButton, { backgroundColor: theme.colors.primaryLight }]}
+                        onPress={() => navigation.navigate('ActionPlans', { occupationCode: record.occupation_code })}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        testID={`plan-button-${record.swipe_id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open action plan for ${record.occupation_name}`}
+                      >
+                        <Text style={styles.planButtonText}>🎯</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemove(record.swipe_id)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Text style={[styles.removeButtonText, { color: theme.colors.text.muted }]}>✕</Text>
+                      </TouchableOpacity>
+                    </>
                   )}
                   {compareMode && (
                     <View
@@ -381,6 +393,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
   } as ViewStyle,
+  planButton: {
+    position: 'absolute',
+    top: 10,
+    right: 42,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  } as ViewStyle,
+  planButtonText: {
+    fontSize: 14,
+    lineHeight: 18,
+  } as TextStyle,
   removeButton: {
     position: 'absolute',
     top: 12,
@@ -406,7 +433,7 @@ const styles = StyleSheet.create({
   occupationName: {
     fontSize: 16,
     fontWeight: 'bold',
-    paddingRight: 28,
+    paddingRight: 72,
   } as TextStyle,
   areaName: {
     fontSize: 14,

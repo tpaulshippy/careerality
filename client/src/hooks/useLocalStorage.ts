@@ -14,6 +14,10 @@ const isAsyncStorageAvailable = (): boolean => {
 
 export const useLocalStorage = <T>(key: string, initialValue: T): UseLocalStorageResult<T> => {
   const isMounted = useRef(true);
+  // Writes made before the stored value finishes loading are queued here and
+  // replayed on top of it, so the async read can never clobber them.
+  const pendingWrites = useRef<SetValue<T>[]>([]);
+  const isLoadedRef = useRef(false);
 
   const readValue = useCallback(async (): Promise<T> => {
     if (Platform.OS === 'web') {
@@ -38,37 +42,61 @@ export const useLocalStorage = <T>(key: string, initialValue: T): UseLocalStorag
   const [storedValue, setStoredValue] = useState<T>(initialValue);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    isMounted.current = true;
-    readValue().then((value) => {
-      if (isMounted.current) {
-        setStoredValue(value);
-        setIsLoaded(true);
-      }
-    });
-    return () => { isMounted.current = false; };
-  }, [readValue]);
-
-  const setValue = useCallback(
-    async (value: SetValue<T>) => {
-      setStoredValue(prev => {
-        const valueToStore = value instanceof Function ? value(prev) : value;
-        if (Platform.OS === 'web') {
-          try {
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
-          } catch {
-            // Silently ignore storage errors
-          }
-        } else if (isAsyncStorageAvailable()) {
-          AsyncStorage.setItem(key, JSON.stringify(valueToStore)).catch(() => {});
+  const writeThrough = useCallback(
+    (valueToStore: T) => {
+      if (Platform.OS === 'web') {
+        try {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch {
+          // Silently ignore storage errors
         }
-        return valueToStore;
-      });
+      } else if (isAsyncStorageAvailable()) {
+        AsyncStorage.setItem(key, JSON.stringify(valueToStore)).catch(() => {});
+      }
     },
     [key],
   );
 
+  useEffect(() => {
+    isMounted.current = true;
+    readValue().then((value) => {
+      if (!isMounted.current) return;
+      const queued = pendingWrites.current;
+      pendingWrites.current = [];
+      if (queued.length > 0) {
+        let merged = value;
+        for (const write of queued) merged = write instanceof Function ? write(merged) : write;
+        setStoredValue(merged);
+        writeThrough(merged);
+      } else {
+        setStoredValue(value);
+      }
+      isLoadedRef.current = true;
+      setIsLoaded(true);
+    });
+    return () => { isMounted.current = false; };
+  }, [readValue, writeThrough]);
+
+  const setValue = useCallback(
+    (value: SetValue<T>) => {
+      if (!isLoadedRef.current) {
+        // Optimistically reflect the change in state, but defer persistence
+        // until the initial read resolves so it cannot be rolled back.
+        pendingWrites.current.push(value);
+        setStoredValue(prev => (value instanceof Function ? value(prev) : value));
+        return;
+      }
+      setStoredValue(prev => {
+        const valueToStore = value instanceof Function ? value(prev) : value;
+        writeThrough(valueToStore);
+        return valueToStore;
+      });
+    },
+    [writeThrough],
+  );
+
   const removeValue = useCallback(async () => {
+    pendingWrites.current = [];
     if (Platform.OS === 'web') {
       try {
         setStoredValue(initialValue);
