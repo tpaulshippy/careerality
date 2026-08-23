@@ -254,6 +254,20 @@ describe('computeCatalogStats', () => {
     ] as CareerROI[];
     expect(computeCatalogStats(even)).toMatchObject({ medianRoi: 15, medianSalary: 40000 });
   });
+
+  it('returns null medians for metrics with no numeric samples instead of 0', () => {
+    const catalog = [
+      { roi_percentage: '', annual_median_salary: '', years_to_breakeven: 5 },
+      { roi_percentage: 'n/a', annual_median_salary: '40000', years_to_breakeven: null },
+      { roi_percentage: undefined, annual_median_salary: '50000' },
+    ] as unknown as CareerROI[];
+    expect(computeCatalogStats(catalog)).toEqual({
+      medianRoi: null,
+      medianSalary: 45000,
+      medianBreakeven: 5,
+      sampleSize: 3,
+    });
+  });
 });
 
 describe('computeQualityOfInterest', () => {
@@ -304,6 +318,27 @@ describe('computeQualityOfInterest', () => {
     const liked = [likedCareer({ annual_median_salary: '60000', roi_percentage: '60', years_to_breakeven: 1 })];
     const quality = computeQualityOfInterest(liked, catalog)!;
     expect(quality.insights.some((i) => i.includes('pay back their training costs quickly'))).toBe(true);
+  });
+
+  it('returns null liked metrics instead of 0 when data is missing', () => {
+    const liked = [likedCareer({ annual_median_salary: '', roi_percentage: 'n/a', years_to_breakeven: 2 })];
+    const quality = computeQualityOfInterest(liked, catalog)!;
+    expect(quality.avgRoi).toBeNull();
+    expect(quality.medianSalary).toBeNull();
+    expect(quality.avgBreakeven).toBe(2);
+    expect(quality.insights).toEqual(['You prefer careers that pay back their training costs quickly']);
+  });
+
+  it('skips insights whose catalog baseline is missing', () => {
+    const noSalaryCatalog = [
+      { roi_percentage: '50', annual_median_salary: '', years_to_breakeven: 4 },
+      { roi_percentage: '70', annual_median_salary: undefined, years_to_breakeven: 3 },
+    ] as unknown as CareerROI[];
+    const liked = [likedCareer({ annual_median_salary: '120000' })];
+    const quality = computeQualityOfInterest(liked, noSalaryCatalog)!;
+    expect(quality.medianSalary).toBe(120000);
+    expect(quality.catalog.medianSalary).toBeNull();
+    expect(quality.insights.every((i) => !i.includes('paying'))).toBe(true);
   });
 });
 

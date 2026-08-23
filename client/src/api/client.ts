@@ -126,7 +126,7 @@ class ApiClient {
   async getSwipeHistory(): Promise<{ swipes: SwipeApiRecord[] }> {
     const userId = await getUserId();
     const queryString = '?' + new URLSearchParams({ user_id: userId }).toString();
-    return this.get(`/api/swipes${queryString}`);
+    return this.get<{ swipes: SwipeApiRecord[] }>(`/api/swipes${queryString}`);
   }
 
   async removeSwipe(swipeId: number): Promise<void> {

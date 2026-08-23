@@ -99,12 +99,14 @@ export const InsightsScreen: React.FC = () => {
     setError(null);
 
     try {
-      const historyJson = await apiClient.getSwipeHistory();
-      const likedJson = await apiClient.getLikedCareers();
-
-      // Plain get() rather than getCareers(): getCareers injects user_id, which
-      // would exclude the user's own swiped careers from the baseline sample.
-      const firstPage = await apiClient.get<RoiResponse>('/api/roi?page=1&sort=roi');
+      // Plain get() rather than getCareers() for the catalog: getCareers injects
+      // user_id, which would exclude the user's own swiped careers from the
+      // baseline sample.
+      const [historyJson, likedJson, firstPage] = await Promise.all([
+        apiClient.getSwipeHistory(),
+        apiClient.getLikedCareers(),
+        apiClient.get<RoiResponse>('/api/roi?page=1&sort=roi'),
+      ]);
       let catalogRecords: CareerROI[] = firstPage.records || [];
       const totalPages = Math.min(firstPage.pagy?.pages ?? 1, CATALOG_PAGES);
       for (let page = 2; page <= totalPages; page++) {
@@ -325,39 +327,51 @@ export const InsightsScreen: React.FC = () => {
           <Text style={[styles.cardTitle, { color: theme.colors.text.primary }]}>
             Quality of your interest
           </Text>
-          <View style={styles.compareRow}>
-            <Text style={[styles.compareLabel, { color: theme.colors.text.secondary }]}>
-              Avg ROI of likes
-            </Text>
-            <Text style={[styles.compareValue, { color: theme.colors.text.primary }]}>
-              {formatPercent(quality.avgRoi)}{' '}
-              <Text style={{ color: theme.colors.text.muted }}>
-                vs {formatPercent(quality.catalog.medianRoi)} typical
+          {quality.avgRoi !== null && (
+            <View style={styles.compareRow}>
+              <Text style={[styles.compareLabel, { color: theme.colors.text.secondary }]}>
+                Avg ROI of likes
               </Text>
-            </Text>
-          </View>
-          <View style={styles.compareRow}>
-            <Text style={[styles.compareLabel, { color: theme.colors.text.secondary }]}>
-              Median salary of likes
-            </Text>
-            <Text style={[styles.compareValue, { color: theme.colors.text.primary }]}>
-              {formatCurrency(quality.medianSalary)}{' '}
-              <Text style={{ color: theme.colors.text.muted }}>
-                vs {formatCurrency(quality.catalog.medianSalary)} typical
+              <Text style={[styles.compareValue, { color: theme.colors.text.primary }]}>
+                {formatPercent(quality.avgRoi)}{' '}
+                <Text style={{ color: theme.colors.text.muted }}>
+                  {quality.catalog.medianRoi !== null
+                    ? `vs ${formatPercent(quality.catalog.medianRoi)} typical`
+                    : 'no baseline'}
+                </Text>
               </Text>
-            </Text>
-          </View>
-          <View style={styles.compareRow}>
-            <Text style={[styles.compareLabel, { color: theme.colors.text.secondary }]}>
-              Avg break-even of likes
-            </Text>
-            <Text style={[styles.compareValue, { color: theme.colors.text.primary }]}>
-              {quality.avgBreakeven.toFixed(1)}yr{' '}
-              <Text style={{ color: theme.colors.text.muted }}>
-                vs {quality.catalog.medianBreakeven.toFixed(1)}yr typical
+            </View>
+          )}
+          {quality.medianSalary !== null && (
+            <View style={styles.compareRow}>
+              <Text style={[styles.compareLabel, { color: theme.colors.text.secondary }]}>
+                Median salary of likes
               </Text>
-            </Text>
-          </View>
+              <Text style={[styles.compareValue, { color: theme.colors.text.primary }]}>
+                {formatCurrency(quality.medianSalary)}{' '}
+                <Text style={{ color: theme.colors.text.muted }}>
+                  {quality.catalog.medianSalary !== null
+                    ? `vs ${formatCurrency(quality.catalog.medianSalary)} typical`
+                    : 'no baseline'}
+                </Text>
+              </Text>
+            </View>
+          )}
+          {quality.avgBreakeven !== null && (
+            <View style={styles.compareRow}>
+              <Text style={[styles.compareLabel, { color: theme.colors.text.secondary }]}>
+                Avg break-even of likes
+              </Text>
+              <Text style={[styles.compareValue, { color: theme.colors.text.primary }]}>
+                {quality.avgBreakeven.toFixed(1)}yr{' '}
+                <Text style={{ color: theme.colors.text.muted }}>
+                  {quality.catalog.medianBreakeven !== null
+                    ? `vs ${quality.catalog.medianBreakeven.toFixed(1)}yr typical`
+                    : 'no baseline'}
+                </Text>
+              </Text>
+            </View>
+          )}
           <View style={[styles.insightBox, { backgroundColor: theme.colors.background }]}>
             {quality.insights.map((insight) => (
               <Text key={insight} style={[styles.insightText, { color: theme.colors.success }]}>

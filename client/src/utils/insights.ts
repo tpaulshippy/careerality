@@ -152,9 +152,9 @@ export function computeTasteProfile(liked: LikedCareer[], topN: number = 6): Tas
 }
 
 export interface CatalogStats {
-  medianRoi: number;
-  medianSalary: number;
-  medianBreakeven: number;
+  medianRoi: number | null;
+  medianSalary: number | null;
+  medianBreakeven: number | null;
   sampleSize: number;
 }
 
@@ -170,17 +170,17 @@ export function computeCatalogStats(catalog: CareerROI[]): CatalogStats | null {
     .filter((n): n is number => typeof n === 'number');
 
   return {
-    medianRoi: median(rois) ?? 0,
-    medianSalary: median(salaries) ?? 0,
-    medianBreakeven: median(breakevens) ?? 0,
+    medianRoi: median(rois),
+    medianSalary: median(salaries),
+    medianBreakeven: median(breakevens),
     sampleSize: catalog.length,
   };
 }
 
 export interface QualityStats {
-  avgRoi: number;
-  medianSalary: number;
-  avgBreakeven: number;
+  avgRoi: number | null;
+  medianSalary: number | null;
+  avgBreakeven: number | null;
   catalog: CatalogStats;
   insights: string[];
 }
@@ -213,7 +213,7 @@ export function computeQualityOfInterest(
   const pctDiff = (likedVal: number, catalogVal: number): number =>
     catalogVal !== 0 ? ((likedVal - catalogVal) / catalogVal) * 100 : 0;
 
-  if (medianSalary !== null) {
+  if (medianSalary !== null && catalogStats.medianSalary !== null) {
     const diff = pctDiff(medianSalary, catalogStats.medianSalary);
     if (diff >= 15) {
       insights.push(
@@ -228,7 +228,7 @@ export function computeQualityOfInterest(
     }
   }
 
-  if (avgRoi !== null) {
+  if (avgRoi !== null && catalogStats.medianRoi !== null) {
     const diff = pctDiff(avgRoi, catalogStats.medianRoi);
     if (diff >= 15) {
       insights.push('You favor strong-return paths with better education payoff');
@@ -239,7 +239,7 @@ export function computeQualityOfInterest(
     }
   }
 
-  if (avgBreakeven !== null) {
+  if (avgBreakeven !== null && catalogStats.medianBreakeven !== null) {
     const faster = avgBreakeven < catalogStats.medianBreakeven - 0.25;
     const slower = avgBreakeven > catalogStats.medianBreakeven + 0.25;
     if (faster) {
@@ -252,9 +252,9 @@ export function computeQualityOfInterest(
   }
 
   return {
-    avgRoi: avgRoi ?? 0,
-    medianSalary: medianSalary ?? 0,
-    avgBreakeven: avgBreakeven ?? 0,
+    avgRoi,
+    medianSalary,
+    avgBreakeven,
     catalog: catalogStats,
     insights,
   };
