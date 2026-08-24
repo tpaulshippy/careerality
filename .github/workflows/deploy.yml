@@ -29,6 +29,7 @@ jobs:
         working-directory: client
         env:
           EXPO_PUBLIC_API_URL: https://careerality.app
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_CLIENT_DSN }}
         run: |
           npm ci --legacy-peer-deps
           npm run web:build

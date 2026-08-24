@@ -30,3 +30,5 @@ Requires Ruby (see `.ruby-version`) and PostgreSQL.
 - `CAREERALITY_DATABASE_USERNAME` — database user (default: `careerality`).
 - `CAREERALITY_DATABASE_PASSWORD` — database password (no default).
 - `CAREERALITY_DATABASE_HOST` — database host (default: `localhost`).
+- `SENTRY_DSN` — Sentry server project DSN, configured in the production
+  environment.

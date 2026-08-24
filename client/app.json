@@ -8,7 +8,8 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "plugins": [
-      "expo-updates"
+      "expo-updates",
+      "@sentry/react-native/expo"
     ],
     "splash": {
       "image": "./assets/splash.png",
