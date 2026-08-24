@@ -19,8 +19,12 @@ export const DataSourcesScreen: React.FC<DataSourcesScreenProps> = ({
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.lagWarning, { backgroundColor: theme.colors.warningLight, borderLeftColor: theme.colors.warning }]}>
-        <Text style={[styles.lagWarningTitle, { color: '#92400E' }]}>Data Currency Notice</Text>
-        <Text style={[styles.lagWarningText, { color: '#92400E' }]}>The data below represents the most recent available from each source. Due to the nature of government data collection and reporting, there is inherent lag in the information. Salary figures and employment statistics may not reflect current market conditions.</Text>
+        <Text style={[styles.lagWarningTitle, { color: theme.colors.warning }]}>Data Currency Notice</Text>
+        <Text
+          style={[styles.lagWarningText, { color: theme.colors.warning }]}
+        >
+          The data below represents the most recent available from each source. Due to the nature of government data collection and reporting, there is inherent lag in the information. Salary figures and employment statistics may not reflect current market conditions.
+        </Text>
       </View>
 
       <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Primary Data Sources</Text>
@@ -32,7 +36,7 @@ export const DataSourcesScreen: React.FC<DataSourcesScreenProps> = ({
           <Text style={[styles.description, { color: theme.colors.text.secondary }]}>{source.description}</Text>
           <View style={styles.lagRow}>
             <View style={[styles.lagBadge, { backgroundColor: theme.colors.warningLight }]}>
-              <Text style={[styles.lagBadgeText, { color: '#92400E' }]}>Data Lag: {source.lag}</Text>
+              <Text style={[styles.lagBadgeText, { color: theme.colors.warning }]}>Data Lag: {source.lag}</Text>
             </View>
             <Text style={[styles.lastUpdated, { color: theme.colors.text.muted }]}>Latest data: {source.lastUpdated}</Text>
           </View>
