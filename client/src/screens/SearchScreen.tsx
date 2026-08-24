@@ -15,7 +15,8 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
-import { CareerDetailView, Button } from '../components';
+import { CareerDetailView, Button, FeedbackModal } from '../components';
+import { InterestLevel } from '../components/FeedbackModal';
 import { useTheme, Theme } from '../hooks/useTheme';
 import { useFilters } from '../hooks/useFilters';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -36,49 +37,60 @@ const SKELETON_ROWS = 5;
 const CareerResultRow: React.FC<{
   career: CareerROI;
   onPress: (career: CareerROI) => void;
-}> = ({ career, onPress }) => {
+  onInterest: (career: CareerROI) => void;
+}> = ({ career, onPress, onInterest }) => {
   const theme = useTheme();
   const [imageFailed, setImageFailed] = useState(false);
   const initial = career.occupation_name.charAt(0).toUpperCase();
 
   return (
-    <TouchableOpacity
+    <View
       style={[styles.row, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
-      onPress={() => onPress(career)}
-      activeOpacity={0.7}
     >
-      {imageFailed ? (
-        <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: theme.colors.primaryLight }]}>
-          <Text style={[styles.thumbFallbackText, { color: theme.colors.primary }]}>{initial}</Text>
-        </View>
-      ) : (
-        <Image
-          source={{ uri: getImageUrl(career.occupation_code) }}
-          style={styles.thumb}
-          onError={() => setImageFailed(true)}
-        />
-      )}
-      <View style={styles.rowText}>
-        <Text style={[styles.rowName, { color: theme.colors.text.primary }]} numberOfLines={1}>
-          {career.occupation_name}
-        </Text>
-        <Text style={[styles.rowSubtitle, { color: theme.colors.text.secondary }]}>
-          {formatCurrency(career.annual_median_salary)} median salary
-        </Text>
-      </View>
-      <View style={styles.rowChips}>
-        <View style={[styles.chip, { backgroundColor: theme.colors.primaryLight }]}>
-          <Text style={[styles.chipText, { color: theme.colors.primary }]}>
-            {formatPercent(career.roi_percentage)} ROI
+      <TouchableOpacity style={styles.rowContent} onPress={() => onPress(career)} activeOpacity={0.7}>
+        {imageFailed ? (
+          <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: theme.colors.primaryLight }]}>
+            <Text style={[styles.thumbFallbackText, { color: theme.colors.primary }]}>{initial}</Text>
+          </View>
+        ) : (
+          <Image
+            source={{ uri: getImageUrl(career.occupation_code) }}
+            style={styles.thumb}
+            onError={() => setImageFailed(true)}
+          />
+        )}
+        <View style={styles.rowText}>
+          <Text style={[styles.rowName, { color: theme.colors.text.primary }]} numberOfLines={1}>
+            {career.occupation_name}
+          </Text>
+          <Text style={[styles.rowSubtitle, { color: theme.colors.text.secondary }]}>
+            {formatCurrency(career.annual_median_salary)} median salary
           </Text>
         </View>
-        {career.demand_rank != null && (
-          <View style={styles.demandChip}>
-            <Text style={styles.demandChipText}>{`🔥 #${career.demand_rank}`}</Text>
+        <View style={styles.rowChips}>
+          <View style={[styles.chip, { backgroundColor: theme.colors.primaryLight }]}>
+            <Text style={[styles.chipText, { color: theme.colors.primary }]}>
+              {formatPercent(career.roi_percentage)} ROI
+            </Text>
           </View>
-        )}
-      </View>
-    </TouchableOpacity>
+          {career.demand_rank != null && (
+            <View style={styles.demandChip}>
+              <Text style={styles.demandChipText}>{`🔥 #${career.demand_rank}`}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        testID={`search-interest-${career.id}`}
+        accessibilityLabel={`Express interest in ${career.occupation_name}`}
+        onPress={() => onInterest(career)}
+        style={[styles.interestButton, { backgroundColor: theme.colors.primaryLight }]}
+        activeOpacity={0.75}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={[styles.interestIcon, { color: theme.colors.success }]}>✓</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -100,6 +112,7 @@ export const SearchScreen: React.FC = () => {
   const [states, setStates] = useState<{ area_code: string; area_name: string }[]>([]);
   const [statesError, setStatesError] = useState<string | null>(null);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
+  const [feedbackCareer, setFeedbackCareer] = useState<CareerROI | null>(null);
 
   const pulseAnim = useRef(new Animated.Value(0.45)).current;
 
@@ -218,6 +231,22 @@ export const SearchScreen: React.FC = () => {
     }
     setDetailCareer(career);
   }, [query]);
+
+  const handleInterestPress = useCallback((career: CareerROI) => {
+    setFeedbackCareer(career);
+  }, []);
+
+  const handleFeedbackSubmit = useCallback((interest: InterestLevel) => {
+    const career = feedbackCareer;
+    setFeedbackCareer(null);
+    if (career) apiClient.submitSwipe(career.id, 'right', interest);
+  }, [feedbackCareer]);
+
+  const handleFeedbackClose = useCallback(() => {
+    const career = feedbackCareer;
+    setFeedbackCareer(null);
+    if (career) apiClient.submitSwipe(career.id, 'right');
+  }, [feedbackCareer]);
 
   const handleRecentPress = useCallback((term: string) => {
     setQuery(term);
@@ -387,16 +416,23 @@ export const SearchScreen: React.FC = () => {
               </>
             ) : (
               popular.map(career => (
-                <CareerResultRow key={career.id} career={career} onPress={setDetailCareer} />
+                <CareerResultRow key={career.id} career={career} onPress={setDetailCareer} onInterest={handleInterestPress} />
               ))
             )}
           </View>
         ) : showResults ? (
           results!.map(career => (
-            <CareerResultRow key={career.id} career={career} onPress={handleResultPress} />
+            <CareerResultRow key={career.id} career={career} onPress={handleResultPress} onInterest={handleInterestPress} />
           ))
         ) : null}
       </ScrollView>
+
+      <FeedbackModal
+        visible={feedbackCareer !== null}
+        careerName={feedbackCareer?.occupation_name ?? ''}
+        onSubmit={handleFeedbackSubmit}
+        onClose={handleFeedbackClose}
+      />
     </View>
   );
 };
@@ -418,6 +454,7 @@ interface Styles {
   thumbFallback: ViewStyle;
   thumbFallbackText: TextStyle;
   rowText: ViewStyle;
+  rowContent: ViewStyle;
   rowName: TextStyle;
   rowSubtitle: TextStyle;
   rowChips: ViewStyle;
@@ -425,6 +462,8 @@ interface Styles {
   chipText: TextStyle;
   demandChip: ViewStyle;
   demandChipText: TextStyle;
+  interestButton: ViewStyle;
+  interestIcon: TextStyle;
 
   stateCard: ViewStyle;
   stateEmoji: TextStyle;
@@ -533,6 +572,11 @@ const styles = StyleSheet.create<Styles>({
     marginLeft: 12,
     marginRight: 8,
   },
+  rowContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   rowName: {
     fontSize: 15,
     fontWeight: '600',
@@ -560,6 +604,18 @@ const styles = StyleSheet.create<Styles>({
   demandChipText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  interestButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+  interestIcon: {
+    fontSize: 22,
+    fontWeight: '700',
   },
   stateCard: {
     borderRadius: 16,
