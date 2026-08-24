@@ -37,8 +37,7 @@ const SKELETON_ROWS = 5;
 const CareerResultRow: React.FC<{
   career: CareerROI;
   onPress: (career: CareerROI) => void;
-  onInterest: (career: CareerROI) => void;
-}> = ({ career, onPress, onInterest }) => {
+}> = ({ career, onPress }) => {
   const theme = useTheme();
   const [imageFailed, setImageFailed] = useState(false);
   const initial = career.occupation_name.charAt(0).toUpperCase();
@@ -47,7 +46,7 @@ const CareerResultRow: React.FC<{
     <View
       style={[styles.row, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
     >
-      <TouchableOpacity style={styles.rowContent} onPress={() => onPress(career)} activeOpacity={0.7}>
+      <TouchableOpacity testID={`search-result-${career.id}`} style={styles.rowContent} onPress={() => onPress(career)} activeOpacity={0.7}>
         {imageFailed ? (
           <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: theme.colors.primaryLight }]}>
             <Text style={[styles.thumbFallbackText, { color: theme.colors.primary }]}>{initial}</Text>
@@ -79,16 +78,6 @@ const CareerResultRow: React.FC<{
             </View>
           )}
         </View>
-      </TouchableOpacity>
-      <TouchableOpacity
-        testID={`search-interest-${career.id}`}
-        accessibilityLabel={`Express interest in ${career.occupation_name}`}
-        onPress={() => onInterest(career)}
-        style={[styles.interestButton, { backgroundColor: theme.colors.primaryLight }]}
-        activeOpacity={0.75}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Text style={[styles.interestIcon, { color: theme.colors.success }]}>✓</Text>
       </TouchableOpacity>
     </View>
   );
@@ -268,7 +257,17 @@ export const SearchScreen: React.FC = () => {
   if (detailCareer) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <CareerDetailView career={detailCareer} onClose={() => setDetailCareer(null)} />
+        <CareerDetailView
+          career={detailCareer}
+          onClose={() => setDetailCareer(null)}
+          onInterest={() => handleInterestPress(detailCareer)}
+        />
+        <FeedbackModal
+          visible={feedbackCareer !== null}
+          careerName={feedbackCareer?.occupation_name ?? ''}
+          onSubmit={handleFeedbackSubmit}
+          onClose={handleFeedbackClose}
+        />
       </View>
     );
   }
@@ -416,13 +415,13 @@ export const SearchScreen: React.FC = () => {
               </>
             ) : (
               popular.map(career => (
-                <CareerResultRow key={career.id} career={career} onPress={setDetailCareer} onInterest={handleInterestPress} />
+                <CareerResultRow key={career.id} career={career} onPress={setDetailCareer} />
               ))
             )}
           </View>
         ) : showResults ? (
           results!.map(career => (
-            <CareerResultRow key={career.id} career={career} onPress={handleResultPress} onInterest={handleInterestPress} />
+            <CareerResultRow key={career.id} career={career} onPress={handleResultPress} />
           ))
         ) : null}
       </ScrollView>
@@ -462,8 +461,6 @@ interface Styles {
   chipText: TextStyle;
   demandChip: ViewStyle;
   demandChipText: TextStyle;
-  interestButton: ViewStyle;
-  interestIcon: TextStyle;
 
   stateCard: ViewStyle;
   stateEmoji: TextStyle;
@@ -604,18 +601,6 @@ const styles = StyleSheet.create<Styles>({
   demandChipText: {
     fontSize: 11,
     fontWeight: '600',
-  },
-  interestButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
-  },
-  interestIcon: {
-    fontSize: 22,
-    fontWeight: '700',
   },
   stateCard: {
     borderRadius: 16,

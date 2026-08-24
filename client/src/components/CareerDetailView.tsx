@@ -23,9 +23,10 @@ interface CareerDetailViewProps {
   career: CareerROI;
   images?: CareerImage[];
   onClose?: () => void;
+  onInterest?: () => void;
 }
 
-export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, images, onClose }) => {
+export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, images, onClose, onInterest }) => {
   const theme = useTheme();
   const imageUrl = getImageUrl(career.occupation_code);
   const [imageFailed, setImageFailed] = useState(false);
@@ -60,6 +61,17 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
           <View style={styles.headerText}>
             <Text style={[styles.occupationName, { color: theme.colors.text.primary }]}>{career.occupation_name}</Text>
           </View>
+          {onInterest && (
+            <TouchableOpacity
+              testID="career-detail-interest"
+              accessibilityLabel={`Express interest in ${career.occupation_name}`}
+              onPress={onInterest}
+              style={[styles.interestButton, { backgroundColor: theme.colors.primaryLight }]}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.interestIcon, { color: theme.colors.success }]}>✓</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {!imageFailed && (
@@ -182,6 +194,17 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
   } as ViewStyle,
+  interestButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as ViewStyle,
+  interestIcon: {
+    fontSize: 24,
+    fontWeight: '700',
+  } as TextStyle,
   dayInLifeSection: {
     marginBottom: 20,
   } as ViewStyle,

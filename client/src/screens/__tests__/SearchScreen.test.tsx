@@ -35,7 +35,8 @@ jest.mock('../../hooks/useTheme', () => ({
 }));
 
 jest.mock('../../components', () => ({
-  CareerDetailView: () => null,
+  CareerDetailView: ({ onInterest }: { onInterest?: () => void }) =>
+    React.createElement('CareerDetailView', { testID: 'career-detail-view', onInterest }),
   Button: () => null,
   FeedbackModal: ({ visible, onSubmit, onClose }: { visible: boolean; onSubmit: (interest: string) => void; onClose: () => void }) =>
     visible ? React.createElement('FeedbackModal', { testID: 'feedback-modal', onSubmit, onClose }) : null,
@@ -75,7 +76,7 @@ describe('SearchScreen', () => {
     }, { timeout: 1000 });
   });
 
-  it('opens interest feedback and saves the career as liked', async () => {
+  it('opens detail view before showing interest feedback and saves the career as liked', async () => {
     const career = {
       id: 42,
       occupation_name: 'Registered Nurse',
@@ -87,8 +88,11 @@ describe('SearchScreen', () => {
     (apiClient.getCareers as jest.Mock).mockResolvedValue({ records: [career] });
     const screen = await render(<SearchScreen />);
 
-    await waitFor(() => expect(screen.getByTestId('search-interest-42')).toBeTruthy());
-    fireEvent.press(screen.getByTestId('search-interest-42'));
+    await waitFor(() => expect(screen.getByTestId('search-result-42')).toBeTruthy());
+    expect(screen.queryByTestId('feedback-modal')).toBeNull();
+    fireEvent.press(screen.getByTestId('search-result-42'));
+    await waitFor(() => expect(screen.getByTestId('career-detail-view')).toBeTruthy());
+    screen.getByTestId('career-detail-view').props.onInterest();
 
     await waitFor(() => expect(screen.getByTestId('feedback-modal')).toBeTruthy());
     fireEvent(screen.getByTestId('feedback-modal'), 'onSubmit', 'very_interested');
