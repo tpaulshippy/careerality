@@ -275,6 +275,13 @@ GEM
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
+    sentry-rails (6.7.0)
+      railties (>= 5.2.0)
+      sentry-ruby (~> 6.7.0)
+    sentry-ruby (6.7.0)
+      bigdecimal
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      logger
     solid_cable (3.0.12)
       actioncable (>= 7.2)
       activejob (>= 7.2)
@@ -335,6 +342,8 @@ DEPENDENCIES
   rack-cors
   rails (~> 8.1.0)
   rubocop-rails-omakase
+  sentry-rails
+  sentry-ruby
   solid_cable
   solid_cache
   solid_queue

@@ -40,6 +40,8 @@ env:
     # When you start using multiple servers, you should split out job processing to a dedicated machine.
     SOLID_QUEUE_IN_PUMA: true
 
+    SENTRY_DSN: https://509ba1006009245b938dc22f2089fb12@o419449.ingest.us.sentry.io/4511963423703040
+
     # Set number of processes dedicated to Solid Queue (default: 1)
     # JOB_CONCURRENCY: 3
 
