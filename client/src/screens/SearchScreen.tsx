@@ -12,10 +12,12 @@ import {
   Image,
   Animated,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
 import { CareerDetailView, Button } from '../components';
 import { useTheme, Theme } from '../hooks/useTheme';
+import { useFilters } from '../hooks/useFilters';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { getImageUrl } from '../utils/careerImage';
@@ -82,6 +84,7 @@ const CareerResultRow: React.FC<{
 
 export const SearchScreen: React.FC = () => {
   const theme: Theme = useTheme();
+  const { filters, setStateCode } = useFilters();
   const inputRef = useRef<TextInput>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -94,9 +97,30 @@ export const SearchScreen: React.FC = () => {
   const [recent, setRecent] = useState<string[]>([]);
   const [popular, setPopular] = useState<CareerROI[]>([]);
   const [popularLoading, setPopularLoading] = useState(true);
+  const [states, setStates] = useState<{ area_code: string; area_name: string }[]>([]);
+  const [statesError, setStatesError] = useState<string | null>(null);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
 
   const pulseAnim = useRef(new Animated.Value(0.45)).current;
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient.get<{ states: { area_code: string; area_name: string }[] }>('/api/areas/states')
+      .then(json => {
+        if (!cancelled) setStates(json.states || []);
+      })
+      .catch(() => {
+        if (!cancelled) setStatesError('Could not load states');
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Pin the national option (area_code "99") first instead of leaving "U.S."
+  // sorted alphabetically between Texas and Utah.
+  const national = states.find(s => s.area_code === '99');
+  const orderedStates = national
+    ? [{ ...national, area_name: 'National (all states)' }, ...states.filter(s => s.area_code !== '99')]
+    : states;
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +132,7 @@ export const SearchScreen: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    apiClient.getCareers({ page: 1, sort: 'demand' })
+    apiClient.getCareers({ page: 1, sort: 'demand', area_code: filters.stateCode })
       .then(json => {
         if (!cancelled) setPopular(json.records || []);
       })
@@ -117,11 +141,11 @@ export const SearchScreen: React.FC = () => {
         if (!cancelled) setPopularLoading(false);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [filters.stateCode]);
 
-  const runSearch = useCallback(async (q: string, signal: AbortSignal) => {
+  const runSearch = useCallback(async (q: string, area: string, signal: AbortSignal) => {
     try {
-      const json = await apiClient.searchCareers(q, signal);
+      const json = await apiClient.searchCareers(q, area, signal);
       if (signal.aborted) return;
       setResults(json.records || []);
       setError(null);
@@ -147,8 +171,8 @@ export const SearchScreen: React.FC = () => {
     abortRef.current = controller;
     setIsSearching(true);
     setError(null);
-    runSearch(q, controller.signal);
-  }, [runSearch]);
+    runSearch(q, filters.stateCode, controller.signal);
+  }, [runSearch, filters.stateCode]);
 
   useEffect(() => {
     startSearch(debouncedQuery);
@@ -250,6 +274,35 @@ export const SearchScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+      </View>
+
+      <View style={styles.stateRow}>
+        <Text style={[styles.stateIcon, { color: theme.colors.text.muted }]}>📍</Text>
+        {statesError ? (
+          <Text style={[styles.stateError, { color: theme.colors.text.muted }]}>{statesError}</Text>
+        ) : (
+          <View
+            style={[
+              styles.pickerWrap,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+          >
+            <Picker
+              selectedValue={filters.stateCode}
+              onValueChange={(value) => setStateCode(value as string)}
+              style={{ color: theme.colors.text.primary }}
+              enabled={states.length > 0}
+            >
+              {orderedStates.map((state) => (
+                <Picker.Item
+                  key={state.area_code}
+                  label={state.area_name}
+                  value={state.area_code}
+                />
+              ))}
+            </Picker>
+          </View>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
@@ -354,6 +407,10 @@ interface Styles {
   searchIcon: TextStyle;
   input: TextStyle;
   clearButton: TextStyle;
+  stateRow: ViewStyle;
+  stateIcon: TextStyle;
+  stateError: TextStyle;
+  pickerWrap: ViewStyle;
   list: ViewStyle;
   row: ViewStyle;
   thumb: ImageStyle;
@@ -418,6 +475,29 @@ const styles = StyleSheet.create<Styles>({
     fontSize: 16,
     fontWeight: '600',
     paddingLeft: 8,
+  },
+  stateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  stateIcon: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  stateError: {
+    fontSize: 13,
+    flex: 1,
+  },
+  pickerWrap: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    height: 44,
+    justifyContent: 'center',
   },
   list: {
     paddingVertical: 12,
