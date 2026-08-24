@@ -32,9 +32,6 @@
       "ios": {
         "distribution": "store"
       },
-      "env": {
-        "SENTRY_ALLOW_FAILURE": "true"
-      },
       "channel": "production"
     }
   },
