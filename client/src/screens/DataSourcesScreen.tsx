@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle } from 'react-
 import { DATA_SOURCES } from '../constants/dataSources';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from '../components/Button';
+import * as Updates from 'expo-updates';
 
 interface DataSourcesScreenProps {
   experimentalEnabled?: boolean;
@@ -63,6 +64,9 @@ export const DataSourcesScreen: React.FC<DataSourcesScreenProps> = ({
 
       <Text style={[styles.modeIndicator, { color: theme.colors.text.muted }]}>
         Mode: {theme.isDark ? 'Dark' : 'Light'}
+      </Text>
+      <Text style={[styles.updateIndicator, { color: theme.colors.text.muted }]}>
+        OTA Update ID: {Updates.updateId || 'none'}
       </Text>
     </ScrollView>
   );
@@ -157,6 +161,11 @@ const styles = StyleSheet.create({
   modeIndicator: {
     textAlign: 'center',
     fontSize: 14,
+    marginBottom: 8,
+  } as TextStyle,
+  updateIndicator: {
+    textAlign: 'center',
+    fontSize: 12,
     marginBottom: 30,
   } as TextStyle,
 });
