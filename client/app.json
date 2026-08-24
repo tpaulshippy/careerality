@@ -8,6 +8,16 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#101010",
+          "dark": {
+            "backgroundColor": "#101010"
+          },
+          "image": "./assets/splash.png"
+        }
+      ],
       "expo-updates",
       "@sentry/react-native/expo"
     ],
