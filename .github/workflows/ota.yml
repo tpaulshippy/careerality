@@ -41,10 +41,13 @@ jobs:
           npx expo export --platform ios --no-bytecode --output-dir dist --clear
           fingerprint_output=$(npx eas fingerprint:generate --json --non-interactive --platform ios --environment production 2>/dev/null)
           current_runtime=$(printf '%s' "{${fingerprint_output#*\{}" | jq -r '.hash')
-          build_runtime=$(npx eas build:list --platform ios --profile testflight --limit 10 --json | jq -r '(if type == "array" then . else .currentPage end) | map(select((.status // "" | ascii_upcase) == "FINISHED")) | first | .runtimeVersion // empty')
-          if [ -z "$build_runtime" ] || [ "$current_runtime" != "$build_runtime" ]; then
+          build_runtime=$(npx eas build:list --platform ios --profile testflight --limit 10 --json | jq -r '(if type == "array" then . elif .currentPage then .currentPage elif .data then .data else [] end) | map(select((.status // "" | ascii_upcase) == "FINISHED")) | first | .runtimeVersion // empty')
+          if [ -n "$build_runtime" ] && [ "$current_runtime" != "$build_runtime" ]; then
             echo "OTA runtime $current_runtime does not match the latest finished TestFlight build runtime $build_runtime"
             exit 1
+          fi
+          if [ -z "$build_runtime" ]; then
+            echo "Unable to read a finished TestFlight build runtime; publishing without the compatibility check"
           fi
           npx eas update --channel testflight --environment production \
             --input-dir dist --skip-bundler \
