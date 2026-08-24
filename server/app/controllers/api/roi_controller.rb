@@ -130,7 +130,7 @@ pagy, records = pagy(roi_records.includes(:career_content), items: 50)
 
     render json: {
       states: rows.to_h do |area_code, count, avg_salary, adjusted_salary, median_roi, high_roi_count, demand_count, demand_avg_rank|
-        [area_code, {
+        [ area_code, {
           hasRecords: count.positive?,
           avgSalary: avg_salary&.to_f,
           adjustedSalary: adjusted_salary&.to_f,
@@ -138,7 +138,7 @@ pagy, records = pagy(roi_records.includes(:career_content), items: 50)
           highRoiCount: high_roi_count,
           demandCount: demand_count,
           demandAvgRank: demand_avg_rank&.to_f
-        }]
+        } ]
       end
     }
   end
