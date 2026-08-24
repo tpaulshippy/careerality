@@ -15,7 +15,8 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
-import { CareerDetailView, Button } from '../components';
+import { CareerDetailView, Button, FeedbackModal } from '../components';
+import { InterestLevel } from '../components/FeedbackModal';
 import { useTheme, Theme } from '../hooks/useTheme';
 import { useFilters } from '../hooks/useFilters';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -44,6 +45,7 @@ const CareerResultRow: React.FC<{
   return (
     <TouchableOpacity
       style={[styles.row, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
+      testID={`search-result-${career.id}`}
       onPress={() => onPress(career)}
       activeOpacity={0.7}
     >
@@ -100,6 +102,7 @@ export const SearchScreen: React.FC = () => {
   const [states, setStates] = useState<{ area_code: string; area_name: string }[]>([]);
   const [statesError, setStatesError] = useState<string | null>(null);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
+  const [feedbackCareer, setFeedbackCareer] = useState<CareerROI | null>(null);
 
   const pulseAnim = useRef(new Animated.Value(0.45)).current;
 
@@ -219,6 +222,22 @@ export const SearchScreen: React.FC = () => {
     setDetailCareer(career);
   }, [query]);
 
+  const handleInterestPress = useCallback((career: CareerROI) => {
+    setFeedbackCareer(career);
+  }, []);
+
+  const handleFeedbackSubmit = useCallback((interest: InterestLevel) => {
+    const career = feedbackCareer;
+    setFeedbackCareer(null);
+    if (career) void apiClient.submitSwipe(career.id, 'right', interest).catch(() => {});
+  }, [feedbackCareer]);
+
+  const handleFeedbackClose = useCallback(() => {
+    const career = feedbackCareer;
+    setFeedbackCareer(null);
+    if (career) void apiClient.submitSwipe(career.id, 'right').catch(() => {});
+  }, [feedbackCareer]);
+
   const handleRecentPress = useCallback((term: string) => {
     setQuery(term);
   }, []);
@@ -239,7 +258,17 @@ export const SearchScreen: React.FC = () => {
   if (detailCareer) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <CareerDetailView career={detailCareer} onClose={() => setDetailCareer(null)} />
+        <CareerDetailView
+          career={detailCareer}
+          onClose={() => setDetailCareer(null)}
+          onInterest={() => handleInterestPress(detailCareer)}
+        />
+        <FeedbackModal
+          visible={feedbackCareer !== null}
+          careerName={feedbackCareer?.occupation_name ?? ''}
+          onSubmit={handleFeedbackSubmit}
+          onClose={handleFeedbackClose}
+        />
       </View>
     );
   }
@@ -397,6 +426,13 @@ export const SearchScreen: React.FC = () => {
           ))
         ) : null}
       </ScrollView>
+
+      <FeedbackModal
+        visible={feedbackCareer !== null}
+        careerName={feedbackCareer?.occupation_name ?? ''}
+        onSubmit={handleFeedbackSubmit}
+        onClose={handleFeedbackClose}
+      />
     </View>
   );
 };
