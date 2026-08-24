@@ -31,7 +31,7 @@
     },
     "ios": {
       "bundleIdentifier": "app.careerality.app",
-      "buildNumber": "13",
+      "buildNumber": "15",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -44,7 +44,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "app.careerality.app",
-      "permissions": []
+      "permissions": [],
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png",
