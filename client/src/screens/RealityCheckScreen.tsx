@@ -13,6 +13,7 @@ import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
 import { useTheme } from '../hooks/useTheme';
+import { useFilters } from '../hooks/useFilters';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import {
   MAX_EXPERIENCE_YEARS,
@@ -56,13 +57,13 @@ interface StateOption {
 
 export const RealityCheckScreen: React.FC = () => {
   const theme = useTheme();
+  const { filters, setStateCode } = useFilters();
   const [career, setCareer] = useState<CareerROI | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [years, setYears] = useState(0);
   const [lifestyle, setLifestyle] = useState<LifestylePreset>('moderate');
   const [states, setStates] = useState<StateOption[]>([]);
   const [statesError, setStatesError] = useState<string | null>(null);
-  const [stateCode, setStateCode] = useState(NATIONAL_AREA_CODE);
   const [areaCareer, setAreaCareer] = useState<CareerROI | null>(null);
   const [areaLoading, setAreaLoading] = useState(false);
   const [areaError, setAreaError] = useState<string | null>(null);
@@ -117,18 +118,18 @@ export const RealityCheckScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!career || stateCode === NATIONAL_AREA_CODE) {
+    if (!career || filters.stateCode === NATIONAL_AREA_CODE) {
       areaFetchKeyRef.current++;
       setAreaCareer(null);
       setAreaError(null);
       setAreaLoading(false);
       return;
     }
-    fetchAreaCareer(career, stateCode);
-  }, [career, stateCode, fetchAreaCareer]);
+    fetchAreaCareer(career, filters.stateCode);
+  }, [career, filters.stateCode, fetchAreaCareer]);
 
   const effectiveCareer =
-    stateCode !== NATIONAL_AREA_CODE && areaCareer ? areaCareer : career;
+    filters.stateCode !== NATIONAL_AREA_CODE && areaCareer ? areaCareer : career;
 
   // State records carry a cost-of-living-adjusted salary; simulate against
   // that so the national lifestyle budgets stay comparable across states.
@@ -136,7 +137,7 @@ export const RealityCheckScreen: React.FC = () => {
     ? parseFloat(effectiveCareer.adjusted_salary)
     : NaN;
   const medianAnnual = effectiveCareer
-    ? (stateCode !== NATIONAL_AREA_CODE &&
+    ? (filters.stateCode !== NATIONAL_AREA_CODE &&
       Number.isFinite(stateAdjusted) &&
       stateAdjusted > 0
         ? stateAdjusted
@@ -243,7 +244,7 @@ export const RealityCheckScreen: React.FC = () => {
                 value={formatPercent(effectiveCareer.roi_percentage)}
                 color={theme.colors.primary}
               />
-              {areaCareer && stateCode !== NATIONAL_AREA_CODE && (
+              {areaCareer && filters.stateCode !== NATIONAL_AREA_CODE && (
                 <SummaryRow
                   label={`Adjusted for ${effectiveCareer.area_name}`}
                   value={`${formatCurrency(effectiveCareer.adjusted_salary)} · COL ${formatPercent(parseFloat(effectiveCareer.cost_of_living_index))}`}
@@ -320,7 +321,7 @@ export const RealityCheckScreen: React.FC = () => {
               ]}
             >
               <Picker
-                selectedValue={stateCode}
+                selectedValue={filters.stateCode}
                 onValueChange={(value) => setStateCode(value as string)}
                 style={{
                   color: theme.colors.text.primary,
@@ -359,8 +360,8 @@ export const RealityCheckScreen: React.FC = () => {
                 <Text style={[styles.areaNote, { color: theme.colors.text.muted }]}>
                   Updating for state…
                 </Text>
-              ) : areaError && stateCode !== NATIONAL_AREA_CODE ? (
-                <TouchableOpacity onPress={() => fetchAreaCareer(career, stateCode)}>
+              ) : areaError && filters.stateCode !== NATIONAL_AREA_CODE ? (
+                <TouchableOpacity onPress={() => fetchAreaCareer(career, filters.stateCode)}>
                   <Text style={[styles.areaNote, { color: theme.colors.error }]}>{areaError}</Text>
                 </TouchableOpacity>
               ) : null}
@@ -822,4 +823,3 @@ const styles = StyleSheet.create({
     marginTop: 10,
   } as TextStyle,
 });
-
