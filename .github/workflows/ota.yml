@@ -35,6 +35,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           CI: '1'
           EXPO_PUBLIC_API_URL: https://careerality.app
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_CLIENT_DSN }}
         run: |
           rm -rf dist
           npx expo export --platform ios --no-bytecode --output-dir dist --clear
