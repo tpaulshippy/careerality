@@ -132,6 +132,7 @@ export const SearchScreen: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    setPopularLoading(true);
     apiClient.getCareers({ page: 1, sort: 'demand', area_code: filters.stateCode })
       .then(json => {
         if (!cancelled) setPopular(json.records || []);

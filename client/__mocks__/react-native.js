@@ -22,6 +22,7 @@ module.exports = {
   NativeModules: {},
   ActivityIndicator: 'ActivityIndicator',
   TouchableOpacity: 'TouchableOpacity',
+  TextInput: 'TextInput',
   TouchableWithoutFeedback: 'TouchableWithoutFeedback',
   Modal: 'Modal',
   Dimensions: { get: () => ({ width: 390, height: 844, scale: 2, fontScale: 1 }) },
