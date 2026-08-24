@@ -228,27 +228,32 @@ export const RealityCheckScreen: React.FC = () => {
                 label="Median salary"
                 value={formatCurrency(effectiveCareer.annual_median_salary)}
                 color={theme.colors.text.primary}
+                labelColor={theme.colors.text.secondary}
               />
               <SummaryRow
                 label="Education cost"
                 value={formatCurrency(effectiveCareer.education_cost)}
                 color={theme.colors.text.primary}
+                labelColor={theme.colors.text.secondary}
               />
               <SummaryRow
                 label="Years to break-even"
                 value={`${effectiveCareer.years_to_breakeven} yrs`}
                 color={theme.colors.text.primary}
+                labelColor={theme.colors.text.secondary}
               />
               <SummaryRow
                 label="ROI"
                 value={formatPercent(effectiveCareer.roi_percentage)}
                 color={theme.colors.primary}
+                labelColor={theme.colors.text.secondary}
               />
               {areaCareer && filters.stateCode !== NATIONAL_AREA_CODE && (
                 <SummaryRow
                   label={`Adjusted for ${effectiveCareer.area_name}`}
                   value={`${formatCurrency(effectiveCareer.adjusted_salary)} · COL ${formatPercent(parseFloat(effectiveCareer.cost_of_living_index))}`}
                   color={theme.colors.text.secondary}
+                  labelColor={theme.colors.text.secondary}
                 />
               )}
             </View>
@@ -302,7 +307,7 @@ export const RealityCheckScreen: React.FC = () => {
                     style={[
                       styles.segmentText,
                       { color: theme.colors.text.secondary },
-                      lifestyle === preset && { color: theme.colors.primary, fontWeight: '600' },
+                      lifestyle === preset && { color: theme.colors.text.primary, fontWeight: '600' },
                     ]}
                   >
                     {LIFESTYLE_LABELS[preset]}
@@ -334,6 +339,7 @@ export const RealityCheckScreen: React.FC = () => {
                     key={state.area_code}
                     label={state.area_name}
                     value={state.area_code}
+                    color={theme.colors.text.primary}
                   />
                 ))}
               </Picker>
@@ -527,13 +533,14 @@ export const RealityCheckScreen: React.FC = () => {
   );
 };
 
-const SummaryRow: React.FC<{ label: string; value: string; color: string }> = ({
+const SummaryRow: React.FC<{ label: string; value: string; color: string; labelColor: string }> = ({
   label,
   value,
   color,
+  labelColor,
 }) => (
   <View style={styles.summaryRow}>
-    <Text style={styles.summaryLabel}>{label}</Text>
+    <Text style={[styles.summaryLabel, { color: labelColor }]}>{label}</Text>
     <Text style={[styles.summaryValue, { color }]}>{value}</Text>
   </View>
 );
