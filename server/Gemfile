@@ -31,7 +31,6 @@ gem "pagy", "~> 8.0"
 gem "rack-cors"
 
 # Error tracking [https://sentry.io]
-gem "sentry-ruby"
 gem "sentry-rails"
 
 group :development, :test do
