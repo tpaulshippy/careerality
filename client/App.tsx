@@ -117,7 +117,7 @@ export default function App() {
           options={{
             title: 'Discover',
             drawerIcon: () => (
-              <Text style={styles.icon}>🔍</Text>
+              <Text style={styles.icon}>↔️</Text>
             ),
           }}
         >
