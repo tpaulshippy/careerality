@@ -3,6 +3,8 @@ import {
   View,
   Text,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
@@ -89,9 +91,14 @@ export const CareerPickerModal: React.FC<CareerPickerModalProps> = ({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          style={styles.overlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <TouchableWithoutFeedback>
-            <View style={[styles.sheet, { backgroundColor: theme.colors.surface }]}>
+            <View
+              style={[styles.sheet, { backgroundColor: theme.colors.surface }]}
+            >
               <View style={styles.handle} />
               <View style={styles.header}>
                 <Text style={[styles.title, { color: theme.colors.text.primary }]}>
@@ -137,6 +144,7 @@ export const CareerPickerModal: React.FC<CareerPickerModalProps> = ({
                 </View>
               ) : (
                 <FlatList
+                  style={styles.resultsList}
                   data={results}
                   keyExtractor={(item) => `${item.occupation_code}-${item.area_code}`}
                   keyboardShouldPersistTaps="handled"
@@ -165,7 +173,7 @@ export const CareerPickerModal: React.FC<CareerPickerModalProps> = ({
               )}
             </View>
           </TouchableWithoutFeedback>
-        </View>
+        </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </Modal>
   );
@@ -220,6 +228,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
+  } as ViewStyle,
+  resultsList: {
+    flex: 1,
   } as ViewStyle,
   errorText: {
     fontSize: 15,
