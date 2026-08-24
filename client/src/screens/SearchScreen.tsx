@@ -43,43 +43,44 @@ const CareerResultRow: React.FC<{
   const initial = career.occupation_name.charAt(0).toUpperCase();
 
   return (
-    <View
+    <TouchableOpacity
       style={[styles.row, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
+      testID={`search-result-${career.id}`}
+      onPress={() => onPress(career)}
+      activeOpacity={0.7}
     >
-      <TouchableOpacity testID={`search-result-${career.id}`} style={styles.rowContent} onPress={() => onPress(career)} activeOpacity={0.7}>
-        {imageFailed ? (
-          <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: theme.colors.primaryLight }]}>
-            <Text style={[styles.thumbFallbackText, { color: theme.colors.primary }]}>{initial}</Text>
+      {imageFailed ? (
+        <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: theme.colors.primaryLight }]}>
+          <Text style={[styles.thumbFallbackText, { color: theme.colors.primary }]}>{initial}</Text>
+        </View>
+      ) : (
+        <Image
+          source={{ uri: getImageUrl(career.occupation_code) }}
+          style={styles.thumb}
+          onError={() => setImageFailed(true)}
+        />
+      )}
+      <View style={styles.rowText}>
+        <Text style={[styles.rowName, { color: theme.colors.text.primary }]} numberOfLines={1}>
+          {career.occupation_name}
+        </Text>
+        <Text style={[styles.rowSubtitle, { color: theme.colors.text.secondary }]}>
+          {formatCurrency(career.annual_median_salary)} median salary
+        </Text>
+      </View>
+      <View style={styles.rowChips}>
+        <View style={[styles.chip, { backgroundColor: theme.colors.primaryLight }]}>
+          <Text style={[styles.chipText, { color: theme.colors.primary }]}>
+            {formatPercent(career.roi_percentage)} ROI
+          </Text>
+        </View>
+        {career.demand_rank != null && (
+          <View style={styles.demandChip}>
+            <Text style={styles.demandChipText}>{`🔥 #${career.demand_rank}`}</Text>
           </View>
-        ) : (
-          <Image
-            source={{ uri: getImageUrl(career.occupation_code) }}
-            style={styles.thumb}
-            onError={() => setImageFailed(true)}
-          />
         )}
-        <View style={styles.rowText}>
-          <Text style={[styles.rowName, { color: theme.colors.text.primary }]} numberOfLines={1}>
-            {career.occupation_name}
-          </Text>
-          <Text style={[styles.rowSubtitle, { color: theme.colors.text.secondary }]}>
-            {formatCurrency(career.annual_median_salary)} median salary
-          </Text>
-        </View>
-        <View style={styles.rowChips}>
-          <View style={[styles.chip, { backgroundColor: theme.colors.primaryLight }]}>
-            <Text style={[styles.chipText, { color: theme.colors.primary }]}>
-              {formatPercent(career.roi_percentage)} ROI
-            </Text>
-          </View>
-          {career.demand_rank != null && (
-            <View style={styles.demandChip}>
-              <Text style={styles.demandChipText}>{`🔥 #${career.demand_rank}`}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -228,13 +229,13 @@ export const SearchScreen: React.FC = () => {
   const handleFeedbackSubmit = useCallback((interest: InterestLevel) => {
     const career = feedbackCareer;
     setFeedbackCareer(null);
-    if (career) apiClient.submitSwipe(career.id, 'right', interest);
+    if (career) void apiClient.submitSwipe(career.id, 'right', interest).catch(() => {});
   }, [feedbackCareer]);
 
   const handleFeedbackClose = useCallback(() => {
     const career = feedbackCareer;
     setFeedbackCareer(null);
-    if (career) apiClient.submitSwipe(career.id, 'right');
+    if (career) void apiClient.submitSwipe(career.id, 'right').catch(() => {});
   }, [feedbackCareer]);
 
   const handleRecentPress = useCallback((term: string) => {
@@ -453,7 +454,6 @@ interface Styles {
   thumbFallback: ViewStyle;
   thumbFallbackText: TextStyle;
   rowText: ViewStyle;
-  rowContent: ViewStyle;
   rowName: TextStyle;
   rowSubtitle: TextStyle;
   rowChips: ViewStyle;
@@ -568,11 +568,6 @@ const styles = StyleSheet.create<Styles>({
     flex: 1,
     marginLeft: 12,
     marginRight: 8,
-  },
-  rowContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   rowName: {
     fontSize: 15,
