@@ -21,7 +21,7 @@
     },
     "ios": {
       "bundleIdentifier": "app.careerality.app",
-      "buildNumber": "13",
+      "buildNumber": "18",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
