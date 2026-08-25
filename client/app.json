@@ -9,8 +9,7 @@
     "userInterfaceStyle": "automatic",
     "plugins": [
       "expo-updates",
-      "@sentry/react-native/expo",
-      "./plugins/withEmbeddedUpdates"
+      "@sentry/react-native/expo"
     ],
     "splash": {
       "image": "./assets/splash.png",
