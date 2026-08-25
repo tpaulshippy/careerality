@@ -1,6 +1,7 @@
 name: OTA Update
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -9,11 +10,11 @@ on:
 jobs:
   ota:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,19 +37,19 @@ jobs:
           CI: '1'
           EXPO_PUBLIC_API_URL: https://careerality.app
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_CLIENT_DSN }}
+          UPDATE_MESSAGE: Automatic OTA from ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
+          set -euo pipefail
           rm -rf dist
           npx expo export --platform ios --no-bytecode --output-dir dist --clear
           fingerprint_output=$(npx eas fingerprint:generate --json --non-interactive --platform ios --environment production 2>/dev/null)
           current_runtime=$(printf '%s' "{${fingerprint_output#*\{}" | jq -r '.hash')
-          build_runtime=$(npx eas build:list --platform ios --profile testflight --limit 10 --json | jq -r '(if type == "array" then . elif .currentPage then .currentPage elif .data then .data else [] end) | map(select((.status // "" | ascii_upcase) == "FINISHED")) | first | .runtimeVersion // empty')
-          if [ -n "$build_runtime" ] && [ "$current_runtime" != "$build_runtime" ]; then
-            echo "OTA runtime $current_runtime does not match the latest finished TestFlight build runtime $build_runtime"
+          if [ -z "$current_runtime" ] || [ "$current_runtime" = "null" ]; then
+            echo "Unable to determine the iOS OTA runtime"
             exit 1
           fi
-          if [ -z "$build_runtime" ]; then
-            echo "Unable to read a finished TestFlight build runtime; publishing without the compatibility check"
-          fi
-          npx eas update --channel testflight --environment production \
+          # EAS Update filters by runtime; local builds are intentionally not listed on EAS.
+          echo "Publishing iOS OTA for runtime $current_runtime to testflight"
+          npx eas update --channel testflight --environment production --platform ios \
             --input-dir dist --skip-bundler \
-            --message "Automatic OTA from ${{ github.event.workflow_run.head_commit.message || github.event.workflow_run.head_sha }}"
+            --message "$UPDATE_MESSAGE"
