@@ -19,7 +19,8 @@
         "distribution": "store"
       },
       "env": {
-        "SENTRY_ALLOW_FAILURE": "true"
+        "SENTRY_ALLOW_FAILURE": "true",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "testflight"
     },
@@ -31,6 +32,10 @@
       },
       "ios": {
         "distribution": "store"
+      },
+      "env": {
+        "SENTRY_ALLOW_FAILURE": "true",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "production"
     }
