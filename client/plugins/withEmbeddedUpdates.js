@@ -9,11 +9,11 @@ module.exports = function withEmbeddedUpdates(config) {
     'ios',
     async (config) => {
       const projectRoot = config.modRequest.platformProjectRoot;
-      const projectName = config.modRequest.projectName;
-      const projectFile = path.join(projectRoot, `${projectName}.xcodeproj`, 'project.pbxproj');
-      const project = fs.readFileSync(projectFile, 'utf8');
+      const updatesEnvFile = path.join(projectRoot, '.xcode.env.updates');
 
-      fs.writeFileSync(projectFile, project.replace(/SKIP_BUNDLING/g, 'FORCE_BUNDLING'));
+      // EAS sets SKIP_BUNDLING after the eager bundle step. Clear it so the
+      // release app still embeds a launch asset for its first offline launch.
+      fs.writeFileSync(updatesEnvFile, 'export FORCE_BUNDLING=1\nunset SKIP_BUNDLING\n');
       return config;
     },
   ]);
