@@ -19,7 +19,8 @@
         "distribution": "store"
       },
       "env": {
-        "SENTRY_ALLOW_FAILURE": "true"
+        "SENTRY_ALLOW_FAILURE": "true",
+        "EX_UPDATES_NATIVE_DEBUG": "1"
       },
       "channel": "testflight"
     },
