@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "plugins": [
       "expo-updates",
-      "@sentry/react-native/expo"
+      "@sentry/react-native/expo",
+      "./plugins/withEmbeddedUpdates"
     ],
     "splash": {
       "image": "./assets/splash.png",
@@ -21,7 +22,7 @@
     },
     "ios": {
       "bundleIdentifier": "app.careerality.app",
-      "buildNumber": "20",
+      "buildNumber": "21",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
