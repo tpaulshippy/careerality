@@ -25,6 +25,7 @@ import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { getImageUrl } from '../utils/careerImage';
 
 const STORAGE_KEY = 'careerality_counselor_chat';
+const EMPTY_MESSAGES: CounselorMessage[] = [];
 const COUNSELOR_NAME = 'Career Counselor';
 const MIN_TYPING_MS = 900;
 
@@ -104,7 +105,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ career, onPress }) => {
 export const CounselorScreen: React.FC = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const [messages, setMessages, clearMessages] = useLocalStorage<CounselorMessage[]>(STORAGE_KEY, []);
+  const [messages, setMessages, clearMessages] = useLocalStorage<CounselorMessage[]>(STORAGE_KEY, EMPTY_MESSAGES);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);

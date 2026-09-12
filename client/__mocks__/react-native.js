@@ -14,12 +14,12 @@ const animation = () => ({ start: (cb) => cb && cb({ finished: true }), stop: ()
 const FlatList = (props) => {
   const items = props.data || [];
   return React.createElement(
-    View,
+    'View',
     null,
     props.ListHeaderComponent || null,
     items.map((item, index) =>
       React.createElement(
-        View,
+        'View',
         { key: props.keyExtractor ? props.keyExtractor(item, index) : index },
         props.renderItem({ item, index, separators: {} }),
       ),

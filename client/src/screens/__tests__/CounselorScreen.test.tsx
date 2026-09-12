@@ -2,6 +2,7 @@ import React from 'react';
 import { render, act, fireEvent, waitFor } from '@testing-library/react-native';
 import { CounselorScreen } from '../CounselorScreen';
 import { apiClient } from '../../api/client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CounselorChatResponse } from '../../types';
 
 jest.mock('../../components/CareerDetailView', () => ({
@@ -78,9 +79,9 @@ const renderScreen = async () => {
 };
 
 describe('CounselorScreen', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
-    window.localStorage.clear();
+    await AsyncStorage.clear();
     addCounselorChatMock.mockResolvedValue(mockResponse);
   });
 
@@ -131,13 +132,18 @@ describe('CounselorScreen', () => {
     const { getByTestId, getByText, findByText } = await renderScreen();
 
     await act(async () => {
+      fireEvent.changeText(getByTestId('counselor-input'), 'Recommend careers for me');
+    });
+    await act(async () => {
       fireEvent.press(getByTestId('counselor-send'));
     });
     await findByText(/swipe history/i);
-    expect(window.localStorage.getItem('careerality_counselor_chat')).not.toBeNull();
+    expect(await AsyncStorage.getItem('careerality_counselor_chat')).not.toBeNull();
 
-    fireEvent.press(getByTestId('clear-conversation'));
-    expect(JSON.parse(window.localStorage.getItem('careerality_counselor_chat') || '[]')).toEqual([]);
+    await act(async () => {
+      fireEvent.press(getByTestId('clear-conversation'));
+    });
+    expect(JSON.parse((await AsyncStorage.getItem('careerality_counselor_chat')) || '[]')).toEqual([]);
     expect(getByText('Your virtual career counselor')).toBeTruthy();
   });
 });
