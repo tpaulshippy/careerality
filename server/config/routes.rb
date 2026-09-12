@@ -20,6 +20,7 @@ Rails.application.routes.draw do
         get :states
       end
     end
+    post "counselor/chat", to: "counselors#chat"
   end
 
   get "up" => "rails/health#show", as: :rails_health_check

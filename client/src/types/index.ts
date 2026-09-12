@@ -90,3 +90,18 @@ export interface FilterState {
 }
 
 export type SwipeHistory = Swipe[];
+
+export interface CounselorChatResponse {
+  reply: string;
+  suggestions?: CareerROI[];
+  quick_replies?: string[];
+}
+
+export interface CounselorMessage {
+  id: string;
+  role: 'counselor' | 'user';
+  text: string;
+  suggestions?: CareerROI[];
+  quickReplies?: string[];
+  createdAt: string;
+}

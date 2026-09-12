@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, StyleSheet, TextStyle, useColorScheme } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DiscoverScreen, DataSourcesScreen, LikedScreen } from './src/screens';
+import { DiscoverScreen, DataSourcesScreen, LikedScreen, CounselorScreen } from './src/screens';
 import { CustomDrawerContent } from './src/components';
 import { useTheme } from './src/hooks/useTheme';
 import { lightColors, darkColors } from './src/constants/theme';
@@ -72,13 +72,23 @@ export default function App() {
             ),
           }}
         />
-        <Drawer.Screen 
-          name="DataSources" 
+        <Drawer.Screen
+          name="DataSources"
           component={DataSourcesScreen}
           options={{
             title: 'Data Sources',
             drawerIcon: () => (
               <Text style={styles.icon}>📁</Text>
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="Counselor"
+          component={CounselorScreen}
+          options={{
+            title: 'Counselor',
+            drawerIcon: () => (
+              <Text style={styles.icon}>💬</Text>
             ),
           }}
         />

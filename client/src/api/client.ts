@@ -1,6 +1,6 @@
 import { API_BASE } from '../constants/dataSources';
 import { getUserId } from '../utils/userId';
-import { RoiResponse, LikedResponse } from '../types';
+import { RoiResponse, LikedResponse, CounselorChatResponse } from '../types';
 
 export interface SwipePayload {
   career_id: number;
@@ -103,6 +103,11 @@ class ApiClient {
     const userId = await getUserId();
     const queryString = '?' + new URLSearchParams({ user_id: userId }).toString();
     return this.request(`/api/swipes/destroy_all${queryString}`, { method: 'DELETE' });
+  }
+
+  async addCounselorChat(message: string): Promise<CounselorChatResponse> {
+    const userId = await getUserId();
+    return this.post<CounselorChatResponse>('/api/counselor/chat', { user_id: userId, message });
   }
 }
 
