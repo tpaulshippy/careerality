@@ -21,6 +21,7 @@ Rails.application.routes.draw do
         get :states
       end
     end
+    post "jev/route_filters", to: "jev#route_filters"
   end
 
   get "up" => "rails/health#show", as: :rails_health_check
