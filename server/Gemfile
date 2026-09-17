@@ -47,3 +47,8 @@ end
 gem "minitest", "~> 5.20"
 
 gem "dotenv-rails"
+
+# System One decisions via TypeSafe Jev (structured outputs only)
+# https://github.com/kieranklaassen/ruby_llm-typesafe
+gem "ruby_llm", ">= 2.0.0.rc3", "< 3"
+gem "ruby_llm-typesafe", "~> 0.1.0"
