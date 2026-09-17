@@ -6,6 +6,7 @@ import { InfoRow } from './InfoRow';
 import { SkillBadge } from './SkillBadge';
 import { OccupationIconBadge } from './OccupationIconBadge';
 import { CareerROI, CareerImage } from '../types';
+import { scoreNarrative, JevQaScore } from '../api/jevQa';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
 import { getOccupationGroup } from '../utils/occupationGroup';
@@ -30,10 +31,32 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
   const theme = useTheme();
   const imageUrl = getImageUrl(career.occupation_code);
   const [imageFailed, setImageFailed] = useState(false);
+  // Jev QA verdict for the generated narrative; null hides the badge.
+  const [qaVerdict, setQaVerdict] = useState<JevQaScore | null>(null);
 
   useEffect(() => {
     setImageFailed(false);
   }, [imageUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!career.day_in_life_full) {
+      setQaVerdict(null);
+      return;
+    }
+    scoreNarrative({
+      narrative: career.day_in_life_full,
+      onet_tasks: career.skills ?? [],
+      occupation_code: career.occupation_code,
+    })
+      .then((score) => {
+        if (!cancelled) setQaVerdict(score);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [career.occupation_code, career.day_in_life_full, career.skills]);
 
   const isNational = career.area_code === '99' || career.area_name === 'U.S.';
   const showColIndex = !isNational && career.adjusted_salary !== career.annual_median_salary;
@@ -90,6 +113,16 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
             <Text style={[styles.dayInLifeText, { color: theme.colors.text.secondary }]}>
               {career.day_in_life_full}
             </Text>
+            {qaVerdict && (
+              <Text
+                style={[
+                  styles.qaVerdict,
+                  { color: qaVerdict.regenerate ? theme.colors.error : theme.colors.success },
+                ]}
+              >
+                {qaVerdict.regenerate ? '⚠ Needs review · Jev' : '✓ Jev-verified story'}
+              </Text>
+            )}
           </View>
         )}
 
@@ -216,6 +249,11 @@ const styles = StyleSheet.create({
   dayInLifeText: {
     fontSize: 15,
     lineHeight: 22,
+  } as TextStyle,
+  qaVerdict: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 8,
   } as TextStyle,
   imageGallery: {
     marginBottom: 20,
