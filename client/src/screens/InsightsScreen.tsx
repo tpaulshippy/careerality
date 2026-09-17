@@ -13,6 +13,7 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { CareerROI, RoiResponse } from '../types';
 import { apiClient } from '../api/client';
+import { fetchValuesProfile, JevValuesProfile } from '../api/jevValues';
 import { CareerDetailView, OccupationIconBadge } from '../components';
 import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
@@ -91,6 +92,8 @@ export const InsightsScreen: React.FC = () => {
   const [liked, setLiked] = useState<LikedCareer[]>([]);
   const [catalog, setCatalog] = useState<CareerROI[]>([]);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
+  // Calibrated values vector from POST /api/jev/values; null hides the panel.
+  const [jevProfile, setJevProfile] = useState<JevValuesProfile | null>(null);
   const fetchKeyRef = useRef(0);
 
   const fetchInsights = useCallback(async () => {
@@ -118,6 +121,13 @@ export const InsightsScreen: React.FC = () => {
       setSwipes(historyJson.swipes || []);
       setLiked(likedJson.records || []);
       setCatalog(catalogRecords);
+      try {
+        const profile = await fetchValuesProfile(historyJson.swipes || []);
+        if (thisFetch !== fetchKeyRef.current) return;
+        setJevProfile(profile);
+      } catch {
+        // Jev panel stays hidden when the endpoint is unreachable.
+      }
     } catch {
       if (thisFetch === fetchKeyRef.current) {
         setError('Failed to load your insights');
@@ -174,6 +184,13 @@ export const InsightsScreen: React.FC = () => {
   const tasteProfile = computeTasteProfile(liked);
   const quality = computeQualityOfInterest(liked, catalog);
   const picks = computeStandoutPicks(liked);
+  const jevSlices: FeedbackSlice[] = jevProfile
+    ? [
+        { key: 'jev-salary', label: 'Salary-driven', count: 0, percent: Math.round(jevProfile.salary_driven * 100) },
+        { key: 'jev-stability', label: 'Stability-seeking', count: 0, percent: Math.round(jevProfile.stability_need * 100) },
+        { key: 'jev-credential', label: 'Credential-averse', count: 0, percent: Math.round(jevProfile.credential_averse * 100) },
+      ]
+    : [];
 
   if (activity.totalReviewed === 0) {
     return (
@@ -290,6 +307,19 @@ export const InsightsScreen: React.FC = () => {
           <Text style={[styles.hintText, { color: theme.colors.text.secondary }]}>
             When you like a career, tell us why — those reasons show up here.
           </Text>
+        </View>
+      )}
+
+      {jevProfile && (
+        <View
+          style={[styles.card, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
+        >
+          <Text style={[styles.cardTitle, { color: theme.colors.text.primary }]}>
+            What drives you · Jev
+          </Text>
+          {jevSlices.map((slice, index) => (
+            <FeedbackBar key={slice.key} slice={slice} index={index} />
+          ))}
         </View>
       )}
 

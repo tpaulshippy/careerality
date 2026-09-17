@@ -31,6 +31,16 @@ class JevValuesProfilerServiceTest < ActiveSupport::TestCase
     ENV["TYPESAFE_API_KEY"] = old if old
   end
 
+  test "app swipe records count feedback as reasons in fallback" do
+    old = ENV.delete("TYPESAFE_API_KEY")
+    swipes = [ { "feedback" => "salary" }, { "feedback" => "security" } ]
+    profile = JevValuesProfilerService.profile(swipes: swipes)
+    assert_in_delta 0.5, profile.salary_driven, 0.01
+    assert_in_delta 0.5, profile.stability_need, 0.01
+  ensure
+    ENV["TYPESAFE_API_KEY"] = old if old
+  end
+
   test "maps Jev parsed response" do
     fake_parsed = {
       "salary_driven" => { "type" => "noul", "noul" => 0.91 },

@@ -40,7 +40,7 @@ class JevValuesProfilerService
   end
 
   def self.fallback(swipes)
-    reasons = swipes.map { |s| s[:reason] || s["reason"] }.compact
+    reasons = swipes.map { |s| s[:reason] || s["reason"] || s[:feedback] || s["feedback"] }.compact
     total = [ reasons.length, 1 ].max.to_f
     Profile.new(
       salary_driven: reasons.count { |r| r == "salary" } / total,
