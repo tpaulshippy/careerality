@@ -15,6 +15,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { routeNaturalLanguage, routeKeywords, JevFilterRoute } from '../api/jevFilters';
 import { CareerDetailView, Button, FeedbackModal } from '../components';
 import { InterestLevel } from '../components/FeedbackModal';
 import { useTheme, Theme } from '../hooks/useTheme';
@@ -103,6 +104,11 @@ export const SearchScreen: React.FC = () => {
   const [statesError, setStatesError] = useState<string | null>(null);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const [feedbackCareer, setFeedbackCareer] = useState<CareerROI | null>(null);
+  // Jev NL-to-filters: free text in, filter chips out.
+  const [nlText, setNlText] = useState('');
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlResult, setNlResult] = useState<JevFilterRoute | null>(null);
+  const [nlApplied, setNlApplied] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(0.45)).current;
 
@@ -210,6 +216,27 @@ export const SearchScreen: React.FC = () => {
     inputRef.current?.focus();
   }, []);
 
+  const handleNlSubmit = useCallback(async () => {
+    const text = nlText.trim();
+    if (text.length < MIN_QUERY_LENGTH || nlLoading) return;
+    setNlLoading(true);
+    setNlApplied(false);
+    try {
+      setNlResult(await routeNaturalLanguage(text));
+    } catch {
+      setNlResult(null);
+    } finally {
+      setNlLoading(false);
+    }
+  }, [nlText, nlLoading]);
+
+  const handleNlApply = useCallback(() => {
+    if (!nlResult || nlResult.requires_clarification) return;
+    const keywords = routeKeywords(nlResult);
+    if (keywords) setQuery(keywords);
+    setNlApplied(true);
+  }, [nlResult]);
+
   const handleResultPress = useCallback((career: CareerROI) => {
     const q = sanitizeQuery(query);
     if (q.length >= MIN_QUERY_LENGTH) {
@@ -304,6 +331,61 @@ export const SearchScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+      </View>
+
+      <View style={styles.nlRow}>
+        <View style={[styles.nlBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Text style={[styles.searchIcon, { color: theme.colors.text.muted }]}>✨</Text>
+          <TextInput
+            style={[styles.input, { color: theme.colors.text.primary }]}
+            placeholder="Describe what you want… e.g. no degree, remote, $80k+"
+            placeholderTextColor={theme.colors.text.muted}
+            value={nlText}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="go"
+            onChangeText={(value) => { setNlText(value); setNlApplied(false); }}
+            onSubmitEditing={handleNlSubmit}
+            testID="nl-input"
+          />
+          <TouchableOpacity onPress={handleNlSubmit} testID="nl-submit" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={[styles.nlGo, { color: theme.colors.primary }]}>
+              {nlLoading ? '…' : 'Go'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {nlResult && (
+          <View style={[styles.nlChips, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={styles.nlChipRow}>
+              <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
+                {`🎓 ${nlResult.education_pathway}`}
+              </Text>
+              <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
+                {`🏠 ${nlResult.work_env}`}
+              </Text>
+              {nlResult.min_salary != null && (
+                <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
+                  {`💵 $${nlResult.min_salary.toLocaleString()}+`}
+                </Text>
+              )}
+            </View>
+            {nlResult.requires_clarification ? (
+              <Text style={[styles.nlHint, { color: theme.colors.text.secondary }]}>
+                Not sure what you mean — try rephrasing.
+              </Text>
+            ) : nlApplied ? (
+              <Text style={[styles.nlHint, { color: theme.colors.primary }]}>
+                Applied to search ✓
+              </Text>
+            ) : (
+              <TouchableOpacity onPress={handleNlApply} testID="nl-apply">
+                <Text style={[styles.nlApply, { color: theme.colors.primary }]}>
+                  Use as search →
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={styles.stateRow}>
@@ -444,6 +526,14 @@ interface Styles {
   searchIcon: TextStyle;
   input: TextStyle;
   clearButton: TextStyle;
+  nlRow: ViewStyle;
+  nlBox: ViewStyle;
+  nlGo: TextStyle;
+  nlChips: ViewStyle;
+  nlChipRow: ViewStyle;
+  nlChip: TextStyle;
+  nlHint: TextStyle;
+  nlApply: TextStyle;
   stateRow: ViewStyle;
   stateIcon: TextStyle;
   stateError: TextStyle;
@@ -512,6 +602,50 @@ const styles = StyleSheet.create<Styles>({
     fontSize: 16,
     fontWeight: '600',
     paddingLeft: 8,
+  },
+  nlRow: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  nlBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  nlGo: {
+    fontSize: 15,
+    fontWeight: '700',
+    paddingLeft: 8,
+  },
+  nlChips: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  nlChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  nlChip: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 12,
+    marginBottom: 4,
+  },
+  nlHint: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  nlApply: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 6,
   },
   stateRow: {
     flexDirection: 'row',
