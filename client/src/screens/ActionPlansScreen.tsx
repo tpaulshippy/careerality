@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import {
   View,
   Text,
+  TextInput,
   ScrollView,
   StyleSheet,
   ViewStyle,
@@ -19,6 +20,7 @@ import * as ExpoClipboard from 'expo-clipboard';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { triageMessage, taskLabel, JevTriage } from '../api/jevTriage';
 import { CareerDetailView, FilterChip, OccupationIconBadge } from '../components';
 import { useTheme } from '../hooks/useTheme';
 import { usePlanProgress } from '../hooks/usePlanProgress';
@@ -188,6 +190,10 @@ export const ActionPlansScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [filter, setFilter] = useState<PlanFilter>('all');
+  // Jev front-door triage: question in, intent + next step out.
+  const [askText, setAskText] = useState('');
+  const [triage, setTriage] = useState<JevTriage | null>(null);
+  const [triageLoading, setTriageLoading] = useState(false);
   const fetchKeyRef = useRef(0);
   const usePlanProgressApi = usePlanProgress();
   const { isComplete, progressFor } = usePlanProgressApi;
@@ -223,6 +229,19 @@ export const ActionPlansScreen: React.FC = () => {
       setSelectedCode(routeParams.occupationCode);
     }
   }, [routeParams]);
+
+  const handleAsk = useCallback(async () => {
+    const message = askText.trim();
+    if (message.length < 2 || triageLoading) return;
+    setTriageLoading(true);
+    try {
+      setTriage(await triageMessage(message, {}));
+    } catch {
+      setTriage(null);
+    } finally {
+      setTriageLoading(false);
+    }
+  }, [askText, triageLoading]);
 
   const plans = useMemo(() => {
     const byCode = new Map<string, CareerROI>();
@@ -318,6 +337,38 @@ export const ActionPlansScreen: React.FC = () => {
         <Text style={[styles.screenIntro, { color: theme.colors.text.secondary }]}>
           Six concrete steps to get ready for each career you love — take them in any order.
         </Text>
+
+        <View style={[styles.askBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <View style={styles.askRow}>
+            <TextInput
+              style={[styles.askInput, { color: theme.colors.text.primary }]}
+              placeholder="Not sure where to start? Ask…"
+              placeholderTextColor={theme.colors.text.muted}
+              value={askText}
+              autoCorrect={false}
+              returnKeyType="go"
+              onChangeText={setAskText}
+              onSubmitEditing={handleAsk}
+              testID="ask-input"
+            />
+            <TouchableOpacity onPress={handleAsk} testID="ask-submit" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={[styles.askGo, { color: theme.colors.primary }]}>
+                {triageLoading ? '…' : 'Ask ✨'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {triage && (
+            <View style={styles.askAnswer}>
+              <Text style={[styles.askIntent, { color: theme.colors.text.primary }]}>
+                {triage.jailbreak_attempt
+                  ? '⚠ That looks like a prompt trick — try a career question.'
+                  : triage.needs_human
+                    ? '❤ This deserves a human — consider talking to a counselor.'
+                    : `→ ${triage.intent} · try: ${taskLabel(triage.recommended_task)}`}
+              </Text>
+            </View>
+          )}
+        </View>
 
         <View style={styles.filterRow}>
           {(Object.keys(FILTER_LABELS) as PlanFilter[]).map(key => (
@@ -669,6 +720,35 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   emptyButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' } as TextStyle,
   list: { paddingVertical: 16 } as ViewStyle,
+  askBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  } as ViewStyle,
+  askRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  } as ViewStyle,
+  askInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 0,
+  } as TextStyle,
+  askGo: {
+    fontSize: 15,
+    fontWeight: '700',
+    paddingLeft: 8,
+  } as TextStyle,
+  askAnswer: {
+    marginTop: 8,
+  } as ViewStyle,
+  askIntent: {
+    fontSize: 14,
+    lineHeight: 20,
+  } as TextStyle,
   screenIntro: {
     fontSize: 14,
     marginHorizontal: 16,
