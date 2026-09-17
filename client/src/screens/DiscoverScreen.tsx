@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, Toucha
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { rankCareers } from '../api/jevRank';
 import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
 import { SwipeCard, SwipeControls, CareerDetailView } from '../components';
@@ -39,6 +40,8 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
   const [cardReset] = useState(0);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const [feedbackCareer, setFeedbackCareer] = useState<CareerROI | null>(null);
+  // "✨ Jev-ranked · N swipes" once the rank endpoint reorders the feed.
+  const [jevBadge, setJevBadge] = useState<string | null>(null);
   const [celebrateLevel, setCelebrateLevel] = useState<number | null>(null);
   const heldLevelRef = useRef<number | null>(null);
   const fetchKeyRef = useRef(0);
@@ -96,7 +99,28 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
       if (append) {
         setCareers(prev => [...prev, ...data]);
       } else {
-        setCareers(data);
+        // Jev re-rank: raw swipe history + candidate codes go to
+        // POST /api/jev/rank; any failure keeps server order.
+        let ordered = data;
+        let badge: string | null = null;
+        try {
+          const history = await apiClient.getSwipeHistory().catch(() => ({ swipes: [] as never[] }));
+          const swipes = (history as { swipes?: unknown[] }).swipes ?? [];
+          const ranked = await rankCareers(swipes, data.map(c => c.occupation_code));
+          if (thisFetch !== fetchKeyRef.current) return;
+          if (ranked && ranked.results.length > 0) {
+            const position = new Map(ranked.results.map((r, i) => [r.occupation_code, i]));
+            ordered = [...data].sort(
+              (a, b) => (position.get(a.occupation_code) ?? 999) - (position.get(b.occupation_code) ?? 999)
+            );
+            badge = `✨ Jev-ranked · ${swipes.length} swipe${swipes.length === 1 ? '' : 's'}`;
+          }
+        } catch {
+          // Keep server order when ranking is unavailable.
+        }
+        if (thisFetch !== fetchKeyRef.current) return;
+        setJevBadge(badge);
+        setCareers(ordered);
         setDataKey(prev => prev + 1);
         resetSwipes();
       }
@@ -274,6 +298,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
           </TouchableOpacity>
         </View>
       </View>
+      {jevBadge && hasCareers && (<View style={styles.jevBadgeRow}><Text style={[styles.jevBadge, { color: theme.colors.primary }]}>{jevBadge}</Text></View>)}
 
       <View style={styles.cardContainer}>
         {!hasCareers ? (
@@ -377,6 +402,14 @@ const styles = StyleSheet.create({
   progress: {
     fontSize: 13,
     marginTop: 4,
+  } as TextStyle,
+  jevBadgeRow: {
+    alignItems: 'center',
+    paddingTop: 2,
+  } as ViewStyle,
+  jevBadge: {
+    fontSize: 12,
+    fontWeight: '600',
   } as TextStyle,
   cardContainer: {
     flex: 1,

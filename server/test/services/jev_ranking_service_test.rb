@@ -50,4 +50,20 @@ class JevRankingServiceTest < ActiveSupport::TestCase
   ensure
     ENV["TYPESAFE_API_KEY"] = old if old
   end
+
+  test "raw app swipe records resolve career_id to occupation codes" do
+    old = ENV.delete("TYPESAFE_API_KEY")
+    fake_scope = Object.new
+    fake_scope.define_singleton_method(:pluck) { |*_args| [ [ 7, "15-1252.00" ] ] }
+    CareerRoi.stub(:where, fake_scope) do
+      swipes = [ { "career_id" => 7, "direction" => "right", "feedback" => "salary" } ]
+      results = JevRankingService.rank(swipes: swipes, candidates: CANDIDATES)
+      seen = results.find { |r| r.occupation_code == "15-1252.00" }
+      unseen = results.find { |r| r.occupation_code == "29-1141.00" }
+      assert_equal 0.5, seen.p_like, "seen career gets no novelty boost"
+      assert unseen.p_like > seen.p_like
+    end
+  ensure
+    ENV["TYPESAFE_API_KEY"] = old if old
+  end
 end

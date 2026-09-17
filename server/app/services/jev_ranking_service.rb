@@ -22,6 +22,7 @@ class JevRankingService
   Result = Struct.new(:occupation_code, :p_like, :fit_score, :driver, :confidence, :provider, keyword_init: true)
 
   def self.rank(swipes:, candidates:)
+    swipes = with_codes(swipes)
     scored = candidates.map { |c| score_candidate(swipes: swipes, candidate: c) }
     # Explore/exploit: low confidence gets a novelty boost for unseen codes.
     seen = swipes.map { |s| s[:occupation_code] || s["occupation_code"] }.compact
@@ -63,4 +64,17 @@ class JevRankingService
                driver: "security", confidence: 0.5, provider: :fallback)
   end
   private_class_method :fallback_result
+
+  # The app posts raw swipe records (career_id, direction, feedback).
+  # Resolve career_ids to occupation codes so history matches candidates.
+  def self.with_codes(swipes)
+    swipes = Array(swipes).map(&:to_h)
+    ids = swipes.map { |s| s[:career_id] || s["career_id"] }.compact.uniq
+    codes = ids.empty? ? {} : CareerRoi.where(id: ids).pluck(:id, :occupation_code).to_h
+    swipes.each do |s|
+      s[:occupation_code] ||= s["occupation_code"] || codes[s[:career_id] || s["career_id"]]
+      s[:reason] ||= s["reason"] || s[:feedback] || s["feedback"]
+    end
+  end
+  private_class_method :with_codes
 end
