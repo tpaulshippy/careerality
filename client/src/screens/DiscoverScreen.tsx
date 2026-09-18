@@ -98,6 +98,8 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
 
       if (append) {
         setCareers(prev => [...prev, ...data]);
+        // Appended pages were never ranked; don't imply they were.
+        setJevBadge(null);
       } else {
         // Jev re-rank: raw swipe history + candidate codes go to
         // POST /api/jev/rank; any failure keeps server order.
@@ -108,7 +110,9 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
           const swipes = (history as { swipes?: unknown[] }).swipes ?? [];
           const ranked = await rankCareers(swipes, data.map(c => c.occupation_code));
           if (thisFetch !== fetchKeyRef.current) return;
-          if (ranked && ranked.results.length > 0) {
+          // Badge only for fully Jev-ranked results: mixed/fallback results
+          // stay in server order with no badge.
+          if (ranked && ranked.results.length > 0 && ranked.results.every(r => r.provider === 'jev')) {
             const position = new Map(ranked.results.map((r, i) => [r.occupation_code, i]));
             ordered = [...data].sort(
               (a, b) => (position.get(a.occupation_code) ?? 999) - (position.get(b.occupation_code) ?? 999)

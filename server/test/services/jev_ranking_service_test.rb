@@ -31,6 +31,7 @@ class JevRankingServiceTest < ActiveSupport::TestCase
     fake_chat = Object.new
     fake_chat.define_singleton_method(:with_schema) { |*_args| self }
     fake_chat.define_singleton_method(:ask) { |*_args| fake_response }
+    old_key = ENV["TYPESAFE_API_KEY"]
     RubyLLM.stub(:chat, fake_chat) do
       ENV["TYPESAFE_API_KEY"] = "test-key"
       result = JevRankingService.score_candidate(swipes: SWIPES, candidate: CANDIDATES.first)
@@ -39,7 +40,7 @@ class JevRankingServiceTest < ActiveSupport::TestCase
       assert_equal "salary", result.driver
     end
   ensure
-    ENV.delete("TYPESAFE_API_KEY")
+    old_key ? ENV["TYPESAFE_API_KEY"] = old_key : ENV.delete("TYPESAFE_API_KEY")
   end
 
   test "novelty boost lifts unseen careers on low confidence" do
@@ -65,5 +66,16 @@ class JevRankingServiceTest < ActiveSupport::TestCase
     end
   ensure
     ENV["TYPESAFE_API_KEY"] = old if old
+  end
+
+  test "typeSafe initializer wires TYPESAFE_API_KEY into RubyLLM config" do
+    old_env = ENV["TYPESAFE_API_KEY"]
+    old_config = RubyLLM.config.typesafe_api_key
+    ENV["TYPESAFE_API_KEY"] = "test-key-123"
+    load Rails.root.join("config/initializers/typesafe.rb")
+    assert_equal "test-key-123", RubyLLM.config.typesafe_api_key
+  ensure
+    old_env ? ENV["TYPESAFE_API_KEY"] = old_env : ENV.delete("TYPESAFE_API_KEY")
+    RubyLLM.configure { |c| c.typesafe_api_key = old_config }
   end
 end
