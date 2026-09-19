@@ -3,7 +3,7 @@ name: OTA Update
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: [CI]
+    workflows: [Deploy]
     types: [completed]
     branches: [main]
 
