@@ -111,7 +111,7 @@ class Api::RoiController < ApplicationController
         roi_records = roi_records
           .joins("LEFT JOIN career_contents ON career_contents.occupation_code = career_roi.occupation_code")
           .where(tokenized_condition(terms), *tokenized_binds(terms))
-          .order(Arel.sql("#{relevance_expression(terms)} DESC, roi_percentage DESC"))
+          .order(Arel.sql(relevance_order(terms)))
       else
         roi_records = roi_records
           .where("occupation_name ILIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(query)}%")
@@ -201,17 +201,20 @@ pagy, records = pagy(roi_records.includes(:career_content), items: 50)
   end
 
   # Name hits outrank skills/content hits; roi breaks relevance ties so
-  # single-term results keep their historical order.
-  def relevance_expression(terms)
-    parts = terms.map do |term|
-      pattern = ActiveRecord::Base.connection.quote(
-        "%#{ActiveRecord::Base.sanitize_sql_like(term)}%"
-      )
-      "(CASE WHEN occupation_name ILIKE #{pattern} THEN 2 ELSE 0 END) + " \
-        "(CASE WHEN skills::text ILIKE #{pattern} THEN 1 ELSE 0 END) + " \
-        "(CASE WHEN career_contents.day_in_life_summary ILIKE #{pattern} THEN 1 ELSE 0 END)"
+  # single-term results keep their historical order. User text only ever
+  # reaches SQL as bound parameters via sanitize_sql_array (and tokens are
+  # already restricted to [a-z0-9]+ by SearchTokenizer).
+  def relevance_order(terms)
+    parts = terms.map do
+      "(CASE WHEN occupation_name ILIKE ? THEN 2 ELSE 0 END) + " \
+        "(CASE WHEN skills::text ILIKE ? THEN 1 ELSE 0 END) + " \
+        "(CASE WHEN career_contents.day_in_life_summary ILIKE ? THEN 1 ELSE 0 END)"
     end
-    "(#{parts.join(' + ')})"
+    binds = terms.flat_map do |term|
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(term)}%"
+      [ pattern, pattern, pattern ]
+    end
+    ActiveRecord::Base.sanitize_sql_array([ "(#{parts.join(' + ')}) DESC, roi_percentage DESC", *binds ])
   end
 
   def area_name
