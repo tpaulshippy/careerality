@@ -105,9 +105,23 @@ class Api::RoiController < ApplicationController
     query = params[:q]
     area = params[:area] || "99"
     if query.present?
-      roi_records = CareerRoi.where(area_code: area).where("occupation_name ILIKE ?", "%#{query}%").order(roi_percentage: :desc)
+      roi_records = CareerRoi.where(area_code: area).where("occupation_name ILIKE ?", "%#{query}%")
+      if params[:min_salary].present?
+        roi_records = roi_records.where("annual_median_salary >= ?", params[:min_salary].to_f)
+      end
+      levels = education_levels_for(params[:education_pathway])
+      roi_records = roi_records.where(education_level: levels) if levels
+      roi_records = roi_records.order(roi_percentage: :desc)
 pagy, records = pagy(roi_records.includes(:career_content), items: 50)
-      render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
+      render json: {
+        records: records.as_json,
+        pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages },
+        applied: {
+          min_salary: params[:min_salary].present? ? params[:min_salary].to_f : nil,
+          # Echoed only when it actually narrowed the query.
+          education_pathway: levels ? params[:education_pathway].to_s : nil
+        }
+      }
     else
       render json: { error: "Query parameter q is required" }, status: :bad_request
     end
@@ -144,6 +158,25 @@ pagy, records = pagy(roi_records.includes(:career_content), items: 50)
   end
 
   private
+
+  # Maps NL router education enums (see JevFilterRouterService::EDUCATION_OPTIONS)
+  # onto career_roi.education_level values. Bootcamp is approximate
+  # (Postsecondary certificate / Some college); apprenticeship has no
+  # education_level equivalent and passes through unfiltered, as do
+  # no_match and anything unrecognized.
+  EDUCATION_PATHWAY_LEVELS = {
+    "no_degree" => [ "Less than high school", "High school diploma" ],
+    "associate" => [ "Associate's degree" ],
+    "bachelor" => [ "Bachelor's degree" ],
+    "graduate" => [ "Master's degree", "Doctoral degree", "Professional degree", "First professional degree", "Post-doctoral training" ],
+    "bootcamp" => [ "Postsecondary certificate", "Some college" ],
+    "apprenticeship" => nil,
+    "no_match" => nil
+  }.freeze
+
+  def education_levels_for(pathway)
+    EDUCATION_PATHWAY_LEVELS.fetch(pathway.to_s, nil)
+  end
 
   def area_name
     area_code = params[:area_code] || params[:area] || params[:location]

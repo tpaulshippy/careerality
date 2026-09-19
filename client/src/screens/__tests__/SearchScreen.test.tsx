@@ -77,6 +77,7 @@ describe('SearchScreen', () => {
       expect(apiClient.searchCareers).toHaveBeenCalledWith(
         'nurse',
         '06',
+        undefined,
         expect.any(AbortSignal),
       );
     }, { timeout: 1000 });
@@ -108,7 +109,7 @@ describe('SearchScreen', () => {
     });
   });
 
-  it('routes a natural-language query from the single search box and applies keywords', async () => {
+  it('routes a natural-language query and applies real filter params', async () => {
     (routeNaturalLanguage as jest.Mock).mockResolvedValue({
       education_pathway: 'no_degree',
       work_env: 'remote',
@@ -135,9 +136,40 @@ describe('SearchScreen', () => {
       expect(apiClient.searchCareers).toHaveBeenCalledWith(
         'remote',
         '06',
+        { minSalary: 80000, educationPathway: 'no_degree' },
         expect.any(AbortSignal),
       );
     }, { timeout: 2000 });
+    await waitFor(() => expect(screen.getByTestId('nl-applied')).toBeTruthy(), { timeout: 2000 });
+  });
+
+  it('clears applied filters and re-searches without them', async () => {
+    (routeNaturalLanguage as jest.Mock).mockResolvedValue({
+      education_pathway: 'no_degree',
+      work_env: 'remote',
+      min_salary: 80000,
+      requires_clarification: false,
+      confidence: 0.5,
+      provider: 'fallback',
+    });
+    const screen = await render(<SearchScreen />);
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Search careers…'),
+      'I hate school but want $80k+ remote',
+    );
+    await waitFor(() => expect(screen.getByTestId('nl-apply')).toBeTruthy(), { timeout: 2000 });
+    fireEvent.press(screen.getByTestId('nl-apply'));
+    await waitFor(() => expect(screen.getByTestId('nl-applied')).toBeTruthy(), { timeout: 2000 });
+
+    fireEvent.press(screen.getByTestId('nl-clear'));
+
+    await waitFor(() => {
+      const calls = (apiClient.searchCareers as jest.Mock).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      expect(calls[calls.length - 1][2]).toBeUndefined();
+    }, { timeout: 2000 });
+    await waitFor(() => expect(screen.queryByTestId('nl-applied')).toBeNull(), { timeout: 2000 });
   });
 
   it('does not route short keyword searches', async () => {
@@ -149,6 +181,7 @@ describe('SearchScreen', () => {
       expect(apiClient.searchCareers).toHaveBeenCalledWith(
         'nurse',
         '06',
+        undefined,
         expect.any(AbortSignal),
       );
     }, { timeout: 1000 });

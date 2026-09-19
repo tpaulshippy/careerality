@@ -13,7 +13,7 @@ import {
   Animated,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { CareerROI } from '../types';
+import { CareerROI, CareerSearchFilters } from '../types';
 import { apiClient } from '../api/client';
 import { routeNaturalLanguage, routeKeywords, looksLikeNaturalLanguage, JevFilterRoute } from '../api/jevFilters';
 import { CareerDetailView, Button, FeedbackModal } from '../components';
@@ -34,6 +34,9 @@ import {
 
 const MIN_QUERY_LENGTH = 2;
 const SKELETON_ROWS = 5;
+// Router education enums the server passes through unfiltered. Mirrors
+// EDUCATION_PATHWAY_LEVELS nil entries in Api::RoiController.
+const NL_UNFILTERABLE_EDUCATION = [ 'no_match', 'apprenticeship' ];
 
 const CareerResultRow: React.FC<{
   career: CareerROI;
@@ -153,9 +156,13 @@ export const SearchScreen: React.FC = () => {
     return () => { cancelled = true; };
   }, [filters.stateCode]);
 
-  const runSearch = useCallback(async (q: string, area: string, signal: AbortSignal) => {
+  // Search-scoped NL filters. Deliberately separate from the global
+  // useFilters (Discover owns those) so NL apply never leaks elsewhere.
+  const [appliedFilters, setAppliedFilters] = useState<CareerSearchFilters | null>(null);
+
+  const runSearch = useCallback(async (q: string, area: string, signal: AbortSignal, searchFilters?: CareerSearchFilters | null) => {
     try {
-      const json = await apiClient.searchCareers(q, area, signal);
+      const json = await apiClient.searchCareers(q, area, searchFilters ?? undefined, signal);
       if (signal.aborted) return;
       setResults(json.records || []);
       setError(null);
@@ -181,8 +188,8 @@ export const SearchScreen: React.FC = () => {
     abortRef.current = controller;
     setIsSearching(true);
     setError(null);
-    runSearch(q, filters.stateCode, controller.signal);
-  }, [runSearch, filters.stateCode]);
+    runSearch(q, filters.stateCode, controller.signal, appliedFilters);
+  }, [runSearch, filters.stateCode, appliedFilters]);
 
   useEffect(() => {
     startSearch(debouncedQuery);
@@ -216,6 +223,7 @@ export const SearchScreen: React.FC = () => {
     setNlResult(null);
     setNlSource(null);
     setNlLoading(false);
+    setAppliedFilters(null);
     inputRef.current?.focus();
   }, []);
 
@@ -249,22 +257,52 @@ export const SearchScreen: React.FC = () => {
 
   const handleQueryChange = useCallback((value: string) => {
     setQuery(value);
-    // Drop stale chips immediately once the text diverges from the routed query.
+    // Drop stale chips and search-scoped filters once the text diverges.
+    // Programmatic setQuery (e.g. from Apply) bypasses this handler, so
+    // Apply's own query rewrite keeps its filters.
     if (nlSource !== null && value !== nlSource) {
       setNlResult(null);
       setNlSource(null);
+      setAppliedFilters(null);
     }
   }, [nlSource]);
 
+  // Router enums the server cannot turn into rows. Mirrors
+  // EDUCATION_PATHWAY_LEVELS nil entries in Api::RoiController.
+  const nlAppliable = nlResult !== null
+    && !nlResult.requires_clarification
+    && (nlResult.min_salary != null || !NL_UNFILTERABLE_EDUCATION.includes(nlResult.education_pathway));
+
   const handleNlApply = useCallback(() => {
-    if (!nlResult || nlResult.requires_clarification) return;
+    if (!nlResult || nlResult.requires_clarification || !nlAppliable) return;
+    const searchFilters: CareerSearchFilters = {};
+    if (nlResult.min_salary != null) searchFilters.minSalary = nlResult.min_salary;
+    if (nlResult.education_pathway && !NL_UNFILTERABLE_EDUCATION.includes(nlResult.education_pathway)) {
+      searchFilters.educationPathway = nlResult.education_pathway;
+    }
+    // ILIKE on the raw sentence matches nothing, so refine to the routed
+    // keyword when there is one; otherwise keep the sentence (the empty
+    // card names the active filters).
     const keywords = routeKeywords(nlResult);
-    if (keywords && keywords !== sanitizeQuery(query)) setQuery(keywords);
-    // Panel closes: the new (short) query is not NL, so the effect clears it.
-    setNlResult(null);
-    setNlSource(null);
-    setNlLoading(false);
-  }, [nlResult, query]);
+    const nextQuery = keywords || query;
+    const trimmedNext = sanitizeQuery(nextQuery);
+    if (trimmedNext.length < MIN_QUERY_LENGTH) return;
+    setAppliedFilters(searchFilters);
+    setNlSource(trimmedNext);
+    if (trimmedNext !== query) setQuery(nextQuery);
+  }, [nlResult, nlAppliable, query]);
+
+  const handleClearNlFilters = useCallback(() => {
+    // Effect re-runs the current query without filters via startSearch deps.
+    setAppliedFilters(null);
+  }, []);
+
+  const appliedLabels = appliedFilters
+    ? [
+        appliedFilters.minSalary != null ? `💵 $${appliedFilters.minSalary.toLocaleString()}+` : null,
+        appliedFilters.educationPathway ? `🎓 ${appliedFilters.educationPathway}` : null,
+      ].filter((label): label is string => label !== null)
+    : [];
 
   const handleResultPress = useCallback((career: CareerROI) => {
     const q = sanitizeQuery(query);
@@ -335,10 +373,9 @@ export const SearchScreen: React.FC = () => {
   const showRecents = isInputFocused && trimmed.length === 0 && recent.length > 0;
   const showPopular = !hasQuery && !showRecents;
   // Only show chips for the exact query that was routed; stale results hide.
-  const showNlResult = nlResult !== null && nlSource !== null && trimmed === nlSource;
-  const nlApplyKeywords = showNlResult && !nlResult.requires_clarification
-    ? routeKeywords(nlResult)
-    : '';
+  // Once applied, the refined query is usually no longer NL-shaped, so the
+  // applied banner below renders independently of the chips.
+  const showNlResult = nlResult !== null && nlSource !== null && trimmed === nlSource && appliedFilters === null;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -372,6 +409,20 @@ export const SearchScreen: React.FC = () => {
             </Text>
           </View>
         )}
+        {appliedFilters && (
+          <View style={[styles.nlChips, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={styles.nlAppliedRow}>
+              <Text style={[styles.nlHint, { color: theme.colors.primary }]} testID="nl-applied">
+                {`Applied ✓ ${appliedLabels.join(' · ')}`}
+              </Text>
+              <TouchableOpacity onPress={handleClearNlFilters} testID="nl-clear" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={[styles.nlClear, { color: theme.colors.text.muted }]}>
+                  Clear
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
         {showNlResult && (
           <View style={[styles.nlChips, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.nlChipRow}>
@@ -391,10 +442,10 @@ export const SearchScreen: React.FC = () => {
               <Text style={[styles.nlHint, { color: theme.colors.text.secondary }]}>
                 Not sure what you mean — try rephrasing.
               </Text>
-            ) : nlApplyKeywords ? (
+            ) : nlAppliable ? (
               <TouchableOpacity onPress={handleNlApply} testID="nl-apply">
                 <Text style={[styles.nlApply, { color: theme.colors.primary }]}>
-                  Use as search →
+                  Apply filters →
                 </Text>
               </TouchableOpacity>
             ) : null}
@@ -466,8 +517,13 @@ export const SearchScreen: React.FC = () => {
               No matches for “{trimmed}”
             </Text>
             <Text style={[styles.stateSubtitle, { color: theme.colors.text.secondary }]}>
-              Check the spelling or try a broader term like “nurse” or “engineer”.
+              {appliedFilters
+                ? `Filters active: ${appliedLabels.join(' · ')} — try clearing them or a broader term.`
+                : 'Check the spelling or try a broader term like “nurse” or “engineer”.'}
             </Text>
+            {appliedFilters && (
+              <Button title="Clear filters" onPress={handleClearNlFilters} style={styles.retryButton} />
+            )}
           </View>
         ) : showRecents ? (
           <View>
@@ -545,6 +601,8 @@ interface Styles {
   nlChip: TextStyle;
   nlHint: TextStyle;
   nlApply: TextStyle;
+  nlAppliedRow: ViewStyle;
+  nlClear: TextStyle;
   stateRow: ViewStyle;
   stateIcon: TextStyle;
   stateError: TextStyle;
@@ -639,6 +697,17 @@ const styles = StyleSheet.create<Styles>({
     fontSize: 14,
     fontWeight: '700',
     marginTop: 6,
+  },
+  nlAppliedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  nlClear: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 12,
   },
   stateRow: {
     flexDirection: 'row',
