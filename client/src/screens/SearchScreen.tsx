@@ -423,9 +423,8 @@ export const SearchScreen: React.FC = () => {
               <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
                 {`🎓 ${nlResult.education_pathway}`}
               </Text>
-              <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
-                {`🏠 ${nlResult.work_env}`}
-              </Text>
+              {/* No work-env chip: nothing filters on it (no backing column),
+                  so showing one would imply filtering that doesn't happen. */}
               {nlResult.min_salary != null && (
                 <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
                   {`💵 $${nlResult.min_salary.toLocaleString()}+`}
