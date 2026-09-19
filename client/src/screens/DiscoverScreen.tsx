@@ -48,6 +48,12 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
   const careersLengthRef = useRef(0);
   const currentIndexRef = useRef(0);
   const loadingMoreRef = useRef(false);
+  // Rerank state: server history at load + optimistic session swipes (with
+  // feedback), so every swipe can reorder the remaining stack in one call.
+  const careersRef = useRef<CareerROI[]>([]);
+  const historyRef = useRef<unknown[]>([]);
+  const sessionSwipesRef = useRef<Array<{ career_id: number; direction: 'left' | 'right'; feedback?: string }>>([]);
+  const rankSeqRef = useRef(0);
 
   const { filters, setStateCode, setSalaryMin, setSalaryMax, setSortBy } = useFilters();
   const gamification = useGamification();
@@ -55,6 +61,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
 
   useEffect(() => {
     careersLengthRef.current = careers.length;
+    careersRef.current = careers;
   }, [careers]);
 
   useEffect(() => {
@@ -97,12 +104,15 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
       if (append) {
         setCareers(prev => [...prev, ...data]);
       } else {
-        // Jev re-rank: raw swipe history + candidate codes/names go to
-        // POST /api/jev/rank; any failure keeps server order.
+        // Jev re-rank: swipe history + candidate codes/names go to
+        // POST /api/jev/rank (one listwise call); any failure keeps order.
         let ordered = data;
         try {
           const history = await apiClient.getSwipeHistory().catch(() => ({ swipes: [] as never[] }));
           const swipes = (history as { swipes?: unknown[] }).swipes ?? [];
+          historyRef.current = swipes;
+          sessionSwipesRef.current = [];
+          rankSeqRef.current++;
           const ranked = await rankCareers(swipes, data.map(c => ({ occupation_code: c.occupation_code, occupation_name: c.occupation_name })));
           if (thisFetch !== fetchKeyRef.current) return;
           if (ranked && ranked.results.length > 0 && ranked.results.every(r => r.provider === 'jev')) {
@@ -155,15 +165,45 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
     return unsubscribe;
   }, [navigation, careers.length, loading, error, fetchCareers]);
 
+  // Reorder only the unswiped tail after each swipe: one listwise Jev call
+  // over (server history + session swipes) x remaining candidates. The head
+  // (already swiped) is untouched so the swipe index stays valid. Stale
+  // responses (newer swipe or appended page landed first) are dropped.
+  const rerankRemaining = useCallback(async () => {
+    const mySeq = ++rankSeqRef.current;
+    const idx = currentIndexRef.current;
+    const remaining = careersRef.current.slice(idx);
+    if (remaining.length <= 1) return;
+    try {
+      const swipes = [...historyRef.current, ...sessionSwipesRef.current];
+      const ranked = await rankCareers(swipes, remaining.map(c => ({ occupation_code: c.occupation_code, occupation_name: c.occupation_name })));
+      if (mySeq !== rankSeqRef.current || currentIndexRef.current !== idx) return;
+      if (!ranked || ranked.results.length === 0 || !ranked.results.every(r => r.provider === 'jev')) return;
+      const position = new Map(ranked.results.map((r, i) => [r.occupation_code, i]));
+      setCareers(prev => {
+        if (prev.length < idx || prev.length - idx !== remaining.length) return prev;
+        const head = prev.slice(0, idx);
+        const tail = [...prev.slice(idx)].sort(
+          (a, b) => (position.get(a.occupation_code) ?? 999) - (position.get(b.occupation_code) ?? 999)
+        );
+        return [...head, ...tail];
+      });
+    } catch {
+      // Keep current order when ranking is unavailable.
+    }
+  }, []);
+
   const handleSwipeLeft = useCallback(() => {
     const career = swipeLeft();
     if (career) {
       submitSwipe(career.id, 'left');
+      sessionSwipesRef.current = [...sessionSwipesRef.current, { career_id: career.id, direction: 'left' as const }];
+      void rerankRemaining();
       const result = gamification.trackEvent({ type: 'swipe_left', career });
       if (result?.leveledUp) setCelebrateLevel(result.newLevel);
     }
     checkAndLoadMore();
-  }, [swipeLeft, gamification]);
+  }, [swipeLeft, gamification, rerankRemaining]);
 
   const handleSwipeRight = useCallback(() => {
     const career = swipeRight();
@@ -196,6 +236,8 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
     setFeedbackCareer(null);
     if (career) {
       submitSwipe(career.id, 'right', interest);
+      sessionSwipesRef.current = [...sessionSwipesRef.current, { career_id: career.id, direction: 'right' as const, feedback: interest }];
+      void rerankRemaining();
       const result = gamification.trackEvent({ type: 'feedback' });
       if (result?.leveledUp) {
         setCelebrateLevel(result.newLevel);
@@ -204,19 +246,21 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
       }
     }
     heldLevelRef.current = null;
-  }, [feedbackCareer, gamification]);
+  }, [feedbackCareer, gamification, rerankRemaining]);
 
   const handleFeedbackClose = useCallback(() => {
     const career = feedbackCareer;
     setFeedbackCareer(null);
     if (career) {
       submitSwipe(career.id, 'right');
+      sessionSwipesRef.current = [...sessionSwipesRef.current, { career_id: career.id, direction: 'right' as const }];
+      void rerankRemaining();
     }
     if (heldLevelRef.current !== null) {
       setCelebrateLevel(heldLevelRef.current);
       heldLevelRef.current = null;
     }
-  }, [feedbackCareer]);
+  }, [feedbackCareer, rerankRemaining]);
 
   const handleFilterApply = useCallback((filterState: FilterState) => {
     setStateCode(filterState.stateCode);
@@ -226,8 +270,12 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
   }, [setStateCode, setSalaryMin, setSalaryMax, setSortBy]);
 
   const handleUndo = useCallback(() => {
-    undo();
-  }, [undo]);
+    const undone = undo();
+    if (undone && sessionSwipesRef.current.length > 0) {
+      sessionSwipesRef.current = sessionSwipesRef.current.slice(0, -1);
+      void rerankRemaining();
+    }
+  }, [undo, rerankRemaining]);
 
   const handleViewDetails = useCallback((career: CareerROI) => {
     setDetailCareer(career);

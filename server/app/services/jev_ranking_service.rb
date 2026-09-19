@@ -4,60 +4,43 @@ require "ruby_llm-typesafe"
 # System One next-card ranking via TypeSafe Jev.
 # https://github.com/kieranklaassen/ruby_llm-typesafe
 #
-# Unstructured state in (swipe history + candidate career), typed
-# probabilistic decisions out. Falls back to a deterministic heuristic
-# when TYPESAFE_API_KEY is blank or Jev raises, so tests and dev work
+# One listwise call per rank: state in (swipe history + full candidate
+# set), typed choice out. Falls back to preserving input order when
+# TYPESAFE_API_KEY is blank or Jev raises, so tests and dev work
 # without a key and the Discover feed never breaks.
 class JevRankingService
   MODEL = "jev-latest".freeze
-  FIT_LEVELS = [ "Poor fit", "Possible fit", "Strong fit" ].freeze
-  DRIVERS = {
-    salary: "Salary and earning potential",
-    culture: "Work environment and culture",
-    skills: "Skills involved",
-    security: "Job security and stability",
-    work_life: "Work-life balance"
-  }.freeze
 
   Result = Struct.new(:occupation_code, :p_like, :fit_score, :driver, :confidence, :provider, keyword_init: true)
 
   def self.rank(swipes:, candidates:)
     swipes = with_codes(swipes)
     candidates = with_candidate_names(candidates)
-    scored = candidates.map { |c| score_candidate(swipes: swipes, candidate: c) }
-    # Explore/exploit: low confidence gets a novelty boost for unseen codes.
-    seen = swipes.map { |s| s[:occupation_code] || s["occupation_code"] }.compact
-    scored.each do |r|
-      if r.confidence < 0.6 && !seen.include?(r.occupation_code)
-        r.p_like = [ (r.p_like + 0.1), 1.0 ].min
-      end
+    codes = candidates.map { |c| c[:occupation_code] || c["occupation_code"] }.compact
+    return codes.map { |code| fallback_result(code) } if ENV["TYPESAFE_API_KEY"].to_s.empty?
+    return [] if codes.empty?
+
+    criteria = candidates.to_h do |c|
+      [ c[:occupation_code] || c["occupation_code"], c[:occupation_name] || c["occupation_name"] ]
     end
-    scored.sort_by { |r| -r.p_like }
-  end
-
-  def self.score_candidate(swipes:, candidate:)
-    code = candidate[:occupation_code] || candidate["occupation_code"]
-    return fallback_result(code) if ENV["TYPESAFE_API_KEY"].to_s.empty?
-
     schema = RubyLLM::Providers::TypeSafe::Schema.new do |s|
-      s.noul :will_like, instructions: "Will this user swipe right on this career given their swipe history?"
-      s.score :fit_level, instructions: "How strong is the long-term fit?", criteria: FIT_LEVELS
-      s.choice :primary_driver, instructions: "What would drive the decision?", criteria: DRIVERS
+      s.choice :next_card, instructions: "Which career should be shown next given the user's swipe history?", criteria: criteria
     end
 
-    state = { swipes: swipes.as_json, candidate: candidate.as_json }.to_json
+    state = { swipes: swipes.as_json, candidates: candidates.as_json }.to_json
     response = RubyLLM.chat(model: MODEL, provider: :typesafe).with_schema(schema).ask(state)
-    parsed = response.parsed
-    Result.new(
-      occupation_code: code,
-      p_like: parsed.dig("will_like", "noul").to_f,
-      fit_score: parsed.dig("fit_level", "score").to_f,
-      driver: parsed.dig("primary_driver", "choice"),
-      confidence: parsed.dig("primary_driver", "confidence").to_f,
-      provider: :jev
-    )
+    answer = response.parsed["next_card"] || {}
+    probs = answer["probabilities"] || {}
+    confidence = answer["confidence"].to_f
+    ordered = probs.sort_by { |_, p| -p.to_f }.map(&:first)
+    ordered |= codes
+    ordered.map do |code|
+      p_like = probs[code].to_f
+      Result.new(occupation_code: code, p_like: p_like, fit_score: p_like,
+                 driver: nil, confidence: confidence, provider: :jev)
+    end
   rescue RubyLLM::Error, StandardError
-    fallback_result(code)
+    (defined?(codes) && codes || []).map { |code| fallback_result(code) }
   end
 
   def self.fallback_result(code)
