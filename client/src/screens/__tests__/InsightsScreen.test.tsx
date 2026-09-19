@@ -17,6 +17,10 @@ jest.mock('../../components', () => ({
   OccupationIconBadge: () => null,
 }));
 
+jest.mock('../../api/jevValues', () => ({
+  fetchValuesProfile: jest.fn().mockResolvedValue(null),
+}));
+
 const getSwipeHistory = apiClient.getSwipeHistory as jest.Mock;
 const getLikedCareers = apiClient.getLikedCareers as jest.Mock;
 const get = apiClient.get as jest.Mock;
@@ -91,17 +95,17 @@ describe('InsightsScreen', () => {
       records: [likedCareer(), likedCareer({ id: 2, occupation_code: '15-1252' })],
     });
 
-    const { getByText } = await render(<InsightsScreen />);
+    const { getByText, queryByText } = await render(<InsightsScreen />);
 
-    await waitFor(() => expect(getByText('What you value')).toBeTruthy());
-    expect(getByText('Very interested')).toBeTruthy();
+    await waitFor(() => expect(getByText('Activity')).toBeTruthy());
+    expect(queryByText('What you value')).toBeNull();
     expect(getByText('Your taste profile')).toBeTruthy();
     expect(getByText('Healthcare')).toBeTruthy();
     expect(getByText('Standout picks')).toBeTruthy();
     expect(getByText('Highest ROI')).toBeTruthy();
   });
 
-  it('shows the feedback hint when no right swipes carry feedback', async () => {
+  it('does not render the removed What you value chart', async () => {
     getSwipeHistory.mockResolvedValue({
       swipes: [
         swipe({ id: 1, direction: 'right', feedback: undefined }),
@@ -112,8 +116,9 @@ describe('InsightsScreen', () => {
 
     const { queryByText, getByText } = await render(<InsightsScreen />);
 
-    await waitFor(() => expect(getByText('Want deeper insights?')).toBeTruthy());
+    await waitFor(() => expect(getByText('Activity')).toBeTruthy());
     expect(queryByText('What you value')).toBeNull();
+    expect(queryByText('Want deeper insights?')).toBeNull();
   });
 
   it('shows an error state when the API fails', async () => {

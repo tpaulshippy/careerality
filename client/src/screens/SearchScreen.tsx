@@ -226,10 +226,14 @@ export const SearchScreen: React.FC = () => {
     setFeedbackCareer(career);
   }, []);
 
-  const handleFeedbackSubmit = useCallback((interest: InterestLevel) => {
+  const handleFeedbackSubmit = useCallback((interest: InterestLevel, notes?: string) => {
     const career = feedbackCareer;
     setFeedbackCareer(null);
-    if (career) void apiClient.submitSwipe(career.id, 'right', interest).catch(() => {});
+    if (career) {
+      const trimmedNotes = (notes ?? '').trim();
+      const feedback = trimmedNotes ? `${interest}: ${trimmedNotes}` : interest;
+      void apiClient.submitSwipe(career.id, 'right', feedback).catch(() => {});
+    }
   }, [feedbackCareer]);
 
   const handleFeedbackClose = useCallback(() => {

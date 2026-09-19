@@ -191,11 +191,13 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
     }
   };
 
-  const handleFeedbackSubmit = useCallback((interest: InterestLevel) => {
+  const handleFeedbackSubmit = useCallback((interest: InterestLevel, notes?: string) => {
     const career = feedbackCareer;
     setFeedbackCareer(null);
     if (career) {
-      submitSwipe(career.id, 'right', interest);
+      const trimmedNotes = (notes ?? '').trim();
+      const feedback = trimmedNotes ? `${interest}: ${trimmedNotes}` : interest;
+      submitSwipe(career.id, 'right', feedback);
       const result = gamification.trackEvent({ type: 'feedback' });
       if (result?.leveledUp) {
         setCelebrateLevel(result.newLevel);
