@@ -237,13 +237,15 @@ describe('DiscoverScreen', () => {
     expect(mockFeedbackModalProps?.visible).toBe(false);
   });
 
-  it('shows the Jev badge only for fully Jev-ranked results', async () => {
+  it('ranks silently with no Jev badge for fully Jev-ranked results', async () => {
     getCareersMock.mockResolvedValue({ records: rankedRecords });
     getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }, { career_id: 2 }] });
     rankCareersMock.mockResolvedValue({ results: jevResults, provider: 'jev' });
 
     const { queryByText } = await render(<DiscoverScreen />);
-    await waitFor(() => expect(queryByText('✨ Jev-ranked · 2 swipes')).not.toBeNull());
+    await waitFor(() => expect(rankCareersMock).toHaveBeenCalled());
+    await act(async () => {});
+    expect(queryByText(/Jev-ranked/)).toBeNull();
   });
 
   it('keeps server order with no badge for fallback results', async () => {
@@ -259,20 +261,21 @@ describe('DiscoverScreen', () => {
     expect(queryByText(/Jev-ranked/)).toBeNull();
   });
 
-  it('clears the badge when appending unranked pages', async () => {
+  it('appends unranked pages with no badge', async () => {
     getCareersMock.mockResolvedValue({ records: rankedRecords, pagy: { pages: 2 } });
     getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }] });
     rankCareersMock.mockResolvedValue({ results: jevResults, provider: 'jev' });
 
     mockSwipedCareer = career;
     const { queryByText } = await render(<DiscoverScreen />);
-    await waitFor(() => expect(queryByText('✨ Jev-ranked · 1 swipe')).not.toBeNull());
+    await waitFor(() => expect(rankCareersMock).toHaveBeenCalled());
+    await act(async () => {});
 
-    // Swiping near the end loads the next (unranked) page.
+    // Swiping near the end loads the next (unranked) page, still with no badge.
     await act(async () => {
       mockSwipeControlsProps?.onLike();
     });
     await waitFor(() => expect(getCareersMock).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(queryByText(/Jev-ranked/)).toBeNull());
+    expect(queryByText(/Jev-ranked/)).toBeNull();
   });
 });
