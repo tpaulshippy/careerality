@@ -22,6 +22,7 @@ Rails.application.routes.draw do
       end
     end
     post "jev/route_filters", to: "jev#route_filters"
+    post "jev/rank", to: "jev#rank"
   end
 
   get "up" => "rails/health#show", as: :rails_health_check

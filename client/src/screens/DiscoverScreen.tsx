@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, Toucha
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { rankCareers } from '../api/jevRank';
 import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
 import { SwipeCard, SwipeControls, CareerDetailView } from '../components';
@@ -96,7 +97,25 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
       if (append) {
         setCareers(prev => [...prev, ...data]);
       } else {
-        setCareers(data);
+        // Jev re-rank: raw swipe history + candidate codes go to
+        // POST /api/jev/rank; any failure keeps server order.
+        let ordered = data;
+        try {
+          const history = await apiClient.getSwipeHistory().catch(() => ({ swipes: [] as never[] }));
+          const swipes = (history as { swipes?: unknown[] }).swipes ?? [];
+          const ranked = await rankCareers(swipes, data.map(c => c.occupation_code));
+          if (thisFetch !== fetchKeyRef.current) return;
+          if (ranked && ranked.results.length > 0 && ranked.results.every(r => r.provider === 'jev')) {
+            const position = new Map(ranked.results.map((r, i) => [r.occupation_code, i]));
+            ordered = [...data].sort(
+              (a, b) => (position.get(a.occupation_code) ?? 999) - (position.get(b.occupation_code) ?? 999)
+            );
+          }
+        } catch {
+          // Keep server order when ranking is unavailable.
+        }
+        if (thisFetch !== fetchKeyRef.current) return;
+        setCareers(ordered);
         setDataKey(prev => prev + 1);
         resetSwipes();
       }
