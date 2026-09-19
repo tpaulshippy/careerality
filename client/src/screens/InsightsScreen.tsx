@@ -23,7 +23,6 @@ import {
   LikedCareer,
   FeedbackSlice,
   computeActivityStats,
-  computeFeedbackDistribution,
   computeTasteProfile,
   computeQualityOfInterest,
   computeStandoutPicks,
@@ -180,7 +179,6 @@ export const InsightsScreen: React.FC = () => {
   }
 
   const activity = computeActivityStats(swipes);
-  const feedbackDist = computeFeedbackDistribution(swipes);
   const tasteProfile = computeTasteProfile(liked);
   const quality = computeQualityOfInterest(liked, catalog);
   const picks = computeStandoutPicks(liked);
@@ -285,30 +283,6 @@ export const InsightsScreen: React.FC = () => {
           </View>
         </View>
       </View>
-
-      {feedbackDist.length > 0 ? (
-        <View
-          style={[styles.card, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
-        >
-          <Text style={[styles.cardTitle, { color: theme.colors.text.primary }]}>
-            What you value
-          </Text>
-          {feedbackDist.map((slice, index) => (
-            <FeedbackBar key={slice.key} slice={slice} index={index} />
-          ))}
-        </View>
-      ) : (
-        <View
-          style={[styles.hintCard, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
-        >
-          <Text style={[styles.hintTitle, { color: theme.colors.text.primary }]}>
-            Want deeper insights?
-          </Text>
-          <Text style={[styles.hintText, { color: theme.colors.text.secondary }]}>
-            When you like a career, tell us why — those reasons show up here.
-          </Text>
-        </View>
-      )}
 
       {jevProfile && (
         <View
@@ -563,23 +537,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 5,
   } as ViewStyle,
-  hintCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  } as ViewStyle,
-  hintTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 4,
-  } as TextStyle,
-  hintText: {
-    fontSize: 14,
-    lineHeight: 19,
-  } as TextStyle,
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
