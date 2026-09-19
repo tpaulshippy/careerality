@@ -315,7 +315,7 @@ export const InsightsScreen: React.FC = () => {
           style={[styles.card, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
         >
           <Text style={[styles.cardTitle, { color: theme.colors.text.primary }]}>
-            What drives you · Jev
+            What drives you
           </Text>
           {jevSlices.map((slice, index) => (
             <FeedbackBar key={slice.key} slice={slice} index={index} />
