@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, StyleSheet, ViewStyle, TextStyle, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, Modal, TextInput, KeyboardAvoidingView, Platform, StyleSheet, ViewStyle, TextStyle, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './Button';
 
@@ -8,7 +8,7 @@ export type InterestLevel = 'very_interested' | 'somewhat_interested' | 'mild_in
 interface FeedbackModalProps {
   visible: boolean;
   careerName: string;
-  onSubmit: (interest: InterestLevel) => void;
+  onSubmit: (interest: InterestLevel, notes: string) => void;
   onClose: () => void;
 }
 
@@ -26,23 +26,30 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
 }) => {
   const theme = useTheme();
   const [selectedInterest, setSelectedInterest] = useState<InterestLevel | null>(null);
+  const [notes, setNotes] = useState('');
 
   const handleSubmit = () => {
     if (selectedInterest) {
-      onSubmit(selectedInterest);
+      onSubmit(selectedInterest, notes);
       setSelectedInterest(null);
+      setNotes('');
     }
   };
 
   const handleClose = () => {
     setSelectedInterest(null);
+    setNotes('');
     onClose();
   };
 
   return (
     <Modal visible={visible} transparent animationType="none">
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.overlay}>
+        <View style={styles.overlayInner}>
           <TouchableWithoutFeedback>
             <View style={[styles.modal, { backgroundColor: theme.colors.surface }]}>
               <Text style={[styles.title, { color: theme.colors.text.primary }]}>
@@ -80,6 +87,23 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
                 ))}
               </View>
 
+              <TextInput
+                style={[
+                  styles.notesInput,
+                  {
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text.primary,
+                    backgroundColor: theme.colors.background,
+                  },
+                ]}
+                placeholder="Why does this appeal to you? (optional)"
+                placeholderTextColor={theme.colors.text.muted}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={3}
+              />
+
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   onPress={handleClose}
@@ -99,6 +123,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -107,6 +132,9 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  } as ViewStyle,
+  overlayInner: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -141,6 +169,15 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     textAlign: 'center',
+  } as TextStyle,
+  notesInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 20,
   } as TextStyle,
   buttonContainer: {
     flexDirection: 'row',
