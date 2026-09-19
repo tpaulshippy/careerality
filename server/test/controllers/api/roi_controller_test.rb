@@ -6,7 +6,8 @@ class Api::RoiControllerTest < ActionDispatch::IntegrationTest
   end
 
   def make_roi(occupation_code, area_code:, demand_score: nil, roi_percentage: 10.0,
-                 occupation_name: nil, annual_median_salary: 50_000, education_level: "Bachelor's degree")
+                 occupation_name: nil, annual_median_salary: 50_000, education_level: "Bachelor's degree",
+                 skills: nil)
     CareerRoi.create!(
       occupation_code: occupation_code,
       occupation_name: occupation_name || "Career #{occupation_code}",
@@ -20,6 +21,7 @@ class Api::RoiControllerTest < ActionDispatch::IntegrationTest
       roi_percentage: roi_percentage,
       job_zone: 1,
       education_level: education_level,
+      skills: skills,
       cost_of_living_index: 100.0,
       adjusted_salary: annual_median_salary,
       demand_score: demand_score
@@ -139,6 +141,50 @@ class Api::RoiControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal 2, response.parsed_body["records"].size
     assert_nil response.parsed_body["applied"]["education_pathway"]
+  end
+
+  test "search tokenizes sentences across name, skills and day-in-life" do
+    make_roi("18-8001.00", area_code: "S8", occupation_name: "Registered Nurse",
+             roi_percentage: 10.0)
+    make_roi("18-8002.00", area_code: "S8", occupation_name: "Helper",
+             skills: [ "Kindness" ], roi_percentage: 30.0)
+    make_roi("18-8003.00", area_code: "S8", occupation_name: "Janitor",
+             roi_percentage: 20.0)
+    CareerContent.create!(
+      occupation_code: "18-8003.00",
+      day_in_life_summary: "A quiet day full of kindness and mops.",
+      day_in_life_full: "Full."
+    )
+
+    get search_api_roi_index_path, params: { q: "nurse kindness", area: "S8" }
+    assert_response :success
+    names = response.parsed_body["records"].map { |r| r["occupation_name"] }
+    assert_equal [ "Registered Nurse", "Helper", "Janitor" ], names
+  end
+
+  test "single keyword keeps ROI order" do
+    make_roi("18-8004.00", area_code: "S8", occupation_name: "Nurse Low", roi_percentage: 5.0)
+    make_roi("18-8005.00", area_code: "S8", occupation_name: "Nurse High", roi_percentage: 25.0)
+
+    get search_api_roi_index_path, params: { q: "Nurse", area: "S8" }
+    assert_response :success
+    names = response.parsed_body["records"].map { |r| r["occupation_name"] }
+    assert_equal [ "Nurse High", "Nurse Low" ], names
+  end
+
+  test "filters narrow the tokenized path" do
+    make_roi("18-8006.00", area_code: "S8", occupation_name: "Office Nurse",
+             annual_median_salary: 120_000, education_level: "Bachelor's degree")
+    make_roi("18-8007.00", area_code: "S8", occupation_name: "Office Aide",
+             annual_median_salary: 40_000, education_level: "High school diploma")
+
+    get search_api_roi_index_path, params: {
+      q: "I want an office job that pays plenty", area: "S8",
+      min_salary: 80_000, education_pathway: "bachelor"
+    }
+    assert_response :success
+    records = response.parsed_body["records"]
+    assert_equal [ "Office Nurse" ], records.map { |r| r["occupation_name"] }
   end
 
   test "map summary aggregates state rows" do

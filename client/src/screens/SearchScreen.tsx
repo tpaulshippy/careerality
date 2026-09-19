@@ -15,7 +15,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { CareerROI, CareerSearchFilters } from '../types';
 import { apiClient } from '../api/client';
-import { routeNaturalLanguage, routeKeywords, looksLikeNaturalLanguage, JevFilterRoute } from '../api/jevFilters';
+import { routeNaturalLanguage, looksLikeNaturalLanguage, JevFilterRoute } from '../api/jevFilters';
 import { CareerDetailView, Button, FeedbackModal } from '../components';
 import { InterestLevel } from '../components/FeedbackModal';
 import { useTheme, Theme } from '../hooks/useTheme';
@@ -280,17 +280,11 @@ export const SearchScreen: React.FC = () => {
     if (nlResult.education_pathway && !NL_UNFILTERABLE_EDUCATION.includes(nlResult.education_pathway)) {
       searchFilters.educationPathway = nlResult.education_pathway;
     }
-    // ILIKE on the raw sentence matches nothing, so refine to the routed
-    // keyword when there is one; otherwise keep the sentence (the empty
-    // card names the active filters).
-    const keywords = routeKeywords(nlResult);
-    const nextQuery = keywords || query;
-    const trimmedNext = sanitizeQuery(nextQuery);
-    if (trimmedNext.length < MIN_QUERY_LENGTH) return;
+    // The query stays as typed: tokenized server search matches the
+    // sentence's own subject words, so no keyword rewrite is needed.
+    // The debounced effect re-runs the current query with these filters.
     setAppliedFilters(searchFilters);
-    setNlSource(trimmedNext);
-    if (trimmedNext !== query) setQuery(nextQuery);
-  }, [nlResult, nlAppliable, query]);
+  }, [nlResult, nlAppliable]);
 
   const handleClearNlFilters = useCallback(() => {
     // Effect re-runs the current query without filters via startSearch deps.

@@ -105,13 +105,23 @@ class Api::RoiController < ApplicationController
     query = params[:q]
     area = params[:area] || "99"
     if query.present?
-      roi_records = CareerRoi.where(area_code: area).where("occupation_name ILIKE ?", "%#{query}%")
+      terms = SearchTokenizer.terms(query)
+      roi_records = CareerRoi.where(area_code: area)
+      if terms.any?
+        roi_records = roi_records
+          .joins("LEFT JOIN career_contents ON career_contents.occupation_code = career_roi.occupation_code")
+          .where(tokenized_condition(terms), *tokenized_binds(terms))
+          .order(Arel.sql("#{relevance_expression(terms)} DESC, roi_percentage DESC"))
+      else
+        roi_records = roi_records
+          .where("occupation_name ILIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(query)}%")
+          .order(roi_percentage: :desc)
+      end
       if params[:min_salary].present?
         roi_records = roi_records.where("annual_median_salary >= ?", params[:min_salary].to_f)
       end
       levels = education_levels_for(params[:education_pathway])
       roi_records = roi_records.where(education_level: levels) if levels
-      roi_records = roi_records.order(roi_percentage: :desc)
 pagy, records = pagy(roi_records.includes(:career_content), items: 50)
       render json: {
         records: records.as_json,
@@ -176,6 +186,32 @@ pagy, records = pagy(roi_records.includes(:career_content), items: 50)
 
   def education_levels_for(pathway)
     EDUCATION_PATHWAY_LEVELS.fetch(pathway.to_s, nil)
+  end
+
+  # ORs every term across name, skills and day-in-life summary. Binds are
+  # positional: one LIKE pattern per term for each of the three fields.
+  def tokenized_condition(terms)
+    fields = [ "occupation_name", "skills::text", "career_contents.day_in_life_summary" ]
+    fields.flat_map { |field| terms.map { "#{field} ILIKE ?" } }.join(" OR ")
+  end
+
+  def tokenized_binds(terms)
+    patterns = terms.map { |t| "%#{ActiveRecord::Base.sanitize_sql_like(t)}%" }
+    patterns * 3
+  end
+
+  # Name hits outrank skills/content hits; roi breaks relevance ties so
+  # single-term results keep their historical order.
+  def relevance_expression(terms)
+    parts = terms.map do |term|
+      pattern = ActiveRecord::Base.connection.quote(
+        "%#{ActiveRecord::Base.sanitize_sql_like(term)}%"
+      )
+      "(CASE WHEN occupation_name ILIKE #{pattern} THEN 2 ELSE 0 END) + " \
+        "(CASE WHEN skills::text ILIKE #{pattern} THEN 1 ELSE 0 END) + " \
+        "(CASE WHEN career_contents.day_in_life_summary ILIKE #{pattern} THEN 1 ELSE 0 END)"
+    end
+    "(#{parts.join(' + ')})"
   end
 
   def area_name

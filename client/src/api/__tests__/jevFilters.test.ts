@@ -1,4 +1,4 @@
-import { routeNaturalLanguage, routeKeywords, looksLikeNaturalLanguage } from '../jevFilters';
+import { routeNaturalLanguage, looksLikeNaturalLanguage } from '../jevFilters';
 
 describe('routeNaturalLanguage', () => {
   const originalFetch = global.fetch;
@@ -42,9 +42,4 @@ describe('looksLikeNaturalLanguage', () => {
   });
 });
 
-describe('routeKeywords', () => {
-  it('builds keywords from matched options only', () => {
-    expect(routeKeywords({ work_env: 'remote' } as never)).toBe('remote');
-    expect(routeKeywords({ work_env: 'no_match' } as never)).toBe('');
-  });
-});
+

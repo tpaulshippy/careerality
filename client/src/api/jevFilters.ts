@@ -33,10 +33,3 @@ export function looksLikeNaturalLanguage(text: string): boolean {
   if (cleaned.length < 12) return false;
   return cleaned.split(' ').length >= 3;
 }
-
-// Human-readable keywords derived from a route, for keyword search.
-export function routeKeywords(route: JevFilterRoute): string {
-  const parts: string[] = [];
-  if (route.work_env && route.work_env !== 'no_match') parts.push(route.work_env);
-  return parts.join(' ');
-}

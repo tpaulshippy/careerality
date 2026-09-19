@@ -134,13 +134,15 @@ describe('SearchScreen', () => {
 
     await waitFor(() => {
       expect(apiClient.searchCareers).toHaveBeenCalledWith(
-        'remote',
+        'I hate school but want $80k+ remote',
         '06',
         { minSalary: 80000, educationPathway: 'no_degree' },
         expect.any(AbortSignal),
       );
     }, { timeout: 2000 });
     await waitFor(() => expect(screen.getByTestId('nl-applied')).toBeTruthy(), { timeout: 2000 });
+    expect(screen.getByPlaceholderText('Search careers…').props.value)
+      .toBe('I hate school but want $80k+ remote');
   });
 
   it('clears applied filters and re-searches without them', async () => {
