@@ -105,9 +105,33 @@ class Api::RoiController < ApplicationController
     query = params[:q]
     area = params[:area] || "99"
     if query.present?
-      roi_records = CareerRoi.where(area_code: area).where("occupation_name ILIKE ?", "%#{query}%").order(roi_percentage: :desc)
+      terms = SearchTokenizer.terms(query)
+      roi_records = CareerRoi.where(area_code: area)
+      if terms.any?
+        roi_records = roi_records
+          .joins("LEFT JOIN career_contents ON career_contents.occupation_code = career_roi.occupation_code")
+          .where(tokenized_condition(terms), *tokenized_binds(terms))
+          .order(Arel.sql(relevance_order(terms)))
+      else
+        roi_records = roi_records
+          .where("occupation_name ILIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(query)}%")
+          .order(roi_percentage: :desc)
+      end
+      if params[:min_salary].present?
+        roi_records = roi_records.where("annual_median_salary >= ?", params[:min_salary].to_f)
+      end
+      levels = education_levels_for(params[:education_pathway])
+      roi_records = roi_records.where(education_level: levels) if levels
 pagy, records = pagy(roi_records.includes(:career_content), items: 50)
-      render json: { records: records.as_json, pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages } }
+      render json: {
+        records: records.as_json,
+        pagy: { page: pagy.page, items: pagy.items, count: pagy.count, pages: pagy.pages },
+        applied: {
+          min_salary: params[:min_salary].present? ? params[:min_salary].to_f : nil,
+          # Echoed only when it actually narrowed the query.
+          education_pathway: levels ? params[:education_pathway].to_s : nil
+        }
+      }
     else
       render json: { error: "Query parameter q is required" }, status: :bad_request
     end
@@ -144,6 +168,54 @@ pagy, records = pagy(roi_records.includes(:career_content), items: 50)
   end
 
   private
+
+  # Maps NL router education enums (see JevFilterRouterService::EDUCATION_OPTIONS)
+  # onto career_roi.education_level values. Bootcamp is approximate
+  # (Postsecondary certificate / Some college); apprenticeship has no
+  # education_level equivalent and passes through unfiltered, as do
+  # no_match and anything unrecognized.
+  EDUCATION_PATHWAY_LEVELS = {
+    "no_degree" => [ "Less than high school", "High school diploma" ],
+    "associate" => [ "Associate's degree" ],
+    "bachelor" => [ "Bachelor's degree" ],
+    "graduate" => [ "Master's degree", "Doctoral degree", "Professional degree", "First professional degree", "Post-doctoral training" ],
+    "bootcamp" => [ "Postsecondary certificate", "Some college" ],
+    "apprenticeship" => nil,
+    "no_match" => nil
+  }.freeze
+
+  def education_levels_for(pathway)
+    EDUCATION_PATHWAY_LEVELS.fetch(pathway.to_s, nil)
+  end
+
+  # ORs every term across name, skills and day-in-life summary. Binds are
+  # positional: one LIKE pattern per term for each of the three fields.
+  def tokenized_condition(terms)
+    fields = [ "occupation_name", "skills::text", "career_contents.day_in_life_summary" ]
+    fields.flat_map { |field| terms.map { "#{field} ILIKE ?" } }.join(" OR ")
+  end
+
+  def tokenized_binds(terms)
+    patterns = terms.map { |t| "%#{ActiveRecord::Base.sanitize_sql_like(t)}%" }
+    patterns * 3
+  end
+
+  # Name hits outrank skills/content hits; roi breaks relevance ties so
+  # single-term results keep their historical order. User text only ever
+  # reaches SQL as bound parameters via sanitize_sql_array (and tokens are
+  # already restricted to [a-z0-9]+ by SearchTokenizer).
+  def relevance_order(terms)
+    parts = terms.map do
+      "(CASE WHEN occupation_name ILIKE ? THEN 2 ELSE 0 END) + " \
+        "(CASE WHEN skills::text ILIKE ? THEN 1 ELSE 0 END) + " \
+        "(CASE WHEN career_contents.day_in_life_summary ILIKE ? THEN 1 ELSE 0 END)"
+    end
+    binds = terms.flat_map do |term|
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(term)}%"
+      [ pattern, pattern, pattern ]
+    end
+    ActiveRecord::Base.sanitize_sql_array([ "(#{parts.join(' + ')}) DESC, roi_percentage DESC", *binds ])
+  end
 
   def area_name
     area_code = params[:area_code] || params[:area] || params[:location]

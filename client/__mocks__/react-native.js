@@ -36,6 +36,7 @@ module.exports = {
   Animated: {
     Value: AnimatedValue,
     timing: () => ({ start: (cb) => cb && cb({ finished: true }), stop: jest.fn() }),
+    loop: () => ({ start: jest.fn(), stop: jest.fn() }),
     sequence: () => ({ start: (cb) => cb && cb({ finished: true }), stop: jest.fn() }),
     parallel: () => ({ start: (cb) => cb && cb({ finished: true }), stop: jest.fn() }),
     delay: () => ({ start: (cb) => cb && cb({ finished: true }) }),
