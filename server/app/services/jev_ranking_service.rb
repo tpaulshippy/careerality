@@ -23,6 +23,7 @@ class JevRankingService
 
   def self.rank(swipes:, candidates:)
     swipes = with_codes(swipes)
+    candidates = with_candidate_names(candidates)
     scored = candidates.map { |c| score_candidate(swipes: swipes, candidate: c) }
     # Explore/exploit: low confidence gets a novelty boost for unseen codes.
     seen = swipes.map { |s| s[:occupation_code] || s["occupation_code"] }.compact
@@ -66,15 +67,42 @@ class JevRankingService
   private_class_method :fallback_result
 
   # The app posts raw swipe records (career_id, direction, feedback).
-  # Resolve career_ids to occupation codes so history matches candidates.
+  # Resolve career_ids to occupation codes + names so history matches
+  # candidates and Jev sees human-readable labels, not opaque SOC codes.
   def self.with_codes(swipes)
     swipes = Array(swipes).map(&:to_h)
     ids = swipes.map { |s| s[:career_id] || s["career_id"] }.compact.uniq
-    codes = ids.empty? ? {} : CareerRoi.where(id: ids).pluck(:id, :occupation_code).to_h
+    rows = ids.empty? ? [] : CareerRoi.where(id: ids).pluck(:id, :occupation_code, :occupation_name)
+    by_id = rows.to_h { |id, code, name| [ id, [ code, name ] ] }
     swipes.each do |s|
-      s[:occupation_code] ||= s["occupation_code"] || codes[s[:career_id] || s["career_id"]]
+      cid = s[:career_id] || s["career_id"]
+      if cid && by_id[cid]
+        code, name = by_id[cid]
+        s[:occupation_code] ||= s["occupation_code"] || code
+        s[:occupation_name] ||= s["occupation_name"] || name
+      end
       s[:reason] ||= s["reason"] || s[:feedback] || s["feedback"]
     end
   end
   private_class_method :with_codes
+
+  # Candidates may arrive as code-only; fill missing names from the DB so
+  # Jev always sees e.g. { occupation_code: "15-1252.00",
+  # occupation_name: "Software Developers" }.
+  def self.with_candidate_names(candidates)
+    candidates = Array(candidates).map(&:to_h)
+    missing = candidates.select { |c| (c[:occupation_name] || c["occupation_name"]).nil? }
+                        .map { |c| c[:occupation_code] || c["occupation_code"] }.compact.uniq
+    unless missing.empty?
+      names = CareerRoi.where(occupation_code: missing).distinct.pluck(:occupation_code, :occupation_name).to_h
+      candidates.each do |c|
+        code = c[:occupation_code] || c["occupation_code"]
+        if code && (c[:occupation_name] || c["occupation_name"]).nil? && names[code]
+          c[:occupation_name] ||= names[code]
+        end
+      end
+    end
+    candidates
+  end
+  private_class_method :with_candidate_names
 end

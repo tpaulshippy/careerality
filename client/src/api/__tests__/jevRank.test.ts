@@ -18,18 +18,20 @@ describe('rankCareers', () => {
       json: () => Promise.resolve(mockJson),
     }) as unknown as typeof fetch;
 
-    const outcome = await rankCareers([{ career_id: 7 }], ['29-1141.00']);
+    const outcome = await rankCareers([{ career_id: 7 }], [{ occupation_code: '29-1141.00', occupation_name: 'Registered Nurses' }]);
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/jev/rank'),
       expect.objectContaining({ method: 'POST' })
     );
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body.candidates).toEqual([{ occupation_code: '29-1141.00', occupation_name: 'Registered Nurses' }]);
     expect(outcome?.results[0].occupation_code).toBe('29-1141.00');
     expect(outcome?.provider).toBe('fallback');
   });
 
   it('returns null when the endpoint fails', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false }) as unknown as typeof fetch;
-    await expect(rankCareers([], ['15-1252.00'])).resolves.toBeNull();
+    await expect(rankCareers([], [{ occupation_code: '15-1252.00' }])).resolves.toBeNull();
   });
 });

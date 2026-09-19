@@ -52,12 +52,15 @@ class JevRankingServiceTest < ActiveSupport::TestCase
     ENV["TYPESAFE_API_KEY"] = old if old
   end
 
-  test "raw app swipe records resolve career_id to occupation codes" do
+  test "raw app swipe records resolve career_id to occupation codes and names" do
     old = ENV.delete("TYPESAFE_API_KEY")
     fake_scope = Object.new
-    fake_scope.define_singleton_method(:pluck) { |*_args| [ [ 7, "15-1252.00" ] ] }
+    fake_scope.define_singleton_method(:pluck) { |*_args| [ [ 7, "15-1252.00", "Software Developer" ] ] }
     CareerRoi.stub(:where, fake_scope) do
       swipes = [ { "career_id" => 7, "direction" => "right", "feedback" => "salary" } ]
+      enriched = JevRankingService.send(:with_codes, swipes)
+      assert_equal "15-1252.00", enriched.first[:occupation_code]
+      assert_equal "Software Developer", enriched.first[:occupation_name]
       results = JevRankingService.rank(swipes: swipes, candidates: CANDIDATES)
       seen = results.find { |r| r.occupation_code == "15-1252.00" }
       unseen = results.find { |r| r.occupation_code == "29-1141.00" }
@@ -66,6 +69,17 @@ class JevRankingServiceTest < ActiveSupport::TestCase
     end
   ensure
     ENV["TYPESAFE_API_KEY"] = old if old
+  end
+
+  test "code-only candidates are enriched with occupation names" do
+    fake_pluck_scope = Object.new
+    fake_pluck_scope.define_singleton_method(:pluck) { |*_args| [ [ "29-1141.00", "Registered Nurse" ] ] }
+    fake_scope = Object.new
+    fake_scope.define_singleton_method(:distinct) { fake_pluck_scope }
+    CareerRoi.stub(:where, fake_scope) do
+      enriched = JevRankingService.send(:with_candidate_names, [ { occupation_code: "29-1141.00" } ])
+      assert_equal "Registered Nurse", enriched.first[:occupation_name]
+    end
   end
 
   test "typeSafe initializer wires TYPESAFE_API_KEY into RubyLLM config" do

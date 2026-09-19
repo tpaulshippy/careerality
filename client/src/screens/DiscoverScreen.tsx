@@ -97,13 +97,13 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
       if (append) {
         setCareers(prev => [...prev, ...data]);
       } else {
-        // Jev re-rank: raw swipe history + candidate codes go to
+        // Jev re-rank: raw swipe history + candidate codes/names go to
         // POST /api/jev/rank; any failure keeps server order.
         let ordered = data;
         try {
           const history = await apiClient.getSwipeHistory().catch(() => ({ swipes: [] as never[] }));
           const swipes = (history as { swipes?: unknown[] }).swipes ?? [];
-          const ranked = await rankCareers(swipes, data.map(c => c.occupation_code));
+          const ranked = await rankCareers(swipes, data.map(c => ({ occupation_code: c.occupation_code, occupation_name: c.occupation_name })));
           if (thisFetch !== fetchKeyRef.current) return;
           if (ranked && ranked.results.length > 0 && ranked.results.every(r => r.provider === 'jev')) {
             const position = new Map(ranked.results.map((r, i) => [r.occupation_code, i]));
