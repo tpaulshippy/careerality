@@ -2,6 +2,7 @@ import React from 'react';
 import { render, act, waitFor } from '@testing-library/react-native';
 import { DiscoverScreen } from '../DiscoverScreen';
 import { apiClient } from '../../api/client';
+import { rankCareers } from '../../api/jevRank';
 import { CareerROI } from '../../types';
 import { InterestLevel } from '../../components/FeedbackModal';
 
@@ -127,9 +128,14 @@ jest.mock('../../constants/dataSources', () => ({
 
 jest.mock('../../api/client', () => ({
   apiClient: {
-    getCareers: () => Promise.resolve({ records: [] }),
+    getCareers: jest.fn(() => Promise.resolve({ records: [] })),
+    getSwipeHistory: jest.fn(() => Promise.resolve({ swipes: [] })),
     submitSwipe: jest.fn().mockResolvedValue(undefined),
   },
+}));
+
+jest.mock('../../api/jevRank', () => ({
+  rankCareers: jest.fn(() => Promise.resolve(null)),
 }));
 
 jest.mock('@react-navigation/native', () => ({
@@ -142,8 +148,23 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 const submitSwipeMock = apiClient.submitSwipe as jest.Mock;
+const getCareersMock = apiClient.getCareers as jest.Mock;
+const getSwipeHistoryMock = apiClient.getSwipeHistory as jest.Mock;
+const rankCareersMock = rankCareers as jest.Mock;
 
 const career = { id: 42, occupation_name: 'Software Developers' } as CareerROI;
+
+const rankedRecords = [
+  { id: 1, occupation_code: '15-1252.00', occupation_name: 'Software Developers' },
+  { id: 2, occupation_code: '29-1141.00', occupation_name: 'Registered Nurses' },
+] as CareerROI[];
+
+const jevResults = [
+  { occupation_code: '29-1141.00', p_like: 0.9, fit_score: 1.8, driver: 'culture', confidence: 0.9, provider: 'jev' },
+  { occupation_code: '15-1252.00', p_like: 0.3, fit_score: 0.4, driver: 'culture', confidence: 0.9, provider: 'jev' },
+];
+
+const fallbackResults = jevResults.map(r => ({ ...r, provider: 'fallback' as const }));
 
 describe('DiscoverScreen', () => {
   beforeEach(() => {
@@ -151,6 +172,12 @@ describe('DiscoverScreen', () => {
     mockFeedbackModalProps = null;
     mockSwipeControlsProps = null;
     submitSwipeMock.mockClear();
+    getCareersMock.mockReset();
+    getCareersMock.mockResolvedValue({ records: [] });
+    getSwipeHistoryMock.mockReset();
+    getSwipeHistoryMock.mockResolvedValue({ swipes: [] });
+    rankCareersMock.mockReset();
+    rankCareersMock.mockResolvedValue(null);
   });
 
   it('should render DiscoverScreen without errors', async () => {
@@ -208,5 +235,44 @@ describe('DiscoverScreen', () => {
 
     await waitFor(() => expect(submitSwipeMock).toHaveBeenCalledWith(42, 'left', undefined));
     expect(mockFeedbackModalProps?.visible).toBe(false);
+  });
+
+  it('shows the Jev badge only for fully Jev-ranked results', async () => {
+    getCareersMock.mockResolvedValue({ records: rankedRecords });
+    getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }, { career_id: 2 }] });
+    rankCareersMock.mockResolvedValue({ results: jevResults, provider: 'jev' });
+
+    const { queryByText } = await render(<DiscoverScreen />);
+    await waitFor(() => expect(queryByText('✨ Jev-ranked · 2 swipes')).not.toBeNull());
+  });
+
+  it('keeps server order with no badge for fallback results', async () => {
+    getCareersMock.mockResolvedValue({ records: rankedRecords });
+    getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }] });
+    rankCareersMock.mockResolvedValue({ results: fallbackResults, provider: 'fallback' });
+
+    const { queryByText } = await render(<DiscoverScreen />);
+    await waitFor(() => expect(getCareersMock).toHaveBeenCalled());
+    // Let the rank promise settle, then assert no badge was set.
+    await waitFor(() => expect(rankCareersMock).toHaveBeenCalled());
+    await act(async () => {});
+    expect(queryByText(/Jev-ranked/)).toBeNull();
+  });
+
+  it('clears the badge when appending unranked pages', async () => {
+    getCareersMock.mockResolvedValue({ records: rankedRecords, pagy: { pages: 2 } });
+    getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }] });
+    rankCareersMock.mockResolvedValue({ results: jevResults, provider: 'jev' });
+
+    mockSwipedCareer = career;
+    const { queryByText } = await render(<DiscoverScreen />);
+    await waitFor(() => expect(queryByText('✨ Jev-ranked · 1 swipe')).not.toBeNull());
+
+    // Swiping near the end loads the next (unranked) page.
+    await act(async () => {
+      mockSwipeControlsProps?.onLike();
+    });
+    await waitFor(() => expect(getCareersMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(queryByText(/Jev-ranked/)).toBeNull());
   });
 });
