@@ -21,6 +21,7 @@ Rails.application.routes.draw do
         get :states
       end
     end
+    post "jev/qa_score", to: "jev#qa_score"
     post "jev/rank", to: "jev#rank"
   end
 
