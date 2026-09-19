@@ -15,7 +15,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
-import { routeNaturalLanguage, routeKeywords, JevFilterRoute } from '../api/jevFilters';
+import { routeNaturalLanguage, routeKeywords, looksLikeNaturalLanguage, JevFilterRoute } from '../api/jevFilters';
 import { CareerDetailView, Button, FeedbackModal } from '../components';
 import { InterestLevel } from '../components/FeedbackModal';
 import { useTheme, Theme } from '../hooks/useTheme';
@@ -104,11 +104,11 @@ export const SearchScreen: React.FC = () => {
   const [statesError, setStatesError] = useState<string | null>(null);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const [feedbackCareer, setFeedbackCareer] = useState<CareerROI | null>(null);
-  // Jev NL-to-filters: free text in, filter chips out.
-  const [nlText, setNlText] = useState('');
+  // Single-box NL assist: the main query doubles as NL input. Long,
+  // multi-word queries are routed in the background; chips render below.
   const [nlLoading, setNlLoading] = useState(false);
   const [nlResult, setNlResult] = useState<JevFilterRoute | null>(null);
-  const [nlApplied, setNlApplied] = useState(false);
+  const [nlSource, setNlSource] = useState<string | null>(null);
 
   const pulseAnim = useRef(new Animated.Value(0.45)).current;
 
@@ -213,29 +213,58 @@ export const SearchScreen: React.FC = () => {
     setResults(null);
     setError(null);
     setIsSearching(false);
+    setNlResult(null);
+    setNlSource(null);
+    setNlLoading(false);
     inputRef.current?.focus();
   }, []);
 
-  const handleNlSubmit = useCallback(async () => {
-    const text = nlText.trim();
-    if (text.length < MIN_QUERY_LENGTH || nlLoading) return;
-    setNlLoading(true);
-    setNlApplied(false);
-    try {
-      setNlResult(await routeNaturalLanguage(text));
-    } catch {
-      setNlResult(null);
-    } finally {
+  // Background NL route off the debounced query. Keyword search runs
+  // as usual; when the route resolves, chips offer a one-tap refine.
+  useEffect(() => {
+    if (!looksLikeNaturalLanguage(debouncedQuery)) {
       setNlLoading(false);
+      setNlResult(null);
+      setNlSource(null);
+      return;
     }
-  }, [nlText, nlLoading]);
+    let cancelled = false;
+    setNlLoading(true);
+    routeNaturalLanguage(debouncedQuery).then(
+      (route) => {
+        if (cancelled) return;
+        setNlResult(route);
+        setNlSource(debouncedQuery);
+        setNlLoading(false);
+      },
+      () => {
+        if (cancelled) return;
+        setNlResult(null);
+        setNlSource(null);
+        setNlLoading(false);
+      },
+    );
+    return () => { cancelled = true; };
+  }, [debouncedQuery]);
+
+  const handleQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    // Drop stale chips immediately once the text diverges from the routed query.
+    if (nlSource !== null && value !== nlSource) {
+      setNlResult(null);
+      setNlSource(null);
+    }
+  }, [nlSource]);
 
   const handleNlApply = useCallback(() => {
     if (!nlResult || nlResult.requires_clarification) return;
     const keywords = routeKeywords(nlResult);
-    if (keywords) setQuery(keywords);
-    setNlApplied(true);
-  }, [nlResult]);
+    if (keywords && keywords !== sanitizeQuery(query)) setQuery(keywords);
+    // Panel closes: the new (short) query is not NL, so the effect clears it.
+    setNlResult(null);
+    setNlSource(null);
+    setNlLoading(false);
+  }, [nlResult, query]);
 
   const handleResultPress = useCallback((career: CareerROI) => {
     const q = sanitizeQuery(query);
@@ -305,6 +334,11 @@ export const SearchScreen: React.FC = () => {
   const showResults = results !== null && !error && !isSearching && trimmed.length >= MIN_QUERY_LENGTH;
   const showRecents = isInputFocused && trimmed.length === 0 && recent.length > 0;
   const showPopular = !hasQuery && !showRecents;
+  // Only show chips for the exact query that was routed; stale results hide.
+  const showNlResult = nlResult !== null && nlSource !== null && trimmed === nlSource;
+  const nlApplyKeywords = showNlResult && !nlResult.requires_clarification
+    ? routeKeywords(nlResult)
+    : '';
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -320,7 +354,7 @@ export const SearchScreen: React.FC = () => {
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"
-            onChangeText={setQuery}
+            onChangeText={handleQueryChange}
             onFocus={() => setIsInputFocused(true)}
             onBlur={() => setIsInputFocused(false)}
             onSubmitEditing={handleSubmit}
@@ -331,30 +365,14 @@ export const SearchScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
-      </View>
-
-      <View style={styles.nlRow}>
-        <View style={[styles.nlBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <Text style={[styles.searchIcon, { color: theme.colors.text.muted }]}>✨</Text>
-          <TextInput
-            style={[styles.input, { color: theme.colors.text.primary }]}
-            placeholder="Describe what you want… e.g. no degree, remote, $80k+"
-            placeholderTextColor={theme.colors.text.muted}
-            value={nlText}
-            autoCorrect={false}
-            autoCapitalize="none"
-            returnKeyType="go"
-            onChangeText={(value) => { setNlText(value); setNlApplied(false); }}
-            onSubmitEditing={handleNlSubmit}
-            testID="nl-input"
-          />
-          <TouchableOpacity onPress={handleNlSubmit} testID="nl-submit" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={[styles.nlGo, { color: theme.colors.primary }]}>
-              {nlLoading ? '…' : 'Go'}
+        {nlLoading && !showNlResult && (
+          <View style={[styles.nlChips, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Text style={[styles.nlHint, { color: theme.colors.text.secondary }]}>
+              ✨ Understanding…
             </Text>
-          </TouchableOpacity>
-        </View>
-        {nlResult && (
+          </View>
+        )}
+        {showNlResult && (
           <View style={[styles.nlChips, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={styles.nlChipRow}>
               <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
@@ -373,17 +391,13 @@ export const SearchScreen: React.FC = () => {
               <Text style={[styles.nlHint, { color: theme.colors.text.secondary }]}>
                 Not sure what you mean — try rephrasing.
               </Text>
-            ) : nlApplied ? (
-              <Text style={[styles.nlHint, { color: theme.colors.primary }]}>
-                Applied to search ✓
-              </Text>
-            ) : (
+            ) : nlApplyKeywords ? (
               <TouchableOpacity onPress={handleNlApply} testID="nl-apply">
                 <Text style={[styles.nlApply, { color: theme.colors.primary }]}>
                   Use as search →
                 </Text>
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
         )}
       </View>
@@ -526,9 +540,6 @@ interface Styles {
   searchIcon: TextStyle;
   input: TextStyle;
   clearButton: TextStyle;
-  nlRow: ViewStyle;
-  nlBox: ViewStyle;
-  nlGo: TextStyle;
   nlChips: ViewStyle;
   nlChipRow: ViewStyle;
   nlChip: TextStyle;
@@ -601,24 +612,6 @@ const styles = StyleSheet.create<Styles>({
   clearButton: {
     fontSize: 16,
     fontWeight: '600',
-    paddingLeft: 8,
-  },
-  nlRow: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  nlBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  nlGo: {
-    fontSize: 15,
-    fontWeight: '700',
     paddingLeft: 8,
   },
   nlChips: {

@@ -1,4 +1,4 @@
-import { routeNaturalLanguage, routeKeywords } from '../jevFilters';
+import { routeNaturalLanguage, routeKeywords, looksLikeNaturalLanguage } from '../jevFilters';
 
 describe('routeNaturalLanguage', () => {
   const originalFetch = global.fetch;
@@ -29,6 +29,16 @@ describe('routeNaturalLanguage', () => {
   it('returns null when the endpoint fails', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false }) as unknown as typeof fetch;
     await expect(routeNaturalLanguage('hi')).resolves.toBeNull();
+  });
+});
+
+describe('looksLikeNaturalLanguage', () => {
+  it('routes long multi-word input, skips short keywords', () => {
+    expect(looksLikeNaturalLanguage('I hate school but want $80k+ remote')).toBe(true);
+    expect(looksLikeNaturalLanguage('nurse')).toBe(false);
+    expect(looksLikeNaturalLanguage('remote')).toBe(false);
+    expect(looksLikeNaturalLanguage('no degree jobs')).toBe(true);
+    expect(looksLikeNaturalLanguage('  ')).toBe(false);
   });
 });
 
