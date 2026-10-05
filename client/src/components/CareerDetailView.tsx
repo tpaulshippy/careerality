@@ -32,32 +32,34 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
   const theme = useTheme();
 
   // Slideshow state. `urls` holds one candidate per generated slot plus the
-  // pre-slideshow single image as a final fallback, so careers that have not been
-  // regenerated yet still render something.
+  // pre-slideshow single image as a final fallback. The legacy image is only ever
+  // shown when no slot loaded at all: for a regenerated career it duplicates slot
+  // 1, so including it in the rotation would repeat a photo.
   const urls = getImageUrls(career.occupation_code);
   const [cursor, setCursor] = useState(0);
   const [failed, setFailed] = useState<Set<number>>(() => new Set());
   const [hidden, setHidden] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Candidate indices that have not 404'd. Only real slideshow slots get a dot;
-  // the trailing legacy image is a fallback, not a frame.
+  // Candidate indices that have not 404'd.
   const available = useMemo(
     () => urls.map((_, i) => i).filter((i) => !failed.has(i)),
     [urls, failed]
   );
   const frames = available.filter((i) => i < IMAGE_SLOTS);
-  const showImage = !hidden && available.length > 0;
-  // cursor is always a valid index: it is only ever set from `available`, from
-  // `remaining`, or reset to 0.
-  const currentIndex = failed.has(cursor) ? available[0] : cursor;
+  // Prefer real slots; fall back to the legacy object only when none survived.
+  const rotation = frames.length > 0 ? frames : available;
+  const showImage = !hidden && rotation.length > 0;
+  // cursor is always a valid index: it is only ever set from `rotation`,
+  // from `remaining`, or reset to 0.
+  const currentIndex = failed.has(cursor) ? rotation[0] : cursor;
   const currentUrl = urls[currentIndex];
 
   const advance = useCallback(() => {
-    if (available.length <= 1) return;
-    const position = available.indexOf(currentIndex);
-    setCursor(available[(position + 1) % available.length]);
-  }, [available, currentIndex]);
+    if (rotation.length <= 1) return;
+    const position = rotation.indexOf(currentIndex);
+    setCursor(rotation[(position + 1) % rotation.length]);
+  }, [rotation, currentIndex]);
 
   // Reset whenever the career changes.
   useEffect(() => {
@@ -68,12 +70,12 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
 
   // Auto-advance only while more than one image is actually available.
   useEffect(() => {
-    if (!showImage || available.length <= 1) return undefined;
+    if (!showImage || rotation.length <= 1) return undefined;
     timer.current = setInterval(advance, SLIDE_INTERVAL_MS);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [showImage, available.length, advance]);
+  }, [showImage, rotation.length, advance]);
 
   const handleImageError = () => {
     const next = new Set(failed);
@@ -85,7 +87,10 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
       setHidden(true);
       return;
     }
-    if (next.has(cursor)) setCursor(remaining[0]);
+    if (next.has(cursor)) {
+      const nextFrames = remaining.filter((i) => i < IMAGE_SLOTS);
+      setCursor(nextFrames.length > 0 ? nextFrames[0] : remaining[0]);
+    }
   };
 
   const handleDotPress = (target: number) => setCursor(target);
@@ -146,7 +151,7 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
               />
             </TouchableOpacity>
 
-            {available.length > 1 && (
+            {rotation.length > 1 && (
               <View style={styles.dots} testID="career-detail-dots">
                 {frames.map((i) => (
                   <TouchableOpacity

@@ -2,6 +2,7 @@
 
 require 'json'
 require 'net/http'
+require 'openssl'
 require 'uri'
 require 'base64'
 require 'fileutils'
@@ -71,12 +72,21 @@ class GenerateImages
 
   def get_json(path)
     uri = URI.join("#{@endpoint}/", path.sub(%r{\A/}, ''))
-    response = Net::HTTP.start(uri.hostname, uri.port, read_timeout: @config[:timeout]) do |http|
-      http.request(Net::HTTP::Get.new(uri))
-    end
+    response = http_for(uri).start { |http| http.request(Net::HTTP::Get.new(uri)) }
     raise "GET #{path} failed: #{response.code}" unless response.is_a?(Net::HTTPSuccess)
 
     JSON.parse(response.body)
+  end
+
+  # The endpoint is usually a Tailscale HTTPS URL, so TLS has to be switched on
+  # explicitly; Net::HTTP does not infer it from the URI.
+  def http_for(uri)
+    http = Net::HTTP.new(uri.hostname, uri.port)
+    http.use_ssl = uri.scheme == 'https'
+    http.verify_mode = OpenSSL::SSL::VERIFY_PEER if http.use_ssl?
+    http.read_timeout = @config[:timeout]
+    http.open_timeout = 30
+    http
   end
 
   def post_json(path, body)
@@ -96,12 +106,9 @@ class GenerateImages
   end
 
   def request(uri, body)
-    http = Net::HTTP.new(uri.hostname, uri.port)
-    http.read_timeout = @config[:timeout]
-    http.open_timeout = 30
     req = Net::HTTP::Post.new(uri.request_uri, 'Content-Type' => 'application/json')
     req.body = JSON.generate(body)
-    http.request(req)
+    http_for(uri).start { |http| http.request(req) }
   end
 
   # --- Checkpointing --------------------------------------------------------
@@ -121,7 +128,12 @@ class GenerateImages
   end
 
   def save_state(state, state_file)
-    File.write(state_file, JSON.pretty_generate(state))
+    # Written via a temp file and renamed so an interruption mid-write cannot leave
+    # truncated JSON: load_state treats unparseable JSON as empty and would
+    # regenerate every image.
+    tmp = "#{state_file}.tmp"
+    File.write(tmp, JSON.pretty_generate(state))
+    File.rename(tmp, state_file)
   end
 
   # --- Main loop ------------------------------------------------------------

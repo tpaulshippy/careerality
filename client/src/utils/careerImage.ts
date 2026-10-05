@@ -4,10 +4,13 @@ const R2_IMAGE_BASE_URL = 'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev';
 // data/content_generation/image_prompts.rb.
 export const IMAGE_SLOTS = 3;
 
-// SOC codes are "XX-XXXX.00" and the objects on R2 are named with the compact
-// 6-digit form ("11-1011.00" -> "111011").
-const compactCode = (occupationCode: string): string =>
-  occupationCode.replace(/-/g, '').replace(/\./g, '').slice(0, -2);
+// R2 objects are named with the compact 6-digit SOC code. The API returns the
+// canonical "XX-XXXX.00" form, but tolerate the other shapes so a bare or
+// dash-only code does not silently produce a truncated filename.
+const compactCode = (occupationCode: string): string => {
+  const digits = occupationCode.replace(/[^0-9]/g, '');
+  return digits.length > 6 ? digits.slice(0, 6) : digits;
+};
 
 export const getImageUrl = (occupationCode: string): string =>
   `${R2_IMAGE_BASE_URL}/${compactCode(occupationCode)}.webp`;

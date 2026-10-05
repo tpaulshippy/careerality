@@ -51,7 +51,9 @@ The app resolves image URLs by convention, so no migration or API change is need
 
 `getImageUrls()` returns the three slots followed by the legacy bare filename. The app
 tries each in turn and falls through on load failure, so careers that have not been
-regenerated yet still render. `getImageUrl()` is unchanged.
+regenerated yet still render. The legacy object is shown **only** when no slot loads —
+it duplicates slot 1 for a regenerated career, so it is never a step in the rotation.
+`getImageUrl()` is unchanged for the single-image consumers.
 
 ---
 
@@ -84,16 +86,20 @@ not be downloaded or used.
 ```bash
 cd data/content_generation
 
-# 1. Point at your Mac (from the setup step)
-export IMAGE_API_URL=https://your-mac.your-tailnet.ts.net
-export DB_NAME=careerality PGDATABASE=careerality   # only for O*NET fallback
+# 1. Point at your Mac (from the setup step). HTTPS is handled; certs are
+#    verified normally, which Tailscale satisfies.
+export IMAGE_API_URL=https://your-mac.<tailnet>.ts.net
 
-# 2. Build prompts  (writes image_prompts.json)
+# 2. Build prompts  (writes image_prompts.json). Reads generated_narratives/ and
+#    needs no database.
 ruby generate_image_prompts.rb
 
 # 3. Generate + verify
 ruby generate_images.rb
 ```
+
+A database is only required for a career with **no** narrative, where the O\*NET task
+text is borrowed as a fallback. All 1,082 current careers have narratives.
 
 `generate_images.rb` takes optional positional args:
 

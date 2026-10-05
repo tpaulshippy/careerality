@@ -5,8 +5,8 @@ require_relative 'image_prompts'
 # Writes image_prompts.json: one entry per occupation, each carrying IMAGE_COUNT
 # prompts so the in-app slideshow has distinct framings to cycle through.
 #
-# Requires a database connection for O\*NET task/skill fallback, but every occupation
-# that has a narrative generates without one.
+# Runs entirely off generated_narratives/ by default. The database is only
+# touched for a career with no narrative, and only if one is reachable.
 class GenerateImagePrompts
   def initialize(connect_to_db: true)
     ImagePrompts.establish_connection if connect_to_db
@@ -17,36 +17,46 @@ class GenerateImagePrompts
   end
 
   def process_all(occupation_codes = nil)
-    codes = occupation_codes || ImagePrompts.load_all_occupation_codes
     narratives = ImagePrompts.narrative_index
+    # Default to the narratives: they are the prompt source, they are keyed by the
+    # compact 6-digit code the generation and upload scripts expect, and reading
+    # them needs no database. The DB is only consulted for a career that has no
+    # narrative, to borrow its O*NET task text.
+    codes = occupation_codes || narratives.keys.sort
     results = {}
     from_narrative = 0
+    missing_narrative = []
 
     codes.each do |code|
-      occupation_data = ImagePrompts.load_occupation_data(code)
       narrative = narratives[code]
+      occupation_data = nil
 
-      # Prefer the narrative's own name; fall back to O\*NET, then the code.
+      if narrative
+        from_narrative += 1
+      else
+        missing_narrative << code
+        occupation_data = ImagePrompts.load_occupation_data(code)
+      end
+
       name = narrative&.dig('occupation_name') ||
              occupation_data&.dig('OnetTitle') ||
              code
 
-      prompts = generate_image_prompts(
-        occupation_data || { 'OnetTitle' => name },
-        name,
-        narrative
-      )
-
-      from_narrative += 1 if narrative
-
       results[code] = {
         'occupation_name' => name,
         'source' => narrative ? 'narrative' : 'onet',
-        'prompts' => prompts
+        'prompts' => generate_image_prompts(
+          occupation_data || { 'OnetTitle' => name },
+          name,
+          narrative
+        )
       }
     end
 
-    puts "Prompts built from narratives: #{from_narrative}, from O*NET: #{codes.size - from_narrative}"
+    puts "Prompts built from narratives: #{from_narrative}, from O*NET: #{missing_narrative.size}"
+    unless missing_narrative.empty?
+      puts "  no narrative (needs career_profiles): #{missing_narrative.first(10).join(', ')}"
+    end
     results
   end
 

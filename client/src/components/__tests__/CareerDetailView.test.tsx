@@ -118,7 +118,7 @@ describe('CareerDetailView', () => {
 
     const image = getByTestId('career-detail-image');
     expect(image.props.source.uri).toBe(
-      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512-1.webp'
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-1.webp'
     );
 
     // Slot 1, 2, 3 and the legacy bare filename all 404.
@@ -137,7 +137,7 @@ describe('CareerDetailView', () => {
     await fireEvent(getByTestId('career-detail-image'), 'error');
 
     expect(getByTestId('career-detail-image').props.source.uri).toBe(
-      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512-2.webp'
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-2.webp'
     );
   });
 
@@ -149,7 +149,7 @@ describe('CareerDetailView', () => {
     }
 
     expect(getByTestId('career-detail-image').props.source.uri).toBe(
-      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512.webp'
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234.webp'
     );
   });
 
@@ -164,7 +164,7 @@ describe('CareerDetailView', () => {
     await fireEvent(getByTestId('career-detail-image'), 'press');
 
     expect(getByTestId('career-detail-image').props.source.uri).toBe(
-      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512-2.webp'
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-2.webp'
     );
   });
 
@@ -174,7 +174,7 @@ describe('CareerDetailView', () => {
     await fireEvent(getByTestId('career-detail-dot-2'), 'press');
 
     expect(getByTestId('career-detail-image').props.source.uri).toBe(
-      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512-3.webp'
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-3.webp'
     );
   });
 
@@ -187,17 +187,38 @@ describe('CareerDetailView', () => {
     expect(getByTestId('career-detail-dot-1')).toBeTruthy();
   });
 
-  it('hides the dots when only one image is available', async () => {
-    const { getByTestId, queryByTestId, rerender } = await render(
+  it('hides the dots when only one slideshow slot is left', async () => {
+    const { getByTestId, queryByTestId } = await render(
       <CareerDetailView career={mockCareer} />
     );
 
-    // Fail slots 2, 3 and the legacy image, leaving only slot 1.
-    for (let i = 0; i < 3; i += 1) {
-      await fireEvent(getByTestId('career-detail-image'), 'error');
-    }
-    await rerender(<CareerDetailView career={mockCareer} />);
+    // Fail slot 1, then slot 2. That leaves slot 3 as the only frame, so there is
+    // nothing to page through and the dots go away.
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+    await fireEvent(getByTestId('career-detail-image'), 'error');
 
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-3.webp'
+    );
     expect(queryByTestId('career-detail-dots')).toBeNull();
+  });
+
+  it('never rotates into the legacy image while a slot still works', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    // Three taps walk 1 -> 2 -> 3 -> back to 1. The legacy object is a duplicate of
+    // slot 1, so it must never appear as its own step.
+    const seen = [getByTestId('career-detail-image').props.source.uri];
+    for (let i = 0; i < 3; i += 1) {
+      await fireEvent(getByTestId('career-detail-image'), 'press');
+      seen.push(getByTestId('career-detail-image').props.source.uri);
+    }
+
+    expect(seen).toEqual([
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-1.webp',
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-2.webp',
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-3.webp',
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-1.webp',
+    ]);
   });
 });

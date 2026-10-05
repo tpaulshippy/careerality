@@ -8,6 +8,7 @@ require 'uri'
 require 'openssl'
 require 'digest'
 require 'fileutils'
+require 'tmpdir'
 
 # Uploads generated career images to Cloudflare R2.
 #
@@ -165,59 +166,63 @@ class UploadImages
 
       puts "Uploading #{code} slot #{slot}..."
 
-      unless r2_exists?(png_key)
-        if upload_file(image_path, png_key)
-          counts[:png] += 1
-        else
-          counts[:failed] += 1
-          next
-        end
-      else
+      png_ok = true
+      if r2_exists?(png_key)
         counts[:skipped] += 1
+      elsif upload_file(image_path, png_key)
+        counts[:png] += 1
+      else
+        png_ok = false
+        counts[:failed] += 1
       end
 
-      # Slot 1 also gets the legacy bare filename so single-image consumers stay
-      # current without a client change.
-      if slot == 1 && !r2_exists?("#{code}.png")
-        if upload_file(image_path, "#{code}.png")
-          counts[:png] += 1
-        else
-          counts[:failed] += 1
-        end
+      # Slot 1 is republished under the legacy bare filename every run. Unlike the
+      # per-slot objects this is a migration of the old single image, so an
+      # existing object must be overwritten or the old photo stays live.
+      if slot == 1
+        upload_file(image_path, "#{code}.png")
+        counts[:png] += 1
       end
 
+      webp_url = nil
       webp_path = generate_webp(image_path)
+
       if webp_path.nil?
         counts[:failed] += 1
       else
         if r2_exists?(webp_key)
           counts[:skipped] += 1
+          webp_url = "#{@public_url}/#{webp_key}"
         elsif upload_file(webp_path, webp_key, content_type: 'image/webp')
           counts[:webp] += 1
+          webp_url = "#{@public_url}/#{webp_key}"
         else
           counts[:failed] += 1
         end
 
-        if slot == 1 && !r2_exists?("#{code}.webp")
-          if upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
-            counts[:webp] += 1
-          else
-            counts[:failed] += 1
-          end
+        # Slot 1 legacy alias: overwrite unconditionally for the same reason.
+        if slot == 1
+          upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
+          counts[:webp] += 1
         end
 
         File.delete(webp_path) if File.exist?(webp_path)
       end
 
-      manifest["#{code}:#{slot}"] = {
-        'occupation_code' => self.class.soc_code(code),
-        'compact_code' => code,
-        'slot' => slot,
-        'png_url' => "#{@public_url}/#{png_key}",
-        'webp_url' => "#{@public_url}/#{webp_key}"
-      }
-
-      save_manifest(manifest, output_file)
+      # Only record the entry once the WebP actually exists, so the manifest and any
+      # database update never publish a URL that 404s.
+      if png_ok && webp_url
+        manifest["#{code}:#{slot}"] = {
+          'occupation_code' => self.class.soc_code(code),
+          'compact_code' => code,
+          'slot' => slot,
+          'png_url' => "#{@public_url}/#{png_key}",
+          'webp_url' => webp_url
+        }
+        save_manifest(manifest, output_file)
+      else
+        warn "Not recording #{code} slot #{slot}: upload incomplete (png=#{png_ok} webp=#{!webp_url.nil?})"
+      end
     end
 
     puts "\npng=#{counts[:png]} webp=#{counts[:webp]} already_present=#{counts[:skipped]} failed=#{counts[:failed]}"
@@ -249,7 +254,17 @@ class UploadImages
       host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost'
     )
 
-    manifest.each_value do |entry|
+    # A manifest written by the previous uploader holds only image_url strings and
+    # has no slot or SOC code, so skip anything that is not a complete per-slot entry
+    # rather than inserting NULLs.
+    rows = manifest.select do |_, entry|
+      entry.is_a?(Hash) && entry['occupation_code'] && entry['slot'].is_a?(Integer) && entry['webp_url']
+    end
+
+    skipped = manifest.size - rows.size
+    warn "Skipping #{skipped} manifest entries without slot/occupation_code/webp_url" if skipped.positive?
+
+    rows.each_value do |entry|
       ActiveRecord::Base.connection.exec_insert(
         <<~SQL,
           INSERT INTO career_images (occupation_code, image_url, position, created_at, updated_at)
@@ -262,13 +277,11 @@ class UploadImages
         [entry['occupation_code'], entry['webp_url'], entry['slot'] - 1]
       )
     end
-    puts "Wrote #{manifest.size} rows to career_images"
+    puts "Wrote #{rows.size} rows to career_images"
   end
 end
 
 if __FILE__ == $PROGRAM_NAME
-  require 'tmpdir'
-
   images_dir = ARGV[0] || File.expand_path('generated_images', __dir__)
   output_file = ARGV[1] || File.expand_path('uploaded_images.json', __dir__)
 

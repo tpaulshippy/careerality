@@ -66,8 +66,12 @@ module ImagePrompts
   # sensory detail, which is what makes the generated photos specific rather
   # than a generic "person at a laptop". Falls back to nil when absent so the
   # caller can drop to O*NET tasks/skills.
+  #
+  # Keys are compact 6-digit SOC codes ("11-1011.00" -> "111011"), matching the
+  # occupation_code format the generation and upload scripts expect.
   def self.narrative_index(dir = File.expand_path('generated_narratives', __dir__))
-    @narrative_index ||= Dir.glob(File.join(dir, '*.json')).each_with_object({}) do |path, index|
+    @narrative_indexes ||= {}
+    @narrative_indexes[dir] ||= Dir.glob(File.join(dir, '*.json')).each_with_object({}) do |path, index|
       data = begin
         JSON.parse(File.read(path))
       rescue JSON::ParserError
@@ -75,12 +79,19 @@ module ImagePrompts
       end
 
       code = data['occupation_code']
-      index[code] = data if code
+      index[compact_code(code)] = data if code
     end
   end
 
+  # "11-1011.00", "11-1011" and "111011" all become "111011". This is what R2 object
+  # names and generated image filenames are built from.
+  def self.compact_code(code)
+    digits = code.to_s.strip.gsub(/[^0-9]/, '')
+    digits.length > 6 ? digits[0, 6] : digits
+  end
+
   def self.reset_narrative_index!
-    @narrative_index = nil
+    @narrative_indexes = {}
   end
 
   def self.singularize_occupation(occupation_name)
