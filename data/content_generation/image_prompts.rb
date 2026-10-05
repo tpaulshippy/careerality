@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
-require 'active_record'
-require 'active_support/inflector'
 require 'json'
 require_relative 'pipeline'
 
+# ActiveRecord and ActiveSupport are loaded lazily, inside the methods that need
+# them. Prompt construction is pure string logic over the narrative index, so
+# keeping this file loadable without a database lets it be unit tested
+# (see image_prompts_test.rb).
 module ImagePrompts
   # Number of images generated per career, for the in-app slideshow.
   IMAGE_COUNT = Pipeline::IMAGE_COUNT
@@ -18,6 +20,7 @@ module ImagePrompts
   }.freeze
 
   def self.establish_connection
+    require 'active_record'
     ActiveRecord::Base.establish_connection(DB_CONFIG)
   end
 
@@ -94,10 +97,28 @@ module ImagePrompts
     @narrative_indexes = {}
   end
 
-  def self.singularize_occupation(occupation_name)
+  # Returns a singular form suitable for prompt prose ("a Chief Executive at work").
+# ActiveSupport is used when available; otherwise a small rule-based fallback keeps
+# this module usable without the Rails gems, which matters because prompt
+# construction is pure string logic and is unit tested without a bundle.
+def self.singularize_occupation(occupation_name)
     return occupation_name unless occupation_name
 
-    occupation_name.singularize
+    begin
+      require 'active_support/inflector'
+      return occupation_name.singularize
+    rescue LoadError
+      return simple_singularize(occupation_name)
+    end
+  end
+
+def self.simple_singularize(word)
+    case word
+    when /ies\z/i then word.sub(/ies\z/i, 'y')
+    when /(ss|sh|ch|x|z)es\z/i then word.sub(/es\z/i, '')
+    when /[^s]s\z/i then word.sub(/s\z/i, '')
+    else word
+    end
   end
 
   def self.primary_task(occupation_data)

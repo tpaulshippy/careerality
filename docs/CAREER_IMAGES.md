@@ -225,4 +225,5 @@ normalises to the SOC format if you enable it.
 | `upload_images.rb` | WebP conversion and R2 upload |
 | `image_generation_state.json` | per-image status, seed, rejection reasons |
 | `pipeline.rb` | shared config: `IMAGE_COUNT`, the compact/SOC code mapping, the slot range |
-| `pipeline_test.rb` | unit tests for that mapping (`ruby pipeline_test.rb`, also run in CI) |
+| `pipeline_test.rb` | unit tests for the mapping and slot contract (run in CI) |
+| `image_prompts_test.rb` | unit tests for prompt construction, incl. the O\*NET fallback (run in CI) |

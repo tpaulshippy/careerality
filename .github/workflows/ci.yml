@@ -85,7 +85,9 @@ jobs:
           exit $status
 
       - name: Run unit tests
-        run: ruby content_generation/pipeline_test.rb
+        run: |
+          ruby content_generation/pipeline_test.rb
+          ruby content_generation/image_prompts_test.rb
 
   client:
     runs-on: ubuntu-latest
