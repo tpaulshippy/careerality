@@ -115,6 +115,9 @@ module ImagePrompts
   end
 
   def self.simple_singularize(word)
+    # Invariant plurals: the rules below would turn these into "sery"/"specy".
+    return word if word.match?(/\A\w*(?:series|species|news|physics|mathematics)\z/i)
+
     case word
     when /ies\z/i then word.sub(/ies\z/i, 'y')
     when /(ss|sh|ch|x|z)es\z/i then word.sub(/es\z/i, '')
@@ -144,13 +147,16 @@ module ImagePrompts
   # slideshow shows variety instead of three near-duplicates.
   def self.build_prompts(occupation_data, occupation_name, narrative = nil)
     singular_name = singularize_occupation(occupation_name)
+    # Only the noun needs the article chosen; every framing string starts with a
+    # consonant, so the leading "A" is always right.
+    article = singular_name.to_s.match?(/\A[aeiou]/i) ? 'an' : 'a'
 
     moment = narrative_moment(narrative, occupation_data)
     setting = narrative_setting(narrative, occupation_data)
 
     SHOT_STYLES.map do |style|
       [
-        "A #{style[:framing]} of a #{singular_name} at work.",
+        "A #{style[:framing]} of #{article} #{singular_name} at work.",
         "",
         "This specific moment: #{moment}",
         "The setting: #{setting}",

@@ -84,16 +84,57 @@ class TestImagePrompts < Minitest::Test
   end
 
   def test_narrative_index_ignores_non_object_documents
-    dir = File.join(Dir.tmpdir, 'narratives-validity')
-    FileUtils.mkdir_p(dir)
-    File.write(File.join(dir, 'a.json'), JSON.generate({ 'occupation_code' => '111011' }))
-    File.write(File.join(dir, 'b.json'), 'null')
-    File.write(File.join(dir, 'c.json'), '[]')
-    File.write(File.join(dir, 'd.json'), 'not json at all')
+    Dir.mktmpdir do |dir|
+      File.write(File.join(dir, 'a.json'), JSON.generate({ 'occupation_code' => '111011' }))
+      File.write(File.join(dir, 'b.json'), 'null')
+      File.write(File.join(dir, 'c.json'), '[]')
+      File.write(File.join(dir, 'd.json'), 'not json at all')
 
-    index = ImagePrompts.narrative_index(dir)
-    assert_equal ['111011'], index.keys
-  ensure
-    FileUtils.rm_rf(dir)
+      index = ImagePrompts.narrative_index(dir)
+      assert_equal ['111011'], index.keys
+    end
+  end
+
+  # The last-resort branches: nothing usable in narrative or O*NET. The point of the
+  # rewrite was that no career produces an empty prompt, so these must not regress.
+  EMPTY = { 'Tasks' => [], 'OnetDescription' => '', 'OnetTitle' => '' }.freeze
+
+  def test_terminal_fallbacks_still_produce_a_real_prompt
+    ImagePrompts.build_prompts(EMPTY, 'Electricians', nil).each do |p|
+      refute p.strip.empty?
+      assert p.include?('going about the core duties of the job'), 'moment fallback'
+      assert p.include?('usual workplace'), 'setting fallback'
+    end
+  end
+
+  def test_terminal_fallbacks_are_not_blank_with_no_title_either
+    ImagePrompts.build_prompts({ 'Tasks' => [] }, nil, nil).each do |p|
+      refute p.strip.empty?
+      assert p.include?('going about the core duties of the job')
+    end
+  end
+
+  def test_article_agrees_with_the_singular_name
+    assert_includes ImagePrompts.build_prompts(ONET, 'Accountants', nil)[0], 'an Accountant'
+    # "electrician" begins with a vowel sound, so "an" is correct here too.
+    assert_includes ImagePrompts.build_prompts(ONET, 'Electricians', nil)[0], 'an Electrician'
+    assert_includes ImagePrompts.build_prompts(ONET, 'Carpenters', nil)[0], 'a Carpenter'
+    # The leading "A" before the framing is correct regardless of the noun.
+    assert ImagePrompts.build_prompts(ONET, 'Accountants', nil)[0]
+      .start_with?('A wide establishing shot of')
+  end
+
+  def test_simple_singularize_leaves_invariant_plurals_alone
+    %w[series species news physics].each do |word|
+      assert_equal word, ImagePrompts.simple_singularize(word)
+    end
+  end
+
+  def test_simple_singularize_handles_the_common_cases
+    { 'Accountants' => 'Accountant', 'Electricians' => 'Electrician',
+      'Attorneys' => 'Attorney', 'Bosses' => 'Boss', 'Chefs' => 'Chef',
+      'Physicians' => 'Physician', 'Analysts' => 'Analyst' }.each do |plural, singular|
+      assert_equal singular, ImagePrompts.simple_singularize(plural)
+    end
   end
 end

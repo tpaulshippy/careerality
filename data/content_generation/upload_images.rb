@@ -31,6 +31,17 @@ class UploadImages
   # invisible to the app, which silently falls back to the legacy image.
   DEFAULT_PUBLIC_URL = 'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev'
 
+  # Objects are rewritten in place under a stable name, so they must NOT be
+  # immutable: a one-year immutable cache means installed clients keep serving the
+  # pre-regeneration image long after R2 accepted the replacement. Kept short enough
+  # that a client picks up a regenerated photo without a reinstall.
+  DEFAULT_CACHE_CONTROL = 'public, max-age=3600'
+
+  # Guard the upload path against a stalled endpoint; the generator sets explicit
+  # timeouts for the same reason.
+  CONNECT_TIMEOUT = Integer(ENV['R2_CONNECT_TIMEOUT'] || 30)
+  MAX_TIME = Integer(ENV['R2_MAX_TIME'] || 300)
+
   def initialize(bucket_url:, access_key:, secret_key:, public_url: ENV['R2_PUBLIC_URL'] || DEFAULT_PUBLIC_URL)
     uri = URI.parse(bucket_url)
     @bucket_name = uri.path.gsub(%r{^/}, '').split('/').first
@@ -38,6 +49,7 @@ class UploadImages
     @access_key = access_key
     @secret_key = secret_key
     @public_url = public_url.to_s.sub(%r{/+\z}, '')
+    @cache_control = ENV['R2_CACHE_CONTROL'] || DEFAULT_CACHE_CONTROL
 
     return if @public_url == DEFAULT_PUBLIC_URL
 
@@ -47,8 +59,8 @@ class UploadImages
 
   # --- R2 signing -----------------------------------------------------------
 
-  def upload_to_r2(image_data, filename, content_type: 'image/png',
-                   cache_control: 'public, max-age=31536000, immutable')
+  def upload_to_r2(image_data, filename, content_type: 'image/png', cache_control: nil)
+    cache_control ||= @cache_control
     url = "#{@endpoint_url}/#{@bucket_name}/#{filename}"
 
     date = Time.now.utc.strftime('%Y%m%dT%H%M%SZ')
@@ -80,7 +92,9 @@ class UploadImages
     File.binwrite(temp_file, image_data)
 
     cmd = [
-      'curl', '--silent', '--fail',
+      'curl', '--silent', '--show-error', '--fail',
+      '--connect-timeout', CONNECT_TIMEOUT.to_s,
+      '--max-time', MAX_TIME.to_s,
       '-X', 'PUT',
       '-H', "Content-Type: #{content_type}",
       '-H', "Cache-Control: #{cache_control}",
@@ -110,7 +124,9 @@ class UploadImages
   # Unauthenticated existence check against the public bucket URL. These objects are
   # already served publicly to the app, so this adds no exposure.
   def r2_exists?(filename)
-    cmd = ['curl', '--silent', '--head', '--output', '/dev/null',
+    cmd = ['curl', '--silent', '--show-error', '--head', '--output', '/dev/null',
+           '--connect-timeout', CONNECT_TIMEOUT.to_s,
+           '--max-time', MAX_TIME.to_s,
            '--write-out', '%{http_code}', "#{@public_url}/#{filename}"]
     code, _stderr, status = Open3.capture3(*cmd)
     return false unless status.success?
@@ -188,7 +204,12 @@ class UploadImages
       # while changed or regenerated images are overwritten.
       digest = Digest::SHA256.hexdigest(File.binread(image_path))
       prior = manifest[manifest_key]
-      unchanged = prior.is_a?(Hash) && prior['sha'] == digest
+      # Skip only when the canonical object and, for slot 1, both legacy aliases are
+      # accounted for. A transient alias failure still records the digest, so without
+      # the alias flag every rerun would take the skip path and getImageUrl() would
+      # keep serving a stale alias indefinitely.
+      aliases_done = slot != 1 || prior&.dig('aliases') == true
+      unchanged = prior.is_a?(Hash) && prior['sha'] == digest && aliases_done
 
       # A matching digest alone is not enough: the object may have been deleted from
       # R2 since the checkpoint, and skipping would leave a URL the app 404s on.
@@ -216,11 +237,14 @@ class UploadImages
       # Slot 1 is republished under the legacy bare filename too, because that is what
       # SwipeCard, MapScreen and CompareScreen request. Gated on png_ok so a failed
       # canonical upload cannot replace a working URL with an unpublished one.
+      aliases_ok = slot != 1
       if slot == 1 && png_ok
+        aliases_ok = true
         if upload_file(image_path, "#{code}.png")
           counts[:png] += 1
         else
           counts[:failed] += 1
+          aliases_ok = false
         end
       end
 
@@ -250,6 +274,7 @@ class UploadImages
             counts[:webp] += 1
           else
             counts[:failed] += 1
+            aliases_ok = false
           end
         end
 
@@ -265,9 +290,12 @@ class UploadImages
           'compact_code' => code,
           'slot' => slot,
           'sha' => digest,
+          # Records that both legacy aliases landed, so a rerun retries them rather
+          # than skipping on the digest alone.
+          'aliases' => aliases_ok,
           'png_url' => "#{@public_url}/#{png_key}",
           'webp_url' => webp_url,
-          'verified_at' => Time.now.utc.iso8601
+          'uploaded_at' => Time.now.utc.iso8601
         }
         save_manifest(manifest, output_file)
       else

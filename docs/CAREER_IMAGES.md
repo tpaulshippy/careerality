@@ -101,6 +101,12 @@ ruby generate_images.rb
 A database is only required for a career with **no** narrative, where the O\*NET task
 text is borrowed as a fallback. All 1,082 current careers have narratives.
 
+That fallback has a gap worth knowing: by default the run covers only the careers it can
+read a narrative for, so a career missing one is silently omitted rather than reaching
+the O\*NET branch. `USE_DB=true` unions `career_profiles` into the code list and enables
+the fallback; if the database is unreachable the run degrades to generic copy rather than
+failing.
+
 `generate_images.rb` takes optional positional args:
 
 ```
@@ -110,9 +116,10 @@ ruby generate_images.rb [prompts_file] [output_dir] [state_file] [codes] [limit]
 Useful during setup:
 
 ```bash
-# Smoke test: 3 careers, 9 images
+# Smoke test: 3 careers, 9 images. `print`, not `p`: `p` would emit the quoted
+# string and the quotes would become part of the codes.
 ruby generate_images.rb image_prompts.json /tmp/smoke /tmp/smoke-state.json "$( \
-  ruby -rjson -e 'p JSON.parse(File.read("image_prompts.json")).keys.first(3).join(",")')" 3
+  ruby -rjson -e 'print JSON.parse(File.read("image_prompts.json")).keys.first(3).join(",")')" 3
 
 # Skip verification entirely
 VERIFY_IMAGES=false ruby generate_images.rb
@@ -202,10 +209,23 @@ ruby upload_images.rb
 
 Requires `cwebp` (`brew install webp` / `apt install webp`).
 
-Uploads are resumable — existence is checked against R2 rather than a local manifest, so
-interrupted runs continue instead of re-uploading. Slot 1 is additionally published as
-`<code>.webp` and `<code>.png` so single-image consumers pick up the new image without a
-client change.
+Uploads are resumable, keyed on the **SHA-256 of the local file** recorded in
+`uploaded_images.json`. An image whose digest matches what was last uploaded is skipped;
+if the local file changed the object is overwritten, which is what makes regenerating a
+single career publish its new photos. R2 existence is probed separately, so an object
+deleted out from under the manifest is re-uploaded rather than left as a 404.
+
+⚠️ Losing `uploaded_images.json` loses that record: the next run re-uploads everything.
+Keep the file.
+
+Slot 1 is additionally published as `<code>.webp` and `<code>.png` so the single-image
+consumers pick up the new image without a client change. Their completion is tracked
+separately, so a failed alias is retried on the next run rather than skipped forever.
+
+Objects are written under a stable name with `Cache-Control: public, max-age=3600`
+(override with `R2_CACHE_CONTROL`). They are deliberately **not** `immutable`: these keys
+are overwritten in place, and a year-long immutable cache would leave installed clients
+showing the pre-regeneration image long after R2 accepted the replacement.
 
 `UPDATE_DB=true` will also write to the `career_images` table. This is **off by default
 and not required**: the app resolves URLs by convention. Note the table is currently

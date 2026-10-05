@@ -179,6 +179,16 @@ class GenerateImages
       prompts_for_code = entry['prompts'] || Array(entry['prompt'])
       occupation = entry['occupation_name'] || code
 
+      if prompts_for_code.compact.empty?
+        warn "Skipping #{code}: no prompts in entry"
+        next
+      end
+
+      if prompts_for_code.size < @config[:image_count]
+        warn "#{code} has #{prompts_for_code.size} prompt(s) but #{@config[:image_count]} " \
+             'images are configured; its slideshow would be incomplete.'
+      end
+
       prompts_for_code.first(@config[:image_count]).each_with_index do |prompt, slot_index|
         slot = slot_index + 1
         compact = code
@@ -186,12 +196,13 @@ class GenerateImages
         path = File.join(output_dir, filename)
         key = "#{compact}:#{slot}"
 
-        # Resume: a prior entry counts as done unless it failed. An image recorded
-        # as unverified (because verification was off) is redone when verification
-        # is now enabled, so it is not silently treated as checked.
+        # Resume: a prior entry counts as done unless it failed, or its prompt has
+        # changed. Regenerating a narrative and re-running must not silently keep
+        # publishing the image built from the old wording.
         prior = state[key]
         terminal = prior && prior['status'] != 'failed'
         terminal &&= prior['status'] != 'unverified' || !@config[:verify]
+        terminal &&= prior['prompt'] == prompt
 
         if File.exist?(path) && terminal
           counts[:skipped] += 1

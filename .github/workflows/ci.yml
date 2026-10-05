@@ -86,8 +86,12 @@ jobs:
 
       - name: Run unit tests
         run: |
-          ruby content_generation/pipeline_test.rb
-          ruby content_generation/image_prompts_test.rb
+          set +e
+          status=0
+          for t in content_generation/pipeline_test.rb content_generation/image_prompts_test.rb; do
+            ruby "$t" || status=1
+          done
+          exit $status
 
   client:
     runs-on: ubuntu-latest
