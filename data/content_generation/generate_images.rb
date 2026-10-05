@@ -8,6 +8,7 @@ require 'base64'
 require 'fileutils'
 require 'digest'
 require 'time'
+require_relative 'soc_code'
 
 # Generates career images through the Draw Things/mflux HTTP service running on the
 # M5 (see IMAGE_GENERATION.md), verifies each one with a vision model, and retries
@@ -119,11 +120,8 @@ class GenerateImages
     Digest::SHA256.hexdigest("#{code}:#{slot}:#{attempt}")[0, 8].to_i(16)
   end
 
-  # "11-1011.00", "11-1011" and "111011" all become "111011", which is what image
-  # filenames and R2 object names use.
   def self.compact_code(code)
-    digits = code.to_s.strip.gsub(/[^0-9]/, '')
-    digits.length > 6 ? digits[0, 6] : digits
+    SocCode.compact(code)
   end
 
   def load_state(state_file)
@@ -150,13 +148,29 @@ class GenerateImages
     FileUtils.mkdir_p(output_dir)
 
     state = load_state(state_file)
-    targets = codes || prompts.keys.sort
+
+    # Normalise every target before the lookup, so the `codes` argument accepts
+    # dashed or SOC-formatted codes even when image_prompts.json is keyed compactly.
+    targets = (codes || prompts.keys.sort).map { |c| self.class.compact_code(c) }.uniq
     targets = targets.first(limit) if limit
+
+    # Two different input codes can normalise to one compact code (they would then
+    # share a filename and a state key, silently overwriting each other). Real data
+    # is uniformly XX-XXXX.00 so this should not fire, but never lose an image quietly.
+    collisions = {}
+    (codes || prompts.keys).each do |raw|
+      compact = self.class.compact_code(raw)
+      (collisions[compact] ||= []) << raw
+    end
+    collisions.select { |_, v| v.uniq.size > 1 }.each do |compact, raw_codes|
+      warn "COLLISION: #{raw_codes.uniq.join(', ')} all normalise to #{compact}; " \
+           'they would overwrite one filename. Keeping the first only.'
+    end
 
     counts = { generated: 0, skipped: 0, passed: 0, rejected: 0, failed: 0, unverified: 0 }
 
     targets.each do |code|
-      entry = prompts[code]
+      entry = prompts[code] || prompts.find { |k, _| self.class.compact_code(k) == code }&.last
       unless entry
         warn "Skipping #{code}: not in prompts file"
         next
@@ -167,10 +181,7 @@ class GenerateImages
 
       prompts_for_code.first(@config[:image_count]).each_with_index do |prompt, slot_index|
         slot = slot_index + 1
-        # Normalise here so the filename is always <6 digits>_<slot>.png regardless of
-        # whether the prompts file was keyed by compact or SOC-formatted code. The
-        # uploader parses exactly this form.
-        compact = self.class.compact_code(code)
+        compact = code
         filename = "#{compact}_#{slot}.png"
         path = File.join(output_dir, filename)
         key = "#{compact}:#{slot}"

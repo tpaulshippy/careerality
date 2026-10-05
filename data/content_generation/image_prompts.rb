@@ -3,6 +3,7 @@
 require 'active_record'
 require 'active_support/inflector'
 require 'json'
+require_relative 'soc_code'
 
 module ImagePrompts
   # Number of images generated per career, for the in-app slideshow.
@@ -83,11 +84,9 @@ module ImagePrompts
     end
   end
 
-  # "11-1011.00", "11-1011" and "111011" all become "111011". This is what R2 object
-  # names and generated image filenames are built from.
+  # Delegates to SocCode so the mapping has a single definition.
   def self.compact_code(code)
-    digits = code.to_s.strip.gsub(/[^0-9]/, '')
-    digits.length > 6 ? digits[0, 6] : digits
+    SocCode.compact(code)
   end
 
   def self.reset_narrative_index!

@@ -11,9 +11,7 @@ class GenerateImagePrompts
   # "111011" -> "11-1011.00". career_profiles stores the SOC form, so a lookup for a
   # compact code has to restore it or the query silently matches nothing.
   def self.soc_code(compact)
-    return compact unless compact =~ /\A\d{6}\z/
-
-    "#{compact[0..1]}-#{compact[2..5]}.00"
+    SocCode.soc(compact)
   end
 
   def initialize(connect_to_db: true)
@@ -72,12 +70,15 @@ class GenerateImagePrompts
       }
     end
 
-    puts "Prompts built from narratives: #{from_narrative}, from ONET fallback: #{missing_narrative.size}"
+    # onet_misses had no career_profiles row either, so they did not actually reach
+    # ONET data and must not be counted with the ones that did.
+    from_onet = missing_narrative.size - onet_misses
+    puts "Prompts built from narratives: #{from_narrative}, from ONET fallback: #{from_onet}"
     unless missing_narrative.empty?
-      puts "  no narrative, fell back to ONET: #{missing_narrative.first(10).join(', ')}"
-      if onet_misses.positive?
-        puts "  #{onet_misses} had no career_profiles row either, so generic copy was used"
-      end
+      puts "  no narrative: #{missing_narrative.first(10).join(', ')}#{missing_narrative.size > 10 ? ' ...' : ''}"
+    end
+    if onet_misses.positive?
+      puts "  #{onet_misses} had no career_profiles row either, so generic copy was used"
     end
     results
   end

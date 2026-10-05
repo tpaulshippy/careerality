@@ -9,6 +9,7 @@ require 'openssl'
 require 'digest'
 require 'fileutils'
 require 'tmpdir'
+require_relative 'soc_code'
 
 # Uploads generated career images to Cloudflare R2.
 #
@@ -142,7 +143,7 @@ class UploadImages
   end
 
   def self.soc_code(compact)
-    "#{compact[0..1]}-#{compact[2..5]}.00"
+    SocCode.soc(compact)
   end
 
   # --- Main loop ------------------------------------------------------------
