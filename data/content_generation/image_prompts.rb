@@ -140,7 +140,8 @@ module ImagePrompts
   # The narrative summary is one sentence written about a real Tuesday morning, so
   # it already carries time of day, place and activity. Falls back to O*NET.
   def self.narrative_moment(narrative, occupation_data)
-    summary = narrative && narrative['day_in_life_summary'].to_s.strip
+    # `to_h` so a nil narrative yields {} rather than a NoMethodError on nil.empty?.
+    summary = narrative.to_h['day_in_life_summary'].to_s.strip
     return summary unless summary.empty?
 
     task = primary_task(occupation_data)
@@ -153,7 +154,7 @@ module ImagePrompts
   # time of day. The O*NET description is a generic job definition, so it is only a
   # last resort.
   def self.narrative_setting(narrative, occupation_data)
-    opening = narrative && narrative['full_narrative'].to_s.strip
+    opening = narrative.to_h['full_narrative'].to_s.strip
     unless opening.empty?
       sentences = opening.split(/(?<=[.!?])\s+/).first(2).join(' ')
       return truncate(sentences, 320)

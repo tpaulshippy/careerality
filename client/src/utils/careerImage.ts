@@ -1,9 +1,14 @@
 // Must stay in step with UploadImages::DEFAULT_PUBLIC_URL in
 // data/content_generation/upload_images.rb, which refuses to upload under a
 // different host. Override both together if the bucket ever moves.
-const R2_IMAGE_BASE_URL =
-  process.env.EXPO_PUBLIC_R2_IMAGE_BASE_URL ??
-  'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev';
+//
+// `||` rather than `??` so an empty env var falls back to the default, and the
+// trailing slash is stripped: R2 treats ".../x//file" as a different object key,
+// which would 404 every image and silently fall back to the legacy image.
+const R2_IMAGE_BASE_URL = (
+  process.env.EXPO_PUBLIC_R2_IMAGE_BASE_URL ||
+  'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev'
+).replace(/\/+$/, '');
 
 // Images per career. Kept in sync with ImagePrompts::IMAGE_COUNT in
 // data/content_generation/image_prompts.rb.

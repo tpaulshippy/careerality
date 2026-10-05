@@ -164,7 +164,7 @@ class UploadImages
   def process_images_dir(images_dir, output_file)
     manifest = load_manifest(output_file)
     images = Dir.glob(File.join(images_dir, '*.png')).sort
-    counts = { png: 0, webp: 0, skipped: 0, failed: 0 }
+    counts = { png: 0, webp: 0, skipped: 0, failed: 0, repaired: 0 }
 
     images.each do |image_path|
       parsed = self.class.parse_filename(File.basename(image_path))
@@ -189,6 +189,13 @@ class UploadImages
       digest = Digest::SHA256.hexdigest(File.binread(image_path))
       prior = manifest[manifest_key]
       unchanged = prior.is_a?(Hash) && prior['sha'] == digest
+
+      # A matching digest alone is not enough: the object may have been deleted from
+      # R2 since the checkpoint, and skipping would leave a URL the app 404s on.
+      if unchanged && !r2_exists?(webp_key)
+        counts[:repaired] += 1
+        unchanged = false
+      end
 
       if unchanged
         counts[:skipped] += 1
@@ -267,7 +274,8 @@ class UploadImages
       end
     end
 
-    puts "\npng=#{counts[:png]} webp=#{counts[:webp]} already_present=#{counts[:skipped]} failed=#{counts[:failed]}"
+    puts "\npng=#{counts[:png]} webp=#{counts[:webp]} already_present=#{counts[:skipped]} " \
+         "re_uploaded_missing=#{counts[:repaired]} failed=#{counts[:failed]}"
     manifest
   end
 

@@ -67,9 +67,22 @@ jobs:
 
       # The content-generation scripts are not part of either app bundle, so nothing
       # else in CI parses them. A syntax error here would only surface when someone
-      # runs the pipeline.
+      # runs the pipeline. Check every file and report all failures rather than
+      # stopping at the first, and fail loudly if the glob matches nothing.
       - name: Syntax check scripts
-        run: for f in content_generation/*.rb; do ruby -c "$f" > /dev/null; done
+        run: |
+          set +e
+          shopt -s nullglob
+          files=(content_generation/*.rb)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No Ruby scripts found to check"
+            exit 1
+          fi
+          status=0
+          for f in "${files[@]}"; do
+            ruby -c "$f" > /dev/null || { echo "syntax error: $f"; status=1; }
+          done
+          exit $status
 
       - name: Run unit tests
         run: ruby content_generation/pipeline_test.rb

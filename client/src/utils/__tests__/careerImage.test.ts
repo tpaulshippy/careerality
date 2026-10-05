@@ -1,4 +1,48 @@
-import { getImageUrl, getImageUrlForSlot, getImageUrls, IMAGE_SLOTS } from '../careerImage';
+import {
+  getImageUrl,
+  getImageUrlForSlot,
+  getImageUrls,
+  IMAGE_SLOTS,
+} from '../careerImage';
+
+// Loads the module fresh with a given env value, since the base URL is read at
+// module load time.
+const loadWith = (env: string | undefined) => {
+  const previous = process.env.EXPO_PUBLIC_R2_IMAGE_BASE_URL;
+  if (env === undefined) delete process.env.EXPO_PUBLIC_R2_IMAGE_BASE_URL;
+  else process.env.EXPO_PUBLIC_R2_IMAGE_BASE_URL = env;
+
+  let mod: typeof import('../careerImage') | undefined;
+  jest.isolateModules(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    mod = require('../careerImage') as typeof import('../careerImage');
+  });
+
+  if (previous === undefined) delete process.env.EXPO_PUBLIC_R2_IMAGE_BASE_URL;
+  else process.env.EXPO_PUBLIC_R2_IMAGE_BASE_URL = previous;
+
+  if (!mod) throw new Error('failed to load careerImage');
+  return mod;
+};
+
+describe('careerImage base URL override', () => {
+  it('falls back to the default when the override is empty', () => {
+    // `??` would keep the empty string and produce relative URLs.
+    expect(loadWith('').getImageUrl('111011')).toBe(
+      `${BASE}/111011.webp`
+    );
+  });
+
+  it('strips a trailing slash so object keys are not doubled', () => {
+    expect(
+      loadWith('https://example.test/r2/').getImageUrl('111011')
+    ).toBe('https://example.test/r2/111011.webp');
+  });
+
+  it('uses the default host when the override is absent', () => {
+    expect(loadWith(undefined).getImageUrl('111011')).toBe(`${BASE}/111011.webp`);
+  });
+});
 
 const BASE = 'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev';
 

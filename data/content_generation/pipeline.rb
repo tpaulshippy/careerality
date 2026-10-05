@@ -28,6 +28,11 @@ module Pipeline
 
   module_function
 
+  # Recognised SOC code shapes. Anything else is returned untouched rather than
+  # coerced: stripping digits from a typo like "11101x1" or "11-101" would silently
+  # resolve to a *different* career and generate or upload assets for it.
+  VALID_CODE = /\A(?:\d{6}|\d{2}-\d{4}(?:\.\d{2})?)\z/.freeze
+
   # "11-1011.00", "11-1011" and "111011" all become "111011".
   #
   # This mapping is load-bearing: narrative index keys, image filenames,
@@ -35,7 +40,10 @@ module Pipeline
   # If the two representations diverge, generation and upload silently target
   # different objects.
   def compact(code)
-    digits = code.to_s.strip.gsub(/[^0-9]/, '')
+    value = code.to_s.strip
+    return value unless value.match?(VALID_CODE)
+
+    digits = value.gsub(/[^0-9]/, '')
     digits.length > 6 ? digits[0, 6] : digits
   end
 

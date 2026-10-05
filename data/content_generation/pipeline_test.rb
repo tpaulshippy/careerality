@@ -28,6 +28,14 @@ class TestPipeline < Minitest::Test
     assert_equal '', Pipeline.compact('')
   end
 
+  def test_compact_refuses_to_coerce_a_malformed_code
+    # Coercing these would resolve to a *different* career and generate or upload
+    # assets under its name.
+    ['11101x1', '11-101', 'abc', '11-1011.0', '11-1011-00', '1110111', '  '].each do |bad|
+      assert_equal bad.strip, Pipeline.compact(bad), "compact(#{bad.inspect}) must not coerce"
+    end
+  end
+
   def test_soc_restores_the_database_form
     assert_equal '11-1011.00', Pipeline.soc('111011')
     assert_equal '29-1141.00', Pipeline.soc('291141')

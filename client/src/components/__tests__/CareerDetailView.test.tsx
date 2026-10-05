@@ -252,7 +252,8 @@ describe('CareerDetailView', () => {
   it('makes the image inert, not a dead button, when only one photo is available', async () => {
     const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
 
-    // Fail slots 1 and 2 so the legacy fallback is all that remains.
+    // Fail slots 1 and 2, leaving only slot 3: a single frame, so there is nothing
+    // to advance to. The legacy fallback only appears once all three slots fail.
     await fireEvent(getByTestId('career-detail-image'), 'error');
     await fireEvent(getByTestId('career-detail-image'), 'error');
 
