@@ -15,10 +15,20 @@ const R2_IMAGE_BASE_URL = (
 export const IMAGE_SLOTS = 3;
 
 // R2 objects are named with the compact 6-digit SOC code. The API returns the
-// canonical "XX-XXXX.00" form, but tolerate the other shapes so a bare or
-// dash-only code does not silently produce a truncated filename.
+// canonical "XX-XXXX.00" form, but the other shapes are tolerated so a dash-only or
+// already-compact code does not produce a truncated filename.
+//
+// Only the documented forms are accepted. Stripping digits from anything else would
+// let a malformed value resolve to a *different* career and display its image, so
+// unrecognised input is passed through unchanged (and will simply 404) rather than
+// coerced. Mirrors Pipeline.compact in data/content_generation/pipeline.rb.
+const VALID_SOC_CODE = /^(\d{6}|\d{2}-\d{4}(\.\d{2})?)$/;
+
 const compactCode = (occupationCode: string): string => {
-  const digits = occupationCode.replace(/[^0-9]/g, '');
+  const value = occupationCode.trim();
+  if (!VALID_SOC_CODE.test(value)) return value;
+
+  const digits = value.replace(/\D/g, '');
   return digits.length > 6 ? digits.slice(0, 6) : digits;
 };
 

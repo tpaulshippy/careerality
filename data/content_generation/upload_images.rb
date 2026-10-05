@@ -198,9 +198,10 @@ class UploadImages
       end
 
       if unchanged
+        # No manifest write: an idempotent re-run touches ~3,000 entries, and
+        # rewriting the whole manifest per entry would serialise a multi-hundred-KB
+        # file thousands of times for no change.
         counts[:skipped] += 1
-        manifest[manifest_key]['verified_at'] = Time.now.utc.iso8601
-        save_manifest(manifest, output_file)
         next
       end
 
@@ -313,13 +314,18 @@ class UploadImages
     # has no slot or SOC code, so skip anything that is not a complete per-slot entry
     # rather than inserting NULLs.
     rows = manifest.select do |_, entry|
-      entry.is_a?(Hash) && entry['occupation_code'] && entry['slot'].is_a?(Integer) && entry['webp_url']
+      entry.is_a?(Hash) && entry['compact_code'] && entry['slot'].is_a?(Integer) && entry['webp_url']
     end
 
     skipped = manifest.size - rows.size
-    warn "Skipping #{skipped} manifest entries without slot/occupation_code/webp_url" if skipped.positive?
+    warn "Skipping #{skipped} manifest entries without compact_code/slot/webp_url" if skipped.positive?
 
     rows.each_value do |entry|
+      # The compact code is written deliberately: rows created by the previous
+      # uploader used it, and the unique index is on (occupation_code, position), so
+      # writing the SOC form would never match them and every regenerated career would
+      # accumulate a duplicate row. The table is orphaned and off by default; if it is
+      # ever revived the old rows need migrating to SOC form in one pass.
       ActiveRecord::Base.connection.exec_insert(
         <<~SQL,
           INSERT INTO career_images (occupation_code, image_url, position, created_at, updated_at)
@@ -329,7 +335,7 @@ class UploadImages
             updated_at = NOW()
         SQL
         nil,
-        [entry['occupation_code'], entry['webp_url'], entry['slot'] - 1]
+        [entry['compact_code'], entry['webp_url'], entry['slot'] - 1]
       )
     end
     puts "Wrote #{rows.size} rows to career_images"

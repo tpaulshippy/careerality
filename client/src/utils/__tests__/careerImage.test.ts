@@ -63,6 +63,13 @@ describe('careerImage', () => {
     expect(getImageUrlForSlot('11-1011.00', 2)).toBe(`${BASE}/111011-2.webp`);
   });
 
+  it('does not coerce a malformed code into another career', () => {
+    // Stripping digits here would resolve to a different career's image.
+    expect(getImageUrl('11101x1')).toBe(`${BASE}/11101x1.webp`);
+    expect(getImageUrl('11-101')).toBe(`${BASE}/11-101.webp`);
+    expect(getImageUrl('abc')).toBe(`${BASE}/abc.webp`);
+  });
+
   it('offers three slots plus the legacy fallback', () => {
     const urls = getImageUrls('29-1141.00');
 

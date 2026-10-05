@@ -25,6 +25,8 @@ module ImagePrompts
   end
 
   def self.load_occupation_data(occupation_code)
+    require 'active_record'
+
     profile = ActiveRecord::Base.connection.exec_query(
       "SELECT occupation_code, occupation_name, occupation_description, skills, tasks FROM career_profiles WHERE occupation_code = $1",
       nil,
@@ -98,10 +100,10 @@ module ImagePrompts
   end
 
   # Returns a singular form suitable for prompt prose ("a Chief Executive at work").
-# ActiveSupport is used when available; otherwise a small rule-based fallback keeps
-# this module usable without the Rails gems, which matters because prompt
-# construction is pure string logic and is unit tested without a bundle.
-def self.singularize_occupation(occupation_name)
+  # ActiveSupport is used when available; otherwise a small rule-based fallback keeps
+  # this module usable without the Rails gems, which matters because prompt
+  # construction is pure string logic and is unit tested without a bundle.
+  def self.singularize_occupation(occupation_name)
     return occupation_name unless occupation_name
 
     begin
@@ -112,7 +114,7 @@ def self.singularize_occupation(occupation_name)
     end
   end
 
-def self.simple_singularize(word)
+  def self.simple_singularize(word)
     case word
     when /ies\z/i then word.sub(/ies\z/i, 'y')
     when /(ss|sh|ch|x|z)es\z/i then word.sub(/es\z/i, '')
