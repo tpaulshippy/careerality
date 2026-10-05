@@ -256,19 +256,19 @@ describe('CareerDetailView', () => {
     await fireEvent(getByTestId('career-detail-image'), 'error');
     await fireEvent(getByTestId('career-detail-image'), 'error');
 
-    const image = getByTestId('career-detail-image');
-    const wrapper = image.parent;
-    expect(wrapper.props.accessibilityRole).toBe('image');
-    expect(wrapper.props.disabled).toBe(true);
-    expect(wrapper.props.onPress).toBeUndefined();
+    const wrapper = getByTestId('career-detail-image').parent;
+    expect(wrapper).toBeTruthy();
+    expect(wrapper?.props.accessibilityRole).toBe('image');
+    expect(wrapper?.props.disabled).toBe(true);
+    expect(wrapper?.props.onPress).toBeUndefined();
   });
 
   it('keeps the image tappable when there is more than one photo', async () => {
     const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
 
     const wrapper = getByTestId('career-detail-image').parent;
-    expect(wrapper.props.accessibilityRole).toBe('button');
-    expect(wrapper.props.disabled).toBe(false);
+    expect(wrapper?.props.accessibilityRole).toBe('button');
+    expect(wrapper?.props.disabled).toBe(false);
   });
 
   it('marks the current dot as selected for screen readers', async () => {
