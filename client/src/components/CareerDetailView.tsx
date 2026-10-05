@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, ImageStyle, Image, Linking } from 'react-native';
 import { Card } from './Card';
 import { Section } from './Section';
@@ -9,7 +9,7 @@ import { CareerROI, CareerImage } from '../types';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
 import { getOccupationGroup } from '../utils/occupationGroup';
-import { getImageUrl } from '../utils/careerImage';
+import { getImageUrls, IMAGE_SLOTS } from '../utils/careerImage';
 
 const JOB_ZONE_LABELS: Record<number, string> = {
   1: 'Little to no preparation',
@@ -18,6 +18,8 @@ const JOB_ZONE_LABELS: Record<number, string> = {
   4: 'Considerable preparation',
   5: 'Extensive preparation',
 };
+
+const SLIDE_INTERVAL_MS = 4000;
 
 interface CareerDetailViewProps {
   career: CareerROI;
@@ -28,12 +30,65 @@ interface CareerDetailViewProps {
 
 export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, images, onClose, onInterest }) => {
   const theme = useTheme();
-  const imageUrl = getImageUrl(career.occupation_code);
-  const [imageFailed, setImageFailed] = useState(false);
 
+  // Slideshow state. `urls` holds one candidate per generated slot plus the
+  // pre-slideshow single image as a final fallback, so careers that have not been
+  // regenerated yet still render something.
+  const urls = getImageUrls(career.occupation_code);
+  const [cursor, setCursor] = useState(0);
+  const [failed, setFailed] = useState<Set<number>>(() => new Set());
+  const [hidden, setHidden] = useState(false);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Candidate indices that have not 404'd. Only real slideshow slots get a dot;
+  // the trailing legacy image is a fallback, not a frame.
+  const available = useMemo(
+    () => urls.map((_, i) => i).filter((i) => !failed.has(i)),
+    [urls, failed]
+  );
+  const frames = available.filter((i) => i < IMAGE_SLOTS);
+  const showImage = !hidden && available.length > 0;
+  // cursor is always a valid index: it is only ever set from `available`, from
+  // `remaining`, or reset to 0.
+  const currentIndex = failed.has(cursor) ? available[0] : cursor;
+  const currentUrl = urls[currentIndex];
+
+  const advance = useCallback(() => {
+    if (available.length <= 1) return;
+    const position = available.indexOf(currentIndex);
+    setCursor(available[(position + 1) % available.length]);
+  }, [available, currentIndex]);
+
+  // Reset whenever the career changes.
   useEffect(() => {
-    setImageFailed(false);
-  }, [imageUrl]);
+    setCursor(0);
+    setFailed(new Set());
+    setHidden(false);
+  }, [career.occupation_code]);
+
+  // Auto-advance only while more than one image is actually available.
+  useEffect(() => {
+    if (!showImage || available.length <= 1) return undefined;
+    timer.current = setInterval(advance, SLIDE_INTERVAL_MS);
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, [showImage, available.length, advance]);
+
+  const handleImageError = () => {
+    const next = new Set(failed);
+    next.add(currentIndex);
+    setFailed(next);
+
+    const remaining = urls.map((_, i) => i).filter((i) => !next.has(i));
+    if (remaining.length === 0) {
+      setHidden(true);
+      return;
+    }
+    if (next.has(cursor)) setCursor(remaining[0]);
+  };
+
+  const handleDotPress = (target: number) => setCursor(target);
 
   const isNational = career.area_code === '99' || career.area_name === 'U.S.';
   const showColIndex = !isNational && career.adjusted_salary !== career.annual_median_salary;
@@ -74,14 +129,44 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
           )}
         </View>
 
-        {!imageFailed && (
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.careerImage}
-            resizeMode="cover"
-            testID="career-detail-image"
-            onError={() => setImageFailed(true)}
-          />
+        {showImage && (
+          <View>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={advance}
+              accessibilityRole="button"
+              accessibilityLabel={`Show next photo of ${career.occupation_name}`}
+            >
+              <Image
+                source={{ uri: currentUrl }}
+                style={styles.careerImage}
+                resizeMode="cover"
+                testID="career-detail-image"
+                onError={handleImageError}
+              />
+            </TouchableOpacity>
+
+            {available.length > 1 && (
+              <View style={styles.dots} testID="career-detail-dots">
+                {frames.map((i) => (
+                  <TouchableOpacity
+                    key={urls[i]}
+                    onPress={() => handleDotPress(i)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Photo ${i + 1}`}
+                    testID={`career-detail-dot-${i}`}
+                    style={[
+                      styles.dot,
+                      {
+                        backgroundColor:
+                          i === currentIndex ? theme.colors.primary : theme.colors.border,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
         )}
 
         {career.day_in_life_full && (
@@ -183,8 +268,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 8,
-    marginBottom: 20,
   } as ImageStyle,
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 20,
+  } as ViewStyle,
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  } as ViewStyle,
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',

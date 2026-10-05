@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+# frozen_string_literal: true
+
 require 'json'
 require 'open3'
 require 'uri'
@@ -7,16 +9,35 @@ require 'openssl'
 require 'digest'
 require 'fileutils'
 
+# Uploads generated career images to Cloudflare R2.
+#
+# Filenames produced by generate_images.rb are <compact_code>_<slot>.png, e.g.
+# 111011_2.png. They are published as:
+#
+#   <code>-<slot>.webp   the slideshow variants (client resolves these by convention)
+#   <code>-<slot>.png    full quality original
+#   <code>.webp          alias of slot 1, so the single-image consumers
+#                        (SwipeCard, MapScreen, CompareScreen) keep working and
+#                        show the regenerated image rather than the old one
+#
+# Uploads are resumable: existence is checked against R2 itself rather than a
+# local manifest, so an interrupted run continues instead of re-uploading.
 class UploadImages
-  def initialize(bucket_url:, access_key:, secret_key:)
+  DEFAULT_PUBLIC_URL = 'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev'
+
+  def initialize(bucket_url:, access_key:, secret_key:, public_url: ENV['R2_PUBLIC_URL'] || DEFAULT_PUBLIC_URL)
     uri = URI.parse(bucket_url)
-    @bucket_name = uri.path.gsub(/^\//, '').split('/').first
+    @bucket_name = uri.path.gsub(%r{^/}, '').split('/').first
     @endpoint_url = "#{uri.scheme}://#{uri.host}"
     @access_key = access_key
     @secret_key = secret_key
+    @public_url = public_url.to_s.sub(%r{/+\z}, '')
   end
 
-  def upload_to_r2(image_data, filename, content_type: 'image/png', cache_control: 'public, max-age=31536000, immutable')
+  # --- R2 signing -----------------------------------------------------------
+
+  def upload_to_r2(image_data, filename, content_type: 'image/png',
+                   cache_control: 'public, max-age=31536000, immutable')
     url = "#{@endpoint_url}/#{@bucket_name}/#{filename}"
 
     date = Time.now.utc.strftime('%Y%m%dT%H%M%SZ')
@@ -31,7 +52,7 @@ class UploadImages
     host = URI.parse(url).host
     canonical_headers = "cache-control:#{cache_control}\ncontent-type:#{content_type}\nhost:#{host}\nx-amz-content-sha256:#{payload_hash}\nx-amz-date:#{date}"
     signed_headers = 'cache-control;content-type;host;x-amz-content-sha256;x-amz-date'
-    canonical_request = "PUT\n#{canonical_uri}\n\n#{canonical_headers}\n\n#{signed_headers}\n#{payload_hash}"
+    canonical_request = "PUT\n#{canonical_uri}\n#{canonical_querystring}\n#{canonical_headers}\n\n#{signed_headers}\n#{payload_hash}"
     algorithm = 'AWS4-HMAC-SHA256'
     credential_scope = "#{date_stamp}/#{region}/#{service}/aws4_request"
     string_to_sign = "#{algorithm}\n#{date}\n#{credential_scope}\n#{Digest::SHA256.hexdigest(canonical_request)}"
@@ -44,11 +65,11 @@ class UploadImages
 
     authorization_header = "#{algorithm} Credential=#{@access_key}/#{credential_scope}, SignedHeaders=#{signed_headers}, Signature=#{signature}"
 
-    temp_file = "/tmp/upload_#{filename}"
-    File.write(temp_file, image_data)
+    temp_file = File.join(Dir.tmpdir, "upload_#{filename}")
+    File.binwrite(temp_file, image_data)
 
     cmd = [
-      'curl', '--silent',
+      'curl', '--silent', '--fail',
       '-X', 'PUT',
       '-H', "Content-Type: #{content_type}",
       '-H', "Cache-Control: #{cache_control}",
@@ -60,28 +81,42 @@ class UploadImages
     ]
 
     begin
-      stdout, stderr, status = Open3.capture3(*cmd)
+      _stdout, stderr, status = Open3.capture3(*cmd)
       File.delete(temp_file) if File.exist?(temp_file)
-      if status.success? && !stdout.include?('<Error>')
-        url
+      if status.success?
+        "#{@public_url}/#{filename}"
       else
-        puts "Upload failed: #{stdout}"
-        puts "Stderr: #{stderr}" if stderr
+        warn "Upload failed for #{filename}: #{stderr}"
         nil
       end
     rescue StandardError => e
-      puts "Error uploading: #{e.message}"
+      warn "Error uploading #{filename}: #{e.message}"
       File.delete(temp_file) if File.exist?(temp_file)
       nil
     end
   end
 
+  # Unauthenticated existence check against the public bucket URL. These objects are
+  # already served publicly to the app, so this adds no exposure.
+  def r2_exists?(filename)
+    cmd = ['curl', '--silent', '--head', '--output', '/dev/null',
+           '--write-out', '%{http_code}', "#{@public_url}/#{filename}"]
+    code, _stderr, status = Open3.capture3(*cmd)
+    return false unless status.success?
+
+    code.strip == '200'
+  rescue StandardError
+    false
+  end
+
+  # --- WebP -----------------------------------------------------------------
+
   def generate_webp(source_path, max_width: 600, quality: 80)
-    webp_path = "/tmp/#{File.basename(source_path, '.*')}.webp"
+    webp_path = File.join(Dir.tmpdir, "#{File.basename(source_path, '.*')}.webp")
     cmd = ['cwebp', '-q', quality.to_s, '-resize', max_width.to_s, '0', source_path, '-o', webp_path]
     _stdout, stderr, status = Open3.capture3(*cmd)
     unless status.success?
-      puts "cwebp failed: #{stderr}"
+      warn "cwebp failed for #{source_path}: #{stderr}"
       File.delete(webp_path) if File.exist?(webp_path)
       return nil
     end
@@ -91,103 +126,149 @@ class UploadImages
   def upload_file(local_path, filename, content_type: 'image/png')
     return nil unless File.exist?(local_path)
 
-    image_data = File.read(local_path)
-    upload_to_r2(image_data, filename, content_type: content_type)
+    upload_to_r2(File.binread(local_path), filename, content_type: content_type)
   end
 
-  def process_images_dir(images_dir, output_file, existing_uploaded = {})
-    uploaded = existing_uploaded.dup
-    count = 0
-    total = Dir.glob(File.join(images_dir, '*.png')).size
+  # --- Filename mapping -----------------------------------------------------
 
-    Dir.glob(File.join(images_dir, '*.png')).sort.each do |image_path|
-      filename = File.basename(image_path)
-      webp_filename = filename.gsub(/\.png\z/, '.webp')
-      code = filename.gsub(/\.png\z/, '').gsub('_', '-')
+  # 111011_2.png -> code "111011", slot 2. Returns nil for anything that isn't a
+  # generated image.
+  def self.parse_filename(filename)
+    match = filename.match(/\A(\d{6})_(\d)\.png\z/)
+    return nil unless match
 
-      entry = uploaded[code] || { image_url: nil, webp_url: nil }
+    { code: match[1], slot: match[2].to_i }
+  end
 
-      if entry[:image_url]
-        puts "Skipping #{filename} PNG: already uploaded"
-      else
-        puts "Uploading #{filename}..."
-        url = upload_file(image_path, filename)
-        if url
-          entry[:image_url] = url
-          puts "  -> #{url}"
+  def self.soc_code(compact)
+    "#{compact[0..1]}-#{compact[2..5]}.00"
+  end
+
+  # --- Main loop ------------------------------------------------------------
+
+  def process_images_dir(images_dir, output_file)
+    manifest = load_manifest(output_file)
+    images = Dir.glob(File.join(images_dir, '*.png')).sort
+    counts = { png: 0, webp: 0, skipped: 0, failed: 0 }
+
+    images.each do |image_path|
+      parsed = self.class.parse_filename(File.basename(image_path))
+      unless parsed
+        counts[:skipped] += 1
+        next
+      end
+
+      code = parsed[:code]
+      slot = parsed[:slot]
+      png_key = "#{code}-#{slot}.png"
+      webp_key = "#{code}-#{slot}.webp"
+
+      puts "Uploading #{code} slot #{slot}..."
+
+      unless r2_exists?(png_key)
+        if upload_file(image_path, png_key)
+          counts[:png] += 1
         else
-          entry[:image_url] = nil
-          puts "  -> PNG FAILED"
+          counts[:failed] += 1
+          next
+        end
+      else
+        counts[:skipped] += 1
+      end
+
+      # Slot 1 also gets the legacy bare filename so single-image consumers stay
+      # current without a client change.
+      if slot == 1 && !r2_exists?("#{code}.png")
+        if upload_file(image_path, "#{code}.png")
+          counts[:png] += 1
+        else
+          counts[:failed] += 1
         end
       end
 
-      if entry[:webp_url]
-        puts "Skipping #{webp_filename} WebP: already uploaded"
+      webp_path = generate_webp(image_path)
+      if webp_path.nil?
+        counts[:failed] += 1
       else
-        webp_path = generate_webp(image_path)
-        if webp_path
-          webp_url = upload_file(webp_path, webp_filename, content_type: 'image/webp')
-          File.delete(webp_path) if File.exist?(webp_path)
-          if webp_url
-            entry[:webp_url] = webp_url
-            puts "  -> #{webp_url}"
+        if r2_exists?(webp_key)
+          counts[:skipped] += 1
+        elsif upload_file(webp_path, webp_key, content_type: 'image/webp')
+          counts[:webp] += 1
+        else
+          counts[:failed] += 1
+        end
+
+        if slot == 1 && !r2_exists?("#{code}.webp")
+          if upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
+            counts[:webp] += 1
           else
-            puts "  -> WebP FAILED"
+            counts[:failed] += 1
           end
-        else
-          puts "  -> WebP generation FAILED"
         end
+
+        File.delete(webp_path) if File.exist?(webp_path)
       end
 
-      uploaded[code] = entry
-      count += 1
-      if count % 10 == 0
-        save_results(uploaded, output_file)
-        puts "Progress saved (#{count}/#{total})"
-      end
+      manifest["#{code}:#{slot}"] = {
+        'occupation_code' => self.class.soc_code(code),
+        'compact_code' => code,
+        'slot' => slot,
+        'png_url' => "#{@public_url}/#{png_key}",
+        'webp_url' => "#{@public_url}/#{webp_key}"
+      }
+
+      save_manifest(manifest, output_file)
     end
 
-    uploaded
+    puts "\npng=#{counts[:png]} webp=#{counts[:webp]} already_present=#{counts[:skipped]} failed=#{counts[:failed]}"
+    manifest
   end
 
-  def save_results(uploaded, output_file)
-    File.write(output_file, JSON.pretty_generate(uploaded))
-    puts "Saved uploaded URLs to #{output_file}"
+  def load_manifest(output_file)
+    return {} unless File.exist?(output_file)
+
+    JSON.parse(File.read(output_file))
+  rescue JSON::ParserError
+    {}
   end
 
-  def save_to_database(uploaded)
+  def save_manifest(manifest, output_file)
+    File.write(output_file, JSON.pretty_generate(manifest))
+  end
+
+  # Optional. Off by default: the app resolves image URLs by convention, so the
+  # career_images table is not on the critical path.
+  def save_to_database(manifest)
     require 'active_record'
 
-    db_config = {
+    ActiveRecord::Base.establish_connection(
       adapter: 'postgresql',
       database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
       user: ENV['DB_USER'] || ENV['PGUSER'] || 'postgres',
       password: ENV['DB_PASSWORD'] || ENV['PGPASSWORD'] || 'postgres',
       host: ENV['DB_HOST'] || ENV['PGHOST'] || 'localhost'
-    }
+    )
 
-    ActiveRecord::Base.establish_connection(db_config)
-
-    uploaded.each do |code, data|
-      next unless data[:image_url]
-
+    manifest.each_value do |entry|
       ActiveRecord::Base.connection.exec_insert(
         <<~SQL,
-          INSERT INTO career_images (occupation_code, image_url, prompt_used, position, created_at, updated_at)
-          VALUES ($1, $2, $3, 0, NOW(), NOW())
+          INSERT INTO career_images (occupation_code, image_url, position, created_at, updated_at)
+          VALUES ($1, $2, $3, NOW(), NOW())
           ON CONFLICT (occupation_code, position) DO UPDATE SET
             image_url = EXCLUDED.image_url,
-            prompt_used = EXCLUDED.prompt_used,
             updated_at = NOW()
         SQL
         nil,
-        [code, data[:image_url], data[:prompt]]
+        [entry['occupation_code'], entry['webp_url'], entry['slot'] - 1]
       )
     end
+    puts "Wrote #{manifest.size} rows to career_images"
   end
 end
 
 if __FILE__ == $PROGRAM_NAME
+  require 'tmpdir'
+
   images_dir = ARGV[0] || File.expand_path('generated_images', __dir__)
   output_file = ARGV[1] || File.expand_path('uploaded_images.json', __dir__)
 
@@ -196,7 +277,7 @@ if __FILE__ == $PROGRAM_NAME
   secret_key = ENV['R2_SECRET_ACCESS_KEY']
 
   unless bucket_url && access_key && secret_key
-    puts "Error: R2_BUCKET_URL, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY must be set"
+    puts 'Error: R2_BUCKET_URL, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY must be set'
     exit 1
   end
 
@@ -206,22 +287,7 @@ if __FILE__ == $PROGRAM_NAME
   end
 
   uploader = UploadImages.new(bucket_url: bucket_url, access_key: access_key, secret_key: secret_key)
+  manifest = uploader.process_images_dir(images_dir, output_file)
 
-  existing_uploaded = {}
-  if File.exist?(output_file)
-    JSON.parse(File.read(output_file)).each do |code, data|
-      if data.is_a?(Hash)
-        existing_uploaded[code] = { image_url: data['image_url'], webp_url: data['webp_url'] }
-      else
-        existing_uploaded[code] = { image_url: data, webp_url: nil }
-      end
-    end
-  end
-
-  uploaded = uploader.process_images_dir(images_dir, output_file, existing_uploaded)
-  uploader.save_results(uploaded, output_file)
-
-  if ENV['UPDATE_DB'] == 'true'
-    uploader.save_to_database(uploaded)
-  end
+  uploader.save_to_database(manifest) if ENV['UPDATE_DB'] == 'true'
 end

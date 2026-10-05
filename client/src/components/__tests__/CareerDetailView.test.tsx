@@ -113,16 +113,91 @@ describe('CareerDetailView', () => {
     expect(getByText('93.1')).toBeTruthy();
   });
 
-  it('shows the career image and hides it when it fails to load', async () => {
+  it('shows the first slideshow slot and hides the image when every candidate fails', async () => {
     const { getByTestId, queryByTestId } = await render(<CareerDetailView career={mockCareer} />);
 
     const image = getByTestId('career-detail-image');
     expect(image.props.source.uri).toBe(
-      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512.webp'
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512-1.webp'
     );
 
-    await fireEvent(image, 'error');
+    // Slot 1, 2, 3 and the legacy bare filename all 404.
+    for (let i = 0; i < 4; i += 1) {
+      const current = queryByTestId('career-detail-image');
+      if (!current) break;
+      await fireEvent(current, 'error');
+    }
 
     expect(queryByTestId('career-detail-image')).toBeNull();
+  });
+
+  it('falls through to the next slot when one fails to load', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512-2.webp'
+    );
+  });
+
+  it('falls back to the legacy single image when all slideshow slots are missing', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    for (let i = 0; i < 3; i += 1) {
+      await fireEvent(getByTestId('career-detail-image'), 'error');
+    }
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512.webp'
+    );
+  });
+
+  it('renders one dot per slideshow slot and advances on tap', async () => {
+    const { getByTestId, queryByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    expect(getByTestId('career-detail-dot-0')).toBeTruthy();
+    expect(getByTestId('career-detail-dot-1')).toBeTruthy();
+    expect(getByTestId('career-detail-dot-2')).toBeTruthy();
+    expect(queryByTestId('career-detail-dot-3')).toBeNull();
+
+    await fireEvent(getByTestId('career-detail-image'), 'press');
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512-2.webp'
+    );
+  });
+
+  it('jumps to the tapped dot', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    await fireEvent(getByTestId('career-detail-dot-2'), 'press');
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512-3.webp'
+    );
+  });
+
+  it('drops the dot for a slot that failed to load', async () => {
+    const { getByTestId, queryByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+
+    expect(queryByTestId('career-detail-dot-0')).toBeNull();
+    expect(getByTestId('career-detail-dot-1')).toBeTruthy();
+  });
+
+  it('hides the dots when only one image is available', async () => {
+    const { getByTestId, queryByTestId, rerender } = await render(
+      <CareerDetailView career={mockCareer} />
+    );
+
+    // Fail slots 2, 3 and the legacy image, leaving only slot 1.
+    for (let i = 0; i < 3; i += 1) {
+      await fireEvent(getByTestId('career-detail-image'), 'error');
+    }
+    await rerender(<CareerDetailView career={mockCareer} />);
+
+    expect(queryByTestId('career-detail-dots')).toBeNull();
   });
 });

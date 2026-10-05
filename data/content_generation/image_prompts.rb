@@ -5,6 +5,9 @@ require 'active_support/inflector'
 require 'json'
 
 module ImagePrompts
+  # Number of images generated per career, for the in-app slideshow.
+  IMAGE_COUNT = 3
+
   DB_CONFIG = {
     adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
     database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
@@ -47,9 +50,6 @@ module ImagePrompts
     skills = profile['skills']
     skills = JSON.parse(skills) if skills.is_a?(String)
 
-    work_activities = profile['work_activities']
-    work_activities = JSON.parse(work_activities) if work_activities.is_a?(String)
-
     onet_data = profile['onet_data']
     onet_data = JSON.parse(onet_data) if onet_data.is_a?(String)
 
@@ -58,16 +58,29 @@ module ImagePrompts
       'OnetCode' => profile['occupation_code'],
       'OnetDescription' => profile['occupation_description'],
       'Tasks' => tasks_data || [],
-      'Skills' => skills || [],
-      'WorkEnvironment' => [{ 'WorkEnvironment' => profile['occupation_description'] || '' }],
-      'InterestDataList' => onet_data&.dig('interests') || []
+      'Skills' => skills || []
     }
   end
 
-  def self.load_all_occupation_codes
-    ActiveRecord::Base.connection.exec_query(
-      "SELECT occupation_code FROM career_profiles"
-    ).map { |row| row['occupation_code'] }
+  # Narratives are the primary prompt source: they describe the actual work in
+  # sensory detail, which is what makes the generated photos specific rather
+  # than a generic "person at a laptop". Falls back to nil when absent so the
+  # caller can drop to O*NET tasks/skills.
+  def self.narrative_index(dir = File.expand_path('generated_narratives', __dir__))
+    @narrative_index ||= Dir.glob(File.join(dir, '*.json')).each_with_object({}) do |path, index|
+      data = begin
+        JSON.parse(File.read(path))
+      rescue JSON::ParserError
+        next
+      end
+
+      code = data['occupation_code']
+      index[code] = data if code
+    end
+  end
+
+  def self.reset_narrative_index!
+    @narrative_index = nil
   end
 
   def self.singularize_occupation(occupation_name)
@@ -81,17 +94,81 @@ module ImagePrompts
     return nil if tasks.empty?
 
     task = tasks.first
-    if task.is_a?(Hash)
-      task['task_description']
-    else
-      task
+    task.is_a?(Hash) ? task['task_description'] : task
+  end
+
+  # The three shots cycle through framing styles so a career's images read as a
+  # sequence rather than three near-identical portraits.
+  SHOT_STYLES = [
+    {
+      framing: 'wide establishing shot',
+      direction: 'Pull back far enough to show the whole room and the people around them.'
+    },
+    {
+      framing: 'over-the-shoulder medium shot',
+      direction: 'Stay close behind their shoulder, focused on what their hands are doing.'
+    },
+    {
+      framing: 'close detail shot',
+      direction: 'Move in tight on their hands and the work itself, the rest of the room falling out of focus.'
+    }
+  ].freeze
+
+  STYLE_SUFFIX = 'Photorealistic editorial documentary photograph. Natural available light, ' \
+                 'true-to-life colors, shallow depth of field, 35mm. The subject is absorbed in the ' \
+                 'work and not aware of the camera. No text, no captions, no logos, no watermarks.'
+
+  # Builds IMAGE_COUNT prompts that share a subject but differ in framing, so the
+  # slideshow shows variety instead of three near-duplicates.
+  def self.build_prompts(occupation_data, occupation_name, narrative = nil)
+    singular_name = singularize_occupation(occupation_name)
+
+    moment = narrative_moment(narrative, occupation_data)
+    setting = narrative_setting(narrative, occupation_data)
+
+    SHOT_STYLES.map do |style|
+      [
+        "A #{style[:framing]} of a #{singular_name} at work.",
+        "",
+        "This specific moment: #{moment}",
+        "The setting: #{setting}",
+        style[:direction],
+        STYLE_SUFFIX
+      ].join("\n")
     end
   end
 
-  def self.work_context(occupation_data)
-    work_env = occupation_data.dig('WorkEnvironment', 0)
-    return '' unless work_env
+  # The narrative summary is one sentence written about a real Tuesday morning, so
+  # it already carries time of day, place and activity. Falls back to O*NET.
+  def self.narrative_moment(narrative, occupation_data)
+    summary = narrative && narrative['day_in_life_summary'].to_s.strip
+    return summary unless summary.empty?
 
-    work_env['WorkEnvironment'] || ''
+    task = primary_task(occupation_data)
+    return task.to_s.strip unless task.to_s.strip.empty?
+
+    'going about the core duties of the job'
+  end
+
+  # Prefers the opening of the full narrative, which describes the actual room and
+  # time of day. The O*NET description is a generic job definition, so it is only a
+  # last resort.
+  def self.narrative_setting(narrative, occupation_data)
+    opening = narrative && narrative['full_narrative'].to_s.strip
+    unless opening.empty?
+      sentences = opening.split(/(?<=[.!?])\s+/).first(2).join(' ')
+      return truncate(sentences, 320)
+    end
+
+    description = occupation_data['OnetDescription'].to_s.strip
+    return description unless description.empty?
+
+    "the usual workplace of a #{singularize_occupation(occupation_data['OnetTitle'])}"
+  end
+
+  def self.truncate(text, limit)
+    return text if text.length <= limit
+
+    "#{text[0, limit].rstrip.sub(/[.,;:]?\s*\S*\z/, '')}..."
   end
 end
