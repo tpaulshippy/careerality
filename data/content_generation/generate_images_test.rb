@@ -73,6 +73,43 @@ class TestGenerateImagesConfig < Minitest::Test
     end
   end
 
+  # Same class of bug as image_count: 0 would make every slot fail immediately, and a
+  # failed slot has its existing PNG deleted, wiping the output directory.
+  def test_zero_max_attempts_is_refused
+    e = assert_raises(ArgumentError) { GenerateImages.new(max_attempts: 0) }
+    assert_match(/deleted/, e.message)
+    assert_raises(ArgumentError) { GenerateImages.new(max_attempts: -5) }
+    assert_raises(ArgumentError) { GenerateImages.new(max_attempts: nil) }
+    with_env('MAX_ATTEMPTS' => '0') { assert_raises(ArgumentError) { GenerateImages.new } }
+  end
+
+  def test_valid_max_attempts_are_accepted
+    [1, 3, 5].each { |n| assert_equal n, GenerateImages.new(max_attempts: n).config[:max_attempts] }
+  end
+
+  # An unevaluable verdict must not be read as a rejection: that burns the attempt
+  # budget and then records the image as rejected when nothing judged it.
+  def test_only_well_formed_verdicts_are_acted_on
+    g = GenerateImages.new
+
+    assert g.valid_verdict?('pass' => true, 'issues' => [])
+    assert g.valid_verdict?('pass' => false, 'issues' => ['extra fingers'])
+    assert g.valid_verdict?('pass' => true)
+    assert g.valid_verdict?('pass' => false)
+
+    # Missing, non-boolean, or non-list issues: all mean "did not evaluate".
+    refute g.valid_verdict?({})
+    refute g.valid_verdict?('issues' => ['x'])
+    refute g.valid_verdict?('pass' => nil, 'issues' => [])
+    refute g.valid_verdict?('pass' => 'yes', 'issues' => [])
+    refute g.valid_verdict?('pass' => 1, 'issues' => [])
+    refute g.valid_verdict?('pass' => true, 'issues' => 'one problem')
+    refute g.valid_verdict?('pass' => true, 'issues' => { 'a' => 1 })
+    refute g.valid_verdict?([1, 2, 3])
+    refute g.valid_verdict?('nope')
+    refute g.valid_verdict?(nil)
+  end
+
   def test_seeds_are_deterministic_per_code_slot_and_attempt
     a = GenerateImages.seed_for('111011', 1, 1)
     assert_equal a, GenerateImages.seed_for('111011', 1, 1)

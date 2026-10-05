@@ -152,6 +152,14 @@ parser accepts no slot above `3`, so the extra work would never be published; `0
 refused because the generator deletes any slot beyond the configured count as stale, so
 it would remove every generated PNG. Defaults to `3`.
 
+`MAX_ATTEMPTS` must be at least `1`, for the same reason: with no attempts every slot
+fails immediately, and a failed slot has its existing PNG deleted.
+
+A verifier response is only acted on if `pass` is a boolean and `issues` is a list.
+Anything else — `{}`, `{"pass": "yes"}`, `{"pass": true, "issues": "..."}` — is recorded
+as `unverified` rather than retried, because a response the verifier did not actually
+produce must not be read as a rejection.
+
 ### Resumability
 
 Progress is written to `image_generation_state.json` after every image. Re-running skips

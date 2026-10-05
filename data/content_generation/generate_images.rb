@@ -41,22 +41,43 @@ class GenerateImages
     config[:endpoint] = config[:endpoint].to_s.sub(%r{/+\z}, '')
     @config = config
 
-    validate_image_count!(@config[:image_count])
+    validate_config!
   end
 
   attr_reader :config
 
-  # Slots beyond Pipeline::IMAGE_COUNT are never published: the uploader's parser
-  # rejects them, so the work would be silently discarded. Zero is worse, not merely
-  # useless: run() treats every slot beyond image_count as stale and deletes it, so
-  # an image_count of 0 would remove every generated PNG in the output directory.
-  def validate_image_count!(count)
-    return if count.is_a?(Integer) && count >= 1 && count <= Pipeline::IMAGE_COUNT
+  # A verdict is only actionable if `pass` is a real boolean and `issues` is a list.
+  # Anything else means the verifier did not actually evaluate the image: `{}`,
+  # `{"pass": "yes"}` and `{"pass": true, "issues": "one problem"}` all fail here
+  # rather than being read as a rejection or a pass.
+  def valid_verdict?(verdict)
+    return false unless verdict.is_a?(Hash)
+    return false unless [true, false].include?(verdict['pass'])
+
+    issues = verdict.fetch('issues', [])
+    issues.is_a?(Array)
+  end
+
+  # A zero budget is destructive rather than merely useless. run() deletes any slot
+  # whose generation failed, and deletes slots past image_count as stale, so
+  # image_count: 0 or max_attempts: 0 would each remove every generated PNG in the
+  # output directory while reporting success. Slots above IMAGE_COUNT are never
+  # published either: the uploader's parser rejects them, so the work is discarded.
+  def validate_config!
+    count = @config[:image_count]
+    unless count.is_a?(Integer) && count >= 1 && count <= Pipeline::IMAGE_COUNT
+      raise ArgumentError,
+            "image_count must be an integer in 1..#{Pipeline::IMAGE_COUNT}, got #{count.inspect}. " \
+            'Slots above IMAGE_COUNT are never published, and a count of 0 would delete ' \
+            'every generated image as stale.'
+    end
+
+    attempts = @config[:max_attempts]
+    return if attempts.is_a?(Integer) && attempts >= 1
 
     raise ArgumentError,
-          "image_count must be an integer in 1..#{Pipeline::IMAGE_COUNT}, got #{count.inspect}. " \
-          'Slots above IMAGE_COUNT are never published, and a count of 0 would delete ' \
-          'every generated image as stale.'
+          "max_attempts must be a positive integer, got #{attempts.inspect}. " \
+          'With no attempts every slot fails immediately and its existing image is deleted.'
   end
 
   def load_prompts(prompts_file)
@@ -199,11 +220,13 @@ class GenerateImages
         next
       end
 
-      prompts_for_code = entry['prompts'] || Array(entry['prompt'])
+      prompts_for_code = (entry['prompts'] || Array(entry['prompt'])).reject do |p|
+        p.to_s.strip.empty?
+      end
       occupation = entry['occupation_name'] || code
 
-      if prompts_for_code.compact.empty?
-        warn "Skipping #{code}: no prompts in entry"
+      if prompts_for_code.empty?
+        warn "Skipping #{code}: no usable prompts in entry"
         next
       end
 
@@ -345,15 +368,17 @@ class GenerateImages
       return { status: :unverified, bytes: bytes, seed: seed, attempts: attempts, issues: [] } unless @config[:verify]
 
       verdict = verify(prompt, bytes)
-      # A malformed response must not abort the run; treat it as "could not check",
-      # exactly like an unreachable verifier.
-      unless verdict.is_a?(Hash)
-        warn "  verifier returned #{verdict.class}, treating as unverified"
+      # A malformed response must not abort the run, and must not be mistaken for a
+      # rejection either: retrying a slot because the verifier returned `{}` burns the
+      # attempt budget and then records the image as rejected when nothing actually
+      # evaluated it. Only a well-formed verdict is acted on.
+      unless valid_verdict?(verdict)
+        warn "  verifier returned #{verdict.inspect[0, 80]}, treating as unverified"
         return { status: :unverified, bytes: bytes, seed: seed, attempts: attempts, issues: [] }
       end
 
-      issues = Array(verdict['issues']).map(&:to_s)
-      passed = verdict['pass'] == true
+      issues = verdict['issues'].map(&:to_s)
+      passed = verdict['pass']
 
       if passed
         return { status: :passed, bytes: bytes, seed: seed, attempts: attempts, issues: [] }
