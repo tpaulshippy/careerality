@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "traces hook agent session-start --agent copilot",
+        "comment": "Traces"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": "traces hook agent session-end --agent copilot",
+        "comment": "Traces"
+      }
+    ],
+    "userPromptSubmitted": [
+      {
+        "type": "command",
+        "bash": "traces hook agent prompt-submitted --agent copilot",
+        "comment": "Traces"
+      }
+    ],
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": "traces hook agent agent-done --agent copilot",
+        "comment": "Traces"
+      }
+    ]
+  }
+}

@@ -49,6 +49,31 @@ jobs:
           bundle exec rails db:migrate --trace
           bundle exec rails test
 
+  data-scripts:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: data
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+
+      # The content-generation scripts are not part of either app bundle, so nothing
+      # else in CI parses them. A syntax error here would only surface when someone
+      # runs the pipeline.
+      - name: Syntax check scripts
+        run: for f in content_generation/*.rb; do ruby -c "$f" > /dev/null; done
+
+      - name: Run unit tests
+        run: ruby content_generation/soc_code_test.rb
+
   client:
     runs-on: ubuntu-latest
 

@@ -207,3 +207,5 @@ normalises to the SOC format if you enable it.
 | `generate_images.rb` | calls `/generate` + `/verify`, retries, checkpoints |
 | `upload_images.rb` | WebP conversion and R2 upload |
 | `image_generation_state.json` | per-image status, seed, rejection reasons |
+| `soc_code.rb` | the compact/SOC code mapping shared by every script above |
+| `soc_code_test.rb` | unit tests for that mapping (`ruby soc_code_test.rb`) |
