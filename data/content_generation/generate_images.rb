@@ -199,6 +199,26 @@ class GenerateImages
         counts[:incomplete] += 1
       end
 
+      slots = prompts_for_code.first(@config[:image_count]).size
+
+      # The uploader publishes every matching <code>_<slot>.png it finds, so if a
+      # previous run generated more slots than this career now has prompts for, the
+      # surplus files would stay live and the slideshow would keep showing an image
+      # built from a prompt that no longer exists. Drop them before generating.
+      stale_slots = (1..Pipeline::IMAGE_COUNT).to_a - (1..slots).to_a
+      removed_stale = stale_slots.reject do |stale|
+        stale_path = File.join(output_dir, "#{code}_#{stale}.png")
+        next true unless File.exist?(stale_path)
+
+        File.delete(stale_path)
+        state.delete("#{code}:#{stale}")
+        warn "Removed stale #{File.basename(stale_path)}: slot #{stale} has no prompt"
+        false
+      end
+      # Persist immediately: the surviving slots are usually skipped, and the state
+      # file is only written after a generation, so the deletion would otherwise be lost.
+      save_state(state, state_file) unless removed_stale.empty?
+
       prompts_for_code.first(@config[:image_count]).each_with_index do |prompt, slot_index|
         slot = slot_index + 1
         filename = "#{code}_#{slot}.png"
@@ -280,6 +300,7 @@ class GenerateImages
   def generate_with_verification(code, slot, prompt, occupation)
     attempts = 0
     last = nil
+    last_error = nil
 
     while attempts < @config[:max_attempts]
       attempts += 1
@@ -288,7 +309,12 @@ class GenerateImages
       begin
         bytes = generate(prompt, seed)
       rescue StandardError => e
-        return { status: :failed, error: "#{e.class} - #{e.message}" }
+        # A timeout or a 5xx is usually transient, so it consumes an attempt and the
+        # loop retries with a new seed rather than failing the slot outright.
+        # MAX_ATTEMPTS is meant to bound the work, not to apply only to rejections.
+        last_error = "#{e.class} - #{e.message}"
+        warn "  attempt #{attempts} errored: #{last_error}"
+        next
       end
 
       # Recorded as unverified, never as passed: the checkpoint and the summary must
@@ -313,6 +339,10 @@ class GenerateImages
       last = { status: :rejected, bytes: bytes, seed: seed, attempts: attempts, issues: issues }
       warn "  attempt #{attempts} rejected: #{issues.join('; ')}" if issues.any?
     end
+
+    # Nothing usable came back. Prefer the generation error if every attempt failed
+    # that way, since a rejection reason would not explain it.
+    return { status: :failed, error: last_error } if last.nil? && last_error
 
     last || { status: :failed, error: 'no attempts made' }
   end

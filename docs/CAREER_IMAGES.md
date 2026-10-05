@@ -45,7 +45,7 @@ The app resolves image URLs by convention, so no migration or API change is need
 | Object | Consumer |
 |---|---|
 | `<code>-1.webp`, `-2`, `-3` | slideshow in `CareerDetailView` |
-| `<code>.webp` | single-image consumers (`SwipeCard`, `MapScreen`, `CompareScreen`) |
+| `<code>.webp` | single-image consumers: `SwipeCard`, `MapScreen`, `CompareScreen`, `SearchScreen`, `ActionPlansScreen` |
 
 `<code>` is the compact 6-digit SOC code: `11-1011.00` → `111011`.
 
@@ -54,6 +54,8 @@ tries each in turn and falls through on load failure, so careers that have not b
 regenerated yet still render. The legacy object is shown **only** when no slot loads —
 it duplicates slot 1 for a regenerated career, so it is never a step in the rotation.
 `getImageUrl()` is unchanged for the single-image consumers.
+
+Slot 1 is republished as `<code>.png` too, for any consumer that still wants the PNG.
 
 ---
 
