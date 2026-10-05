@@ -9,6 +9,23 @@ module Pipeline
   # Number of images generated per career, for the in-app slideshow.
   IMAGE_COUNT = 3
 
+  # The shots cycle through framing styles so a career's images read as a sequence
+  # rather than three near-identical portraits. Must stay sized to IMAGE_COUNT.
+  SHOT_STYLES = [
+    {
+      framing: 'wide establishing shot',
+      direction: 'Pull back far enough to show the whole room and the people around them.'
+    },
+    {
+      framing: 'over-the-shoulder medium shot',
+      direction: 'Stay close behind their shoulder, focused on what their hands are doing.'
+    },
+    {
+      framing: 'close detail shot',
+      direction: 'Move in tight on their hands and the work itself, the rest of the room falling out of focus.'
+    }
+  ].freeze
+
   module_function
 
   # "11-1011.00", "11-1011" and "111011" all become "111011".

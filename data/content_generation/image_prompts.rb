@@ -109,21 +109,9 @@ module ImagePrompts
   end
 
   # The three shots cycle through framing styles so a career's images read as a
-  # sequence rather than three near-identical portraits.
-  SHOT_STYLES = [
-    {
-      framing: 'wide establishing shot',
-      direction: 'Pull back far enough to show the whole room and the people around them.'
-    },
-    {
-      framing: 'over-the-shoulder medium shot',
-      direction: 'Stay close behind their shoulder, focused on what their hands are doing.'
-    },
-    {
-      framing: 'close detail shot',
-      direction: 'Move in tight on their hands and the work itself, the rest of the room falling out of focus.'
-    }
-  ].freeze
+  # sequence rather than three near-identical portraits. Defined in Pipeline so the
+  # count is testable without ActiveRecord.
+  SHOT_STYLES = Pipeline::SHOT_STYLES
 
   STYLE_SUFFIX = 'Photorealistic editorial documentary photograph. Natural available light, ' \
                  'true-to-life colors, shallow depth of field, 35mm. The subject is absorbed in the ' \

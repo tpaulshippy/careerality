@@ -51,11 +51,16 @@ class TestPipeline < Minitest::Test
     refute Pipeline.slot?('1')
   end
 
-  # The uploader bounds slots with Pipeline.slot? and the generator emits
-  # SHOT_STYLES entries; both must track IMAGE_COUNT.
+  # The generator emits one prompt per SHOT_STYLES entry and the uploader accepts
+  # slots up to IMAGE_COUNT; both must track the same number.
   def test_image_count_matches_the_number_of_shot_styles
-    require_relative 'image_prompts'
-    assert_equal Pipeline::IMAGE_COUNT, ImagePrompts::SHOT_STYLES.size
-    assert_equal Pipeline::IMAGE_COUNT, ImagePrompts::IMAGE_COUNT
+    assert_equal Pipeline::IMAGE_COUNT, Pipeline::SHOT_STYLES.size
+  end
+
+  def test_every_shot_style_has_framing_and_direction
+    Pipeline::SHOT_STYLES.each do |style|
+      assert style[:framing].is_a?(String), 'missing framing'
+      assert style[:direction].is_a?(String), 'missing direction'
+    end
   end
 end
