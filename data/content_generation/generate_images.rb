@@ -167,7 +167,7 @@ class GenerateImages
            'they would overwrite one filename. Keeping the first only.'
     end
 
-    counts = { generated: 0, skipped: 0, passed: 0, rejected: 0, failed: 0, unverified: 0 }
+    counts = { generated: 0, skipped: 0, passed: 0, rejected: 0, failed: 0, unverified: 0, incomplete: 0, invalid_code: 0 }
 
     targets.each do |code|
       entry = prompts[code] || prompts.find { |k, _| self.class.compact_code(k) == code }&.last
@@ -184,17 +184,26 @@ class GenerateImages
         next
       end
 
+      # The key came from a JSON file and is used to build a path below, so require a
+      # bare 6-digit code. Anything else (notably "../x") would write outside
+      # output_dir, so it is refused before any file is created.
+      unless code.match?(/\A\d{6}\z/)
+        warn "Skipping #{code.inspect}: not a 6-digit occupation code (path safety)"
+        counts[:invalid_code] += 1
+        next
+      end
+
       if prompts_for_code.size < @config[:image_count]
         warn "#{code} has #{prompts_for_code.size} prompt(s) but #{@config[:image_count]} " \
-             'images are configured; its slideshow would be incomplete.'
+             'images are configured; its slideshow will be incomplete.'
+        counts[:incomplete] += 1
       end
 
       prompts_for_code.first(@config[:image_count]).each_with_index do |prompt, slot_index|
         slot = slot_index + 1
-        compact = code
-        filename = "#{compact}_#{slot}.png"
+        filename = "#{code}_#{slot}.png"
         path = File.join(output_dir, filename)
-        key = "#{compact}:#{slot}"
+        key = "#{code}:#{slot}"
 
         # Resume: a prior entry counts as done unless it failed, or its prompt has
         # changed. Regenerating a narrative and re-running must not silently keep
@@ -259,7 +268,9 @@ class GenerateImages
     puts
     puts "Done. generated=#{counts[:generated]} skipped=#{counts[:skipped]} " \
          "verified=#{counts[:passed]} unverified=#{counts[:unverified]} " \
-         "rejected=#{counts[:rejected]} failed=#{counts[:failed]}"
+         "rejected=#{counts[:rejected]} failed=#{counts[:failed]} " \
+         "incomplete_careers=#{counts[:incomplete]} " \
+         "invalid_codes=#{counts[:invalid_code]}"
     puts "State: #{state_file}"
     state
   end
@@ -285,7 +296,12 @@ class GenerateImages
       return { status: :unverified, bytes: bytes, seed: seed, attempts: attempts, issues: [] } unless @config[:verify]
 
       verdict = verify(prompt, bytes)
-      return { status: :unverified, bytes: bytes, seed: seed, attempts: attempts, issues: [] } if verdict.nil?
+      # A malformed response must not abort the run; treat it as "could not check",
+      # exactly like an unreachable verifier.
+      unless verdict.is_a?(Hash)
+        warn "  verifier returned #{verdict.class}, treating as unverified"
+        return { status: :unverified, bytes: bytes, seed: seed, attempts: attempts, issues: [] }
+      end
 
       issues = Array(verdict['issues']).map(&:to_s)
       passed = verdict['pass'] == true

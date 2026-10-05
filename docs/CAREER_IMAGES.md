@@ -228,10 +228,16 @@ are overwritten in place, and a year-long immutable cache would leave installed 
 showing the pre-regeneration image long after R2 accepted the replacement.
 
 `UPDATE_DB=true` will also write to the `career_images` table. This is **off by default
-and not required**: the app resolves URLs by convention. Note the table is currently
-orphaned — no endpoint serves it — and the old script wrote compact codes (`111011`) into
-`occupation_code`, which would never join to `career_roi` (`11-1011.00`). The new script
-normalises to the SOC format if you enable it.
+and not required**: the app resolves URLs by convention. Two caveats if you enable it:
+
+- The table is currently orphaned — no endpoint serves it, and no screen passes the
+  `images` prop.
+- It keeps writing the **compact** code (`111011`) into `occupation_code`, deliberately.
+  Existing rows use that form and the unique index is on `(occupation_code, position)`,
+  so writing the SOC form (`11-1011.00`) instead would never match them and each
+  regenerated career would accumulate a duplicate row. The cost is that those rows still
+  would not join to `career_roi`, which uses SOC format. Reviving the table properly
+  means migrating the old rows to SOC form in one pass first.
 
 ---
 

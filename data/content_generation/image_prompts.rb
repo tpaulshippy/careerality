@@ -106,11 +106,21 @@ module ImagePrompts
   def self.singularize_occupation(occupation_name)
     return occupation_name unless occupation_name
 
+    # SOC titles are often compounds ("Accountants and Auditors", "First-Line
+    # Supervisors of Office and Administrative Support Workers"). Singularizing the
+    # whole string leaves the other nouns plural, so each conjunct is handled
+    # separately and the separators kept as-is.
+    occupation_name.split(/(\s+and\s+|\s+of\s+|,\s*)/).map do |part|
+      part.match?(/\A\s*(and|of|,)\s*\z/) ? part : singularize_word(part)
+    end.join
+  end
+
+  def self.singularize_word(word)
     begin
       require 'active_support/inflector'
-      return occupation_name.singularize
+      word.singularize
     rescue LoadError
-      return simple_singularize(occupation_name)
+      simple_singularize(word)
     end
   end
 
@@ -145,18 +155,21 @@ module ImagePrompts
 
   # Builds IMAGE_COUNT prompts that share a subject but differ in framing, so the
   # slideshow shows variety instead of three near-duplicates.
+  def self.article_for(phrase)
+    phrase.to_s.match?(/\A[aeiou]/i) ? 'an' : 'a'
+  end
+
   def self.build_prompts(occupation_data, occupation_name, narrative = nil)
     singular_name = singularize_occupation(occupation_name)
-    # Only the noun needs the article chosen; every framing string starts with a
-    # consonant, so the leading "A" is always right.
-    article = singular_name.to_s.match?(/\A[aeiou]/i) ? 'an' : 'a'
 
     moment = narrative_moment(narrative, occupation_data)
     setting = narrative_setting(narrative, occupation_data)
 
     SHOT_STYLES.map do |style|
       [
-        "A #{style[:framing]} of #{article} #{singular_name} at work.",
+        # Capitalised because it opens the sentence.
+        "#{article_for(style[:framing]).capitalize} #{style[:framing]} of " \
+          "#{article_for(singular_name)} #{singular_name} at work.",
         "",
         "This specific moment: #{moment}",
         "The setting: #{setting}",

@@ -114,14 +114,18 @@ class TestImagePrompts < Minitest::Test
     end
   end
 
-  def test_article_agrees_with_the_singular_name
-    assert_includes ImagePrompts.build_prompts(ONET, 'Accountants', nil)[0], 'an Accountant'
-    # "electrician" begins with a vowel sound, so "an" is correct here too.
-    assert_includes ImagePrompts.build_prompts(ONET, 'Electricians', nil)[0], 'an Electrician'
-    assert_includes ImagePrompts.build_prompts(ONET, 'Carpenters', nil)[0], 'a Carpenter'
-    # The leading "A" before the framing is correct regardless of the noun.
-    assert ImagePrompts.build_prompts(ONET, 'Accountants', nil)[0]
-      .start_with?('A wide establishing shot of')
+  def test_article_is_correct_for_every_slot_and_the_noun
+    # Slot 2's framing starts with a vowel ("over-the-shoulder"), so it needs "An"
+    # too, not just the noun. The leading article is capitalised as it opens the
+    # sentence; the one before the noun is not.
+    prompts = ImagePrompts.build_prompts(ONET, 'Accountants', nil)
+    assert prompts[0].start_with?('A wide establishing shot of an Accountant at work.')
+    assert prompts[1].start_with?('An over-the-shoulder medium shot of an Accountant at work.')
+    assert prompts[2].start_with?('A close detail shot of an Accountant at work.')
+
+    ImagePrompts.build_prompts(ONET, 'Carpenters', nil).each do |p|
+      assert_includes p, ' of a Carpenter at work.'
+    end
   end
 
   def test_simple_singularize_leaves_invariant_plurals_alone
@@ -136,5 +140,17 @@ class TestImagePrompts < Minitest::Test
       'Physicians' => 'Physician', 'Analysts' => 'Analyst' }.each do |plural, singular|
       assert_equal singular, ImagePrompts.simple_singularize(plural)
     end
+  end
+
+  def test_compound_soc_titles_singularize_each_conjunct
+    assert_equal 'Accountant and Auditor',
+                 ImagePrompts.singularize_occupation('Accountants and Auditors')
+    assert_equal 'Preschool Teacher, Except Special Education',
+                 ImagePrompts.singularize_occupation('Preschool Teachers, Except Special Education')
+    assert_equal 'Chief Executive', ImagePrompts.singularize_occupation('Chief Executives')
+    assert_equal 'First-Line Supervisor of Office and Administrative Support Worker',
+                 ImagePrompts.singularize_occupation(
+                   'First-Line Supervisors of Office and Administrative Support Workers'
+                 )
   end
 end

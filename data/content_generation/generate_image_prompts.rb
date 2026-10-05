@@ -62,6 +62,7 @@ class GenerateImagePrompts
     from_narrative = 0
     missing_narrative = []
     onet_misses = 0
+    lookup_failures = 0
 
     codes.each do |raw_code|
       # Normalise once: the narrative index and the output keys are compact codes,
@@ -81,7 +82,8 @@ class GenerateImagePrompts
           # The database is a fallback only. If it is unreachable, degrade to generic
           # copy for this career rather than aborting a run that can otherwise
           # produce good prompts for everything else.
-          warn "  #{code}: database unavailable (#{e.class}), using generic copy"
+          warn "  #{code}: O*NET lookup unavailable (#{e.class}), using generic copy"
+          lookup_failures += 1
           occupation_data = nil
         end
         onet_misses += 1 if occupation_data.nil?
@@ -115,7 +117,8 @@ class GenerateImagePrompts
       puts "  no narrative: #{missing_narrative.first(10).join(', ')}#{missing_narrative.size > 10 ? ' ...' : ''}"
     end
     if onet_misses.positive?
-      puts "  #{onet_misses} had no career_profiles row either, so generic copy was used"
+      puts "  #{onet_misses} had no usable O*NET row, so generic copy was used" \
+           "#{lookup_failures.positive? ? " (#{lookup_failures} lookup failure(s))" : ''}"
     end
     results
   end
