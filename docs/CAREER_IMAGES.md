@@ -117,9 +117,26 @@ ruby generate_images.rb image_prompts.json /tmp/smoke /tmp/smoke-state.json "$( 
 # Skip verification entirely
 VERIFY_IMAGES=false ruby generate_images.rb
 
-# More retries before giving up on a rejected image
+# More retries before giving up on an image
 MAX_ATTEMPTS=5 ruby generate_images.rb
 ```
+
+A rejected image is recorded as terminal, so raising `MAX_ATTEMPTS` and re-running
+will **not** retry it. To re-roll a rejected slot, delete its entry from the state
+file first:
+
+```bash
+ruby -rjson -e '
+path = "image_generation_state.json"
+s = JSON.parse(File.read(path))
+before = s.size
+s.reject! { |_, v| v["status"] == "rejected" }
+File.write(path, JSON.pretty_generate(s))
+puts "cleared #{before - s.size} rejected slot(s)"'
+```
+
+`VERIFY_IMAGES=false` records images as `unverified`, never `passed`. A later run with
+verification enabled regenerates those slots instead of trusting an unchecked entry.
 
 ### Resumability
 
@@ -207,5 +224,5 @@ normalises to the SOC format if you enable it.
 | `generate_images.rb` | calls `/generate` + `/verify`, retries, checkpoints |
 | `upload_images.rb` | WebP conversion and R2 upload |
 | `image_generation_state.json` | per-image status, seed, rejection reasons |
-| `soc_code.rb` | the compact/SOC code mapping shared by every script above |
-| `soc_code_test.rb` | unit tests for that mapping (`ruby soc_code_test.rb`) |
+| `pipeline.rb` | shared config: `IMAGE_COUNT`, the compact/SOC code mapping, the slot range |
+| `pipeline_test.rb` | unit tests for that mapping (`ruby pipeline_test.rb`, also run in CI) |
