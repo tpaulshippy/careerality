@@ -147,6 +147,11 @@ puts "cleared #{before - s.size} rejected slot(s)"'
 `VERIFY_IMAGES=false` records images as `unverified`, never `passed`. A later run with
 verification enabled regenerates those slots instead of trusting an unchecked entry.
 
+`IMAGE_COUNT` may only be `1..3`. Higher values are refused because the uploader's
+parser accepts no slot above `3`, so the extra work would never be published; `0` is
+refused because the generator deletes any slot beyond the configured count as stale, so
+it would remove every generated PNG. Defaults to `3`.
+
 ### Resumability
 
 Progress is written to `image_generation_state.json` after every image. Re-running skips
@@ -255,3 +260,4 @@ and not required**: the app resolves URLs by convention. Two caveats if you enab
 | `pipeline.rb` | shared config: `IMAGE_COUNT`, the compact/SOC code mapping, the slot range |
 | `pipeline_test.rb` | unit tests for the mapping and slot contract (run in CI) |
 | `image_prompts_test.rb` | unit tests for prompt construction, incl. the O\*NET fallback (run in CI) |
+| `generate_images_test.rb` | unit tests for the generator's configuration validation (run in CI) |

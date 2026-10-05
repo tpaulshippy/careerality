@@ -18,23 +18,46 @@ require_relative 'pipeline'
 # checkpointed to a state file after every image so an interrupted run resumes
 # instead of re-generating.
 class GenerateImages
-  DEFAULTS = {
-    endpoint: ENV['IMAGE_API_URL'] || 'http://127.0.0.1:8777',
-    width: Integer(ENV['IMAGE_WIDTH'] || 1024),
-    height: Integer(ENV['IMAGE_HEIGHT'] || 576),
-    steps: Integer(ENV['IMAGE_STEPS'] || 4),
-    verify: ENV['VERIFY_IMAGES'] != 'false',
-    max_attempts: Integer(ENV['MAX_ATTEMPTS'] || 3),
-    timeout: Integer(ENV['IMAGE_TIMEOUT'] || 300),
-    image_count: ENV['IMAGE_COUNT'] ? Integer(ENV['IMAGE_COUNT']) : Pipeline::IMAGE_COUNT
-  }.freeze
+  # Built per instance rather than frozen at load time: reading ENV when the file is
+  # required means the values are captured once, so anything that sets a variable after
+  # the require is silently ignored.
+  def self.defaults
+    {
+      endpoint: ENV['IMAGE_API_URL'] || 'http://127.0.0.1:8777',
+      width: Integer(ENV['IMAGE_WIDTH'] || 1024),
+      height: Integer(ENV['IMAGE_HEIGHT'] || 576),
+      steps: Integer(ENV['IMAGE_STEPS'] || 4),
+      verify: ENV['VERIFY_IMAGES'] != 'false',
+      max_attempts: Integer(ENV['MAX_ATTEMPTS'] || 3),
+      timeout: Integer(ENV['IMAGE_TIMEOUT'] || 300),
+      image_count: ENV['IMAGE_COUNT'] ? Integer(ENV['IMAGE_COUNT']) : Pipeline::IMAGE_COUNT
+    }
+  end
 
   def initialize(overrides = {})
-    @config = DEFAULTS.merge(overrides)
-    @endpoint = @config[:endpoint].sub(%r{/+\z}, '')
+    config = self.class.defaults.merge(overrides)
+    # Normalised into the config itself rather than a separate ivar, so the value
+    # reported by config[:endpoint] is the one every request actually uses.
+    config[:endpoint] = config[:endpoint].to_s.sub(%r{/+\z}, '')
+    @config = config
+
+    validate_image_count!(@config[:image_count])
   end
 
   attr_reader :config
+
+  # Slots beyond Pipeline::IMAGE_COUNT are never published: the uploader's parser
+  # rejects them, so the work would be silently discarded. Zero is worse, not merely
+  # useless: run() treats every slot beyond image_count as stale and deletes it, so
+  # an image_count of 0 would remove every generated PNG in the output directory.
+  def validate_image_count!(count)
+    return if count.is_a?(Integer) && count >= 1 && count <= Pipeline::IMAGE_COUNT
+
+    raise ArgumentError,
+          "image_count must be an integer in 1..#{Pipeline::IMAGE_COUNT}, got #{count.inspect}. " \
+          'Slots above IMAGE_COUNT are never published, and a count of 0 would delete ' \
+          'every generated image as stale.'
+  end
 
   def load_prompts(prompts_file)
     raise "Prompts file not found: #{prompts_file}" unless File.exist?(prompts_file)
@@ -72,7 +95,7 @@ class GenerateImages
   end
 
   def get_json(path)
-    uri = URI.join("#{@endpoint}/", path.sub(%r{\A/}, ''))
+    uri = URI.join("#{@config[:endpoint]}/", path.sub(%r{\A/}, ''))
     response = http_for(uri).start { |http| http.request(Net::HTTP::Get.new(uri)) }
     raise "GET #{path} failed: #{response.code}" unless response.is_a?(Net::HTTPSuccess)
 
@@ -91,7 +114,7 @@ class GenerateImages
   end
 
   def post_json(path, body)
-    uri = URI.join("#{@endpoint}/", path.sub(%r{\A/}, ''))
+    uri = URI.join("#{@config[:endpoint]}/", path.sub(%r{\A/}, ''))
     response = request(uri, body)
     raise "POST #{path} failed: #{response.code} #{response.body.to_s[0, 200]}" unless response.is_a?(Net::HTTPSuccess)
 
@@ -99,7 +122,7 @@ class GenerateImages
   end
 
   def post_bytes(path, body)
-    uri = URI.join("#{@endpoint}/", path.sub(%r{\A/}, ''))
+    uri = URI.join("#{@config[:endpoint]}/", path.sub(%r{\A/}, ''))
     response = request(uri, body)
     raise "POST #{path} failed: #{response.code} #{response.body.to_s[0, 200]}" unless response.is_a?(Net::HTTPSuccess)
 
