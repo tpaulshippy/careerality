@@ -6,8 +6,16 @@ require_relative 'image_prompts'
 # prompts so the in-app slideshow has distinct framings to cycle through.
 #
 # Runs entirely off generated_narratives/ by default. The database is only
-# touched for a career with no narrative, and only if one is reachable.
+# consulted for a career that has no narrative, and only if one is reachable.
 class GenerateImagePrompts
+  # "111011" -> "11-1011.00". career_profiles stores the SOC form, so a lookup for a
+  # compact code has to restore it or the query silently matches nothing.
+  def self.soc_code(compact)
+    return compact unless compact =~ /\A\d{6}\z/
+
+    "#{compact[0..1]}-#{compact[2..5]}.00"
+  end
+
   def initialize(connect_to_db: true)
     ImagePrompts.establish_connection if connect_to_db
   end
@@ -20,14 +28,24 @@ class GenerateImagePrompts
     narratives = ImagePrompts.narrative_index
     # Default to the narratives: they are the prompt source, they are keyed by the
     # compact 6-digit code the generation and upload scripts expect, and reading
-    # them needs no database. The DB is only consulted for a career that has no
-    # narrative, to borrow its O*NET task text.
+    # them needs no database. The database is only consulted for a career with no
+    # narrative, to borrow its task text as a fallback.
     codes = occupation_codes || narratives.keys.sort
+    if codes.empty?
+      raise 'No occupations to build prompts for. Expected narrative JSON files in ' \
+            "#{File.expand_path('generated_narratives', __dir__)}; " \
+            'pass explicit codes as the second argument to override.'
+    end
+
     results = {}
     from_narrative = 0
     missing_narrative = []
+    onet_misses = 0
 
-    codes.each do |code|
+    codes.each do |raw_code|
+      # Normalise once: the narrative index and the output keys are compact codes,
+      # while career_profiles is keyed by SOC format.
+      code = ImagePrompts.compact_code(raw_code)
       narrative = narratives[code]
       occupation_data = nil
 
@@ -35,7 +53,8 @@ class GenerateImagePrompts
         from_narrative += 1
       else
         missing_narrative << code
-        occupation_data = ImagePrompts.load_occupation_data(code)
+        occupation_data = ImagePrompts.load_occupation_data(self.class.soc_code(code))
+        onet_misses += 1 if occupation_data.nil?
       end
 
       name = narrative&.dig('occupation_name') ||
@@ -53,9 +72,12 @@ class GenerateImagePrompts
       }
     end
 
-    puts "Prompts built from narratives: #{from_narrative}, from O*NET: #{missing_narrative.size}"
+    puts "Prompts built from narratives: #{from_narrative}, from ONET fallback: #{missing_narrative.size}"
     unless missing_narrative.empty?
-      puts "  no narrative (needs career_profiles): #{missing_narrative.first(10).join(', ')}"
+      puts "  no narrative, fell back to ONET: #{missing_narrative.first(10).join(', ')}"
+      if onet_misses.positive?
+        puts "  #{onet_misses} had no career_profiles row either, so generic copy was used"
+      end
     end
     results
   end

@@ -119,6 +119,13 @@ class GenerateImages
     Digest::SHA256.hexdigest("#{code}:#{slot}:#{attempt}")[0, 8].to_i(16)
   end
 
+  # "11-1011.00", "11-1011" and "111011" all become "111011", which is what image
+  # filenames and R2 object names use.
+  def self.compact_code(code)
+    digits = code.to_s.strip.gsub(/[^0-9]/, '')
+    digits.length > 6 ? digits[0, 6] : digits
+  end
+
   def load_state(state_file)
     return {} unless File.exist?(state_file)
 
@@ -160,9 +167,13 @@ class GenerateImages
 
       prompts_for_code.first(@config[:image_count]).each_with_index do |prompt, slot_index|
         slot = slot_index + 1
-        filename = "#{code.tr('-', '_')}_#{slot}.png"
+        # Normalise here so the filename is always <6 digits>_<slot>.png regardless of
+        # whether the prompts file was keyed by compact or SOC-formatted code. The
+        # uploader parses exactly this form.
+        compact = self.class.compact_code(code)
+        filename = "#{compact}_#{slot}.png"
         path = File.join(output_dir, filename)
-        key = "#{code}:#{slot}"
+        key = "#{compact}:#{slot}"
 
         # Resume: a prior entry counts as done unless it failed, in which case we
         # retry that slot on this run.

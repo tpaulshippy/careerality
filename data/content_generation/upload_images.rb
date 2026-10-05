@@ -177,11 +177,22 @@ class UploadImages
       end
 
       # Slot 1 is republished under the legacy bare filename every run. Unlike the
-      # per-slot objects this is a migration of the old single image, so an
-      # existing object must be overwritten or the old photo stays live.
-      if slot == 1
-        upload_file(image_path, "#{code}.png")
-        counts[:png] += 1
+      # per-slot objects this is a migration of the old single image, so an existing
+      # object must be overwritten or the old photo stays live. Gated on png_ok so a
+      # failed canonical upload does not replace a working URL with an unpublished one.
+      if slot == 1 && png_ok
+        if upload_file(image_path, "#{code}.png")
+          counts[:png] += 1
+        else
+          counts[:failed] += 1
+        end
+      end
+
+      # Likewise skip the WebP work entirely when the canonical object did not land,
+      # rather than publishing an orphan the manifest never references.
+      unless png_ok
+        warn "Skipping WebP for #{code} slot #{slot}: PNG upload failed"
+        next
       end
 
       webp_url = nil
@@ -200,10 +211,13 @@ class UploadImages
           counts[:failed] += 1
         end
 
-        # Slot 1 legacy alias: overwrite unconditionally for the same reason.
+        # Slot 1 legacy alias: overwrite unconditionally for the same reason as above.
         if slot == 1
-          upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
-          counts[:webp] += 1
+          if upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
+            counts[:webp] += 1
+          else
+            counts[:failed] += 1
+          end
         end
 
         File.delete(webp_path) if File.exist?(webp_path)
