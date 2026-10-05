@@ -9,6 +9,7 @@ require 'openssl'
 require 'digest'
 require 'fileutils'
 require 'tmpdir'
+require 'time'
 require_relative 'pipeline'
 
 # Uploads generated career images to Cloudflare R2.
@@ -176,23 +177,37 @@ class UploadImages
       slot = parsed[:slot]
       png_key = "#{code}-#{slot}.png"
       webp_key = "#{code}-#{slot}.webp"
+      manifest_key = "#{code}:#{slot}"
 
       puts "Uploading #{code} slot #{slot}..."
 
-      png_ok = true
-      if r2_exists?(png_key)
+      # Deciding on R2 existence alone would make this migration a no-op: the old
+      # per-slot objects already exist, so regenerated images would never replace them
+      # and the app (which resolves slots first) would keep showing the old photos.
+      # Instead the local content's digest is recorded, so identical work is skipped
+      # while changed or regenerated images are overwritten.
+      digest = Digest::SHA256.hexdigest(File.binread(image_path))
+      prior = manifest[manifest_key]
+      unchanged = prior.is_a?(Hash) && prior['sha'] == digest
+
+      if unchanged
         counts[:skipped] += 1
-      elsif upload_file(image_path, png_key)
+        manifest[manifest_key]['verified_at'] = Time.now.utc.iso8601
+        save_manifest(manifest, output_file)
+        next
+      end
+
+      png_ok = true
+      if upload_file(image_path, png_key)
         counts[:png] += 1
       else
         png_ok = false
         counts[:failed] += 1
       end
 
-      # Slot 1 is republished under the legacy bare filename every run. Unlike the
-      # per-slot objects this is a migration of the old single image, so an existing
-      # object must be overwritten or the old photo stays live. Gated on png_ok so a
-      # failed canonical upload does not replace a working URL with an unpublished one.
+      # Slot 1 is republished under the legacy bare filename too, because that is what
+      # SwipeCard, MapScreen and CompareScreen request. Gated on png_ok so a failed
+      # canonical upload cannot replace a working URL with an unpublished one.
       if slot == 1 && png_ok
         if upload_file(image_path, "#{code}.png")
           counts[:png] += 1
@@ -201,54 +216,50 @@ class UploadImages
         end
       end
 
-      # Likewise skip the WebP work entirely when the canonical object did not land,
-      # rather than publishing an orphan the manifest never references.
+      # Skip the WebP work entirely when the canonical object did not land, rather than
+      # publishing an orphan no manifest entry references.
       unless png_ok
         warn "Skipping WebP for #{code} slot #{slot}: PNG upload failed"
         next
       end
 
-      # Check R2 before converting: on a resumed run the WebP usually already exists,
-      # and paying the cwebp cost only to discard the file also breaks when the local
-      # PNGs have been cleaned up but the objects are still live.
-      if r2_exists?(webp_key)
-        counts[:skipped] += 1
-        webp_url = "#{@public_url}/#{webp_key}"
-      else
-        webp_path = generate_webp(image_path)
+      webp_url = nil
+      webp_path = generate_webp(image_path)
 
-        if webp_path.nil?
-          counts[:failed] += 1
+      if webp_path.nil?
+        counts[:failed] += 1
+      else
+        if upload_file(webp_path, webp_key, content_type: 'image/webp')
+          counts[:webp] += 1
+          webp_url = "#{@public_url}/#{webp_key}"
         else
-          if upload_file(webp_path, webp_key, content_type: 'image/webp')
+          counts[:failed] += 1
+        end
+
+        # Slot 1 legacy alias, for the single-image consumers.
+        if slot == 1
+          if upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
             counts[:webp] += 1
-            webp_url = "#{@public_url}/#{webp_key}"
           else
             counts[:failed] += 1
           end
-
-          # Slot 1 legacy alias: overwrite unconditionally for the same reason as above.
-          if slot == 1
-            if upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
-              counts[:webp] += 1
-            else
-              counts[:failed] += 1
-            end
-          end
-
-          File.delete(webp_path) if File.exist?(webp_path)
         end
+
+        File.delete(webp_path) if File.exist?(webp_path)
       end
 
       # Only record the entry once the WebP actually exists, so the manifest and any
-      # database update never publish a URL that 404s.
+      # database update never publish a URL that 404s. The digest is what lets a later
+      # run tell "already uploaded this exact image" from "this image was regenerated".
       if png_ok && webp_url
-        manifest["#{code}:#{slot}"] = {
+        manifest[manifest_key] = {
           'occupation_code' => self.class.soc_code(code),
           'compact_code' => code,
           'slot' => slot,
+          'sha' => digest,
           'png_url' => "#{@public_url}/#{png_key}",
-          'webp_url' => webp_url
+          'webp_url' => webp_url,
+          'verified_at' => Time.now.utc.iso8601
         }
         save_manifest(manifest, output_file)
       else
@@ -332,6 +343,18 @@ if __FILE__ == $PROGRAM_NAME
 
   unless system('command -v cwebp > /dev/null 2>&1')
     puts "Error: cwebp not found. Install libwebp (e.g. 'brew install webp' or 'apt install webp')."
+    exit 1
+  end
+
+  # Objects published under a host the app never requests are invisible to it: the
+  # client falls back to the legacy image for every career. Refuse rather than upload
+  # thousands of unreachable objects.
+  configured = (ENV['R2_PUBLIC_URL'] || UploadImages::DEFAULT_PUBLIC_URL).sub(%r{/+\z}, '')
+  if configured != UploadImages::DEFAULT_PUBLIC_URL && ENV['ALLOW_PUBLIC_URL_MISMATCH'] != 'true'
+    puts "Error: R2_PUBLIC_URL is #{configured}, but the app requests #{UploadImages::DEFAULT_PUBLIC_URL}."
+    puts 'Unset R2_PUBLIC_URL, or point the client at the same host with ' \
+         'EXPO_PUBLIC_R2_IMAGE_BASE_URL, or set ALLOW_PUBLIC_URL_MISMATCH=true if you ' \
+         'really are publishing somewhere the app does not read.'
     exit 1
   end
 

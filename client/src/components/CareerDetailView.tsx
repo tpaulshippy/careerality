@@ -58,6 +58,7 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
   }, [available]);
   const frames = useMemo(() => rotation.filter((i) => i < IMAGE_SLOTS), [rotation]);
   const showImage = !hidden && rotation.length > 0;
+  const canAdvance = rotation.length > 1;
   // cursor is always a valid index: it is only ever set from `rotation`,
   // from `remaining`, or reset to 0.
   const currentIndex = failed.has(cursor) ? rotation[0] : cursor;
@@ -144,11 +145,18 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
 
         {showImage && (
           <View style={styles.imageBlock}>
+            {/* With a single photo there is nothing to advance to, so the wrapper is
+                inert rather than an enabled button that does nothing. */}
             <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={advance}
-              accessibilityRole="button"
-              accessibilityLabel={`Show next photo of ${career.occupation_name}`}
+              activeOpacity={canAdvance ? 0.9 : 1}
+              onPress={canAdvance ? advance : undefined}
+              disabled={!canAdvance}
+              accessibilityRole={canAdvance ? 'button' : 'image'}
+              accessibilityLabel={
+                canAdvance
+                  ? `Show next photo of ${career.occupation_name}`
+                  : `Photo of ${career.occupation_name}`
+              }
             >
               <Image
                 source={{ uri: currentUrl }}
@@ -159,7 +167,7 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
               />
             </TouchableOpacity>
 
-            {rotation.length > 1 && (
+            {canAdvance && (
               <View style={styles.dots} testID="career-detail-dots">
                 {frames.map((i) => (
                   <TouchableOpacity

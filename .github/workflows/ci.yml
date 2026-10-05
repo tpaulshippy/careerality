@@ -72,7 +72,7 @@ jobs:
         run: for f in content_generation/*.rb; do ruby -c "$f" > /dev/null; done
 
       - name: Run unit tests
-        run: ruby content_generation/soc_code_test.rb
+        run: ruby content_generation/pipeline_test.rb
 
   client:
     runs-on: ubuntu-latest
