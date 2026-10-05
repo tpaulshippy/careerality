@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { CareerDetailView } from '../CareerDetailView';
+import { render, fireEvent, act } from '@testing-library/react-native';
+import { CareerDetailView, SLIDE_INTERVAL_MS } from '../CareerDetailView';
 import { CareerROI } from '../../types';
 
 jest.mock('../OccupationIconBadge', () => ({
@@ -220,5 +220,43 @@ describe('CareerDetailView', () => {
       'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-3.webp',
       'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-1.webp',
     ]);
+  });
+
+  it('keeps auto-advancing on schedule across unrelated re-renders', async () => {
+    jest.useFakeTimers();
+    try {
+      const { getByTestId, rerender } = await render(<CareerDetailView career={mockCareer} />);
+      const first = getByTestId('career-detail-image').props.source.uri;
+
+      // Burn most of one interval, then re-render, then burn the remainder.
+      // Total elapsed time exceeds SLIDE_INTERVAL_MS, but if the effect restarted the
+      // interval on re-render neither stub would ever reach the full duration and the
+      // slideshow would stall. `urls` and `rotation` are memoised so it does not.
+      await act(async () => {
+        jest.advanceTimersByTime(SLIDE_INTERVAL_MS - 1000);
+      });
+      expect(getByTestId('career-detail-image').props.source.uri).toBe(first);
+
+      await rerender(<CareerDetailView career={{ ...mockCareer }} />);
+
+      await act(async () => {
+        jest.advanceTimersByTime(1500);
+      });
+
+      expect(getByTestId('career-detail-image').props.source.uri).not.toBe(first);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('marks the current dot as selected for screen readers', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    expect(getByTestId('career-detail-dot-0').props.accessibilityState).toEqual({
+      selected: true,
+    });
+    expect(getByTestId('career-detail-dot-1').props.accessibilityState).toEqual({
+      selected: false,
+    });
   });
 });

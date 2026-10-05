@@ -9,7 +9,7 @@ require 'openssl'
 require 'digest'
 require 'fileutils'
 require 'tmpdir'
-require_relative 'soc_code'
+require_relative 'pipeline'
 
 # Uploads generated career images to Cloudflare R2.
 #
@@ -25,6 +25,9 @@ require_relative 'soc_code'
 # Uploads are resumable: existence is checked against R2 itself rather than a
 # local manifest, so an interrupted run continues instead of re-uploading.
 class UploadImages
+  # Must stay in step with R2_IMAGE_BASE_URL in
+  # client/src/utils/careerImage.ts. Objects published under a different host are
+  # invisible to the app, which silently falls back to the legacy image.
   DEFAULT_PUBLIC_URL = 'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev'
 
   def initialize(bucket_url:, access_key:, secret_key:, public_url: ENV['R2_PUBLIC_URL'] || DEFAULT_PUBLIC_URL)
@@ -34,6 +37,11 @@ class UploadImages
     @access_key = access_key
     @secret_key = secret_key
     @public_url = public_url.to_s.sub(%r{/+\z}, '')
+
+    return if @public_url == DEFAULT_PUBLIC_URL
+
+    warn "WARNING: R2_PUBLIC_URL is #{@public_url}, but client/src/utils/careerImage.ts " \
+         "requests #{DEFAULT_PUBLIC_URL}. Images uploaded now will not be shown by the app."
   end
 
   # --- R2 signing -----------------------------------------------------------
@@ -133,17 +141,21 @@ class UploadImages
 
   # --- Filename mapping -----------------------------------------------------
 
-  # 111011_2.png -> code "111011", slot 2. Returns nil for anything that isn't a
-  # generated image.
+  # 111011_2.png -> code "111011", slot 2. Returns nil for anything that is not a
+  # generated image, including slots outside the 1..IMAGE_COUNT contract so a stray
+  # file cannot create an invalid object or database row.
   def self.parse_filename(filename)
     match = filename.match(/\A(\d{6})_(\d)\.png\z/)
     return nil unless match
 
-    { code: match[1], slot: match[2].to_i }
+    slot = match[2].to_i
+    return nil unless Pipeline.slot?(slot)
+
+    { code: match[1], slot: slot }
   end
 
   def self.soc_code(compact)
-    SocCode.soc(compact)
+    Pipeline.soc(compact)
   end
 
   # --- Main loop ------------------------------------------------------------
@@ -196,32 +208,36 @@ class UploadImages
         next
       end
 
-      webp_url = nil
-      webp_path = generate_webp(image_path)
-
-      if webp_path.nil?
-        counts[:failed] += 1
+      # Check R2 before converting: on a resumed run the WebP usually already exists,
+      # and paying the cwebp cost only to discard the file also breaks when the local
+      # PNGs have been cleaned up but the objects are still live.
+      if r2_exists?(webp_key)
+        counts[:skipped] += 1
+        webp_url = "#{@public_url}/#{webp_key}"
       else
-        if r2_exists?(webp_key)
-          counts[:skipped] += 1
-          webp_url = "#{@public_url}/#{webp_key}"
-        elsif upload_file(webp_path, webp_key, content_type: 'image/webp')
-          counts[:webp] += 1
-          webp_url = "#{@public_url}/#{webp_key}"
-        else
-          counts[:failed] += 1
-        end
+        webp_path = generate_webp(image_path)
 
-        # Slot 1 legacy alias: overwrite unconditionally for the same reason as above.
-        if slot == 1
-          if upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
+        if webp_path.nil?
+          counts[:failed] += 1
+        else
+          if upload_file(webp_path, webp_key, content_type: 'image/webp')
             counts[:webp] += 1
+            webp_url = "#{@public_url}/#{webp_key}"
           else
             counts[:failed] += 1
           end
-        end
 
-        File.delete(webp_path) if File.exist?(webp_path)
+          # Slot 1 legacy alias: overwrite unconditionally for the same reason as above.
+          if slot == 1
+            if upload_file(webp_path, "#{code}.webp", content_type: 'image/webp')
+              counts[:webp] += 1
+            else
+              counts[:failed] += 1
+            end
+          end
+
+          File.delete(webp_path) if File.exist?(webp_path)
+        end
       end
 
       # Only record the entry once the WebP actually exists, so the manifest and any
@@ -253,7 +269,12 @@ class UploadImages
   end
 
   def save_manifest(manifest, output_file)
-    File.write(output_file, JSON.pretty_generate(manifest))
+    # Temp file plus rename, for the same reason as generate_images.rb#save_state: an
+    # interrupted in-place write would truncate the JSON and load_manifest would read
+    # it as empty, discarding every recorded URL.
+    tmp = "#{output_file}.tmp"
+    File.write(tmp, JSON.pretty_generate(manifest))
+    File.rename(tmp, output_file)
   end
 
   # Optional. Off by default: the app resolves image URLs by convention, so the

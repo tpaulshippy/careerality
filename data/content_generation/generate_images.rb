@@ -8,7 +8,7 @@ require 'base64'
 require 'fileutils'
 require 'digest'
 require 'time'
-require_relative 'soc_code'
+require_relative 'pipeline'
 
 # Generates career images through the Draw Things/mflux HTTP service running on the
 # M5 (see IMAGE_GENERATION.md), verifies each one with a vision model, and retries
@@ -26,7 +26,7 @@ class GenerateImages
     verify: ENV['VERIFY_IMAGES'] != 'false',
     max_attempts: Integer(ENV['MAX_ATTEMPTS'] || 3),
     timeout: Integer(ENV['IMAGE_TIMEOUT'] || 300),
-    image_count: 3
+    image_count: ENV['IMAGE_COUNT'] ? Integer(ENV['IMAGE_COUNT']) : Pipeline::IMAGE_COUNT
   }.freeze
 
   def initialize(overrides = {})
@@ -121,7 +121,7 @@ class GenerateImages
   end
 
   def self.compact_code(code)
-    SocCode.compact(code)
+    Pipeline.compact(code)
   end
 
   def load_state(state_file)
@@ -186,12 +186,14 @@ class GenerateImages
         path = File.join(output_dir, filename)
         key = "#{compact}:#{slot}"
 
-        # Resume: a prior entry counts as done unless it failed, in which case we
-        # retry that slot on this run.
+        # Resume: a prior entry counts as done unless it failed. An image recorded
+        # as unverified (because verification was off) is redone when verification
+        # is now enabled, so it is not silently treated as checked.
         prior = state[key]
-        already_done = prior && prior['status'] != 'failed'
+        terminal = prior && prior['status'] != 'failed'
+        terminal &&= prior['status'] != 'unverified' || !@config[:verify]
 
-        if File.exist?(path) && already_done
+        if File.exist?(path) && terminal
           counts[:skipped] += 1
           next
         end
@@ -232,6 +234,9 @@ class GenerateImages
           puts "REJECTED after #{result[:attempts]} attempt(s): #{result[:issues].join('; ')}"
         else
           counts[:failed] += 1
+          # A PNG from an earlier run must not be left behind: the uploader reads
+          # every matching file and would publish it for this slot.
+          File.delete(path) if File.exist?(path)
           state[key] = { 'occupation_code' => code, 'slot' => slot, 'status' => 'failed', 'error' => result[:error] }
           puts "FAILED: #{result[:error]}"
         end
@@ -264,7 +269,9 @@ class GenerateImages
         return { status: :failed, error: "#{e.class} - #{e.message}" }
       end
 
-      return { status: :passed, bytes: bytes, seed: seed, attempts: attempts, issues: [] } unless @config[:verify]
+      # Recorded as unverified, never as passed: the checkpoint and the summary must
+      # not claim an image was checked when verification was switched off.
+      return { status: :unverified, bytes: bytes, seed: seed, attempts: attempts, issues: [] } unless @config[:verify]
 
       verdict = verify(prompt, bytes)
       return { status: :unverified, bytes: bytes, seed: seed, attempts: attempts, issues: [] } if verdict.nil?
@@ -298,7 +305,7 @@ if __FILE__ == $PROGRAM_NAME
     puts "Image API: #{info.inspect}"
   rescue StandardError => e
     puts "Error: cannot reach image API at #{generator.config[:endpoint]} (#{e.message})"
-    puts 'See IMAGE_GENERATION.md for setup, or set IMAGE_API_URL to your tailnet URL.'
+    puts 'See docs/CAREER_IMAGES.md for setup, or set IMAGE_API_URL to your tailnet URL.'
     exit 1
   end
 

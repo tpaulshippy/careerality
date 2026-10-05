@@ -3,11 +3,11 @@
 require 'active_record'
 require 'active_support/inflector'
 require 'json'
-require_relative 'soc_code'
+require_relative 'pipeline'
 
 module ImagePrompts
   # Number of images generated per career, for the in-app slideshow.
-  IMAGE_COUNT = 3
+  IMAGE_COUNT = Pipeline::IMAGE_COUNT
 
   DB_CONFIG = {
     adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
@@ -23,7 +23,7 @@ module ImagePrompts
 
   def self.load_occupation_data(occupation_code)
     profile = ActiveRecord::Base.connection.exec_query(
-      "SELECT occupation_code, occupation_name, occupation_description, onet_data, skills, tasks, work_activities FROM career_profiles WHERE occupation_code = $1",
+      "SELECT occupation_code, occupation_name, occupation_description, skills, tasks FROM career_profiles WHERE occupation_code = $1",
       nil,
       [occupation_code]
     ).first
@@ -51,9 +51,6 @@ module ImagePrompts
     skills = profile['skills']
     skills = JSON.parse(skills) if skills.is_a?(String)
 
-    onet_data = profile['onet_data']
-    onet_data = JSON.parse(onet_data) if onet_data.is_a?(String)
-
     {
       'OnetTitle' => profile['occupation_name'],
       'OnetCode' => profile['occupation_code'],
@@ -79,14 +76,18 @@ module ImagePrompts
         next
       end
 
+      # A stray file holding a valid non-object document (null, [], a string)
+      # must not abort the whole index.
+      next unless data.is_a?(Hash)
+
       code = data['occupation_code']
       index[compact_code(code)] = data if code
     end
   end
 
-  # Delegates to SocCode so the mapping has a single definition.
+  # Delegates to Pipeline so the mapping has a single definition.
   def self.compact_code(code)
-    SocCode.compact(code)
+    Pipeline.compact(code)
   end
 
   def self.reset_narrative_index!

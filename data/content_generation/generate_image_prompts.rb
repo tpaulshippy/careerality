@@ -11,7 +11,7 @@ class GenerateImagePrompts
   # "111011" -> "11-1011.00". career_profiles stores the SOC form, so a lookup for a
   # compact code has to restore it or the query silently matches nothing.
   def self.soc_code(compact)
-    SocCode.soc(compact)
+    Pipeline.soc(compact)
   end
 
   def initialize(connect_to_db: true)
@@ -51,7 +51,15 @@ class GenerateImagePrompts
         from_narrative += 1
       else
         missing_narrative << code
-        occupation_data = ImagePrompts.load_occupation_data(self.class.soc_code(code))
+        begin
+          occupation_data = ImagePrompts.load_occupation_data(self.class.soc_code(code))
+        rescue StandardError => e
+          # The database is a fallback only. If it is unreachable, degrade to generic
+          # copy for this career rather than aborting a run that can otherwise
+          # produce good prompts for everything else.
+          warn "  #{code}: database unavailable (#{e.class}), using generic copy"
+          occupation_data = nil
+        end
         onet_misses += 1 if occupation_data.nil?
       end
 
@@ -61,7 +69,12 @@ class GenerateImagePrompts
 
       results[code] = {
         'occupation_name' => name,
-        'source' => narrative ? 'narrative' : 'onet',
+        # Distinguish a real O*NET fallback from a placeholder so downstream audits
+        # can tell which careers got generic copy.
+        'source' => if narrative then 'narrative'
+                    elsif occupation_data then 'onet'
+                    else 'generic'
+                    end,
         'prompts' => generate_image_prompts(
           occupation_data || { 'OnetTitle' => name },
           name,

@@ -19,7 +19,7 @@ const JOB_ZONE_LABELS: Record<number, string> = {
   5: 'Extensive preparation',
 };
 
-const SLIDE_INTERVAL_MS = 4000;
+export const SLIDE_INTERVAL_MS = 4000;
 
 interface CareerDetailViewProps {
   career: CareerROI;
@@ -35,7 +35,12 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
   // pre-slideshow single image as a final fallback. The legacy image is only ever
   // shown when no slot loaded at all: for a regenerated career it duplicates slot
   // 1, so including it in the rotation would repeat a photo.
-  const urls = getImageUrls(career.occupation_code);
+  //
+  // Everything derived from these must be memoised. The auto-advance effect below
+  // depends on `advance`, so an unstable dependency would tear down and restart the
+  // interval on every render and reset the countdown.
+  const occupationCode = career.occupation_code;
+  const urls = useMemo(() => getImageUrls(occupationCode), [occupationCode]);
   const [cursor, setCursor] = useState(0);
   const [failed, setFailed] = useState<Set<number>>(() => new Set());
   const [hidden, setHidden] = useState(false);
@@ -46,9 +51,12 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
     () => urls.map((_, i) => i).filter((i) => !failed.has(i)),
     [urls, failed]
   );
-  const frames = available.filter((i) => i < IMAGE_SLOTS);
   // Prefer real slots; fall back to the legacy object only when none survived.
-  const rotation = frames.length > 0 ? frames : available;
+  const rotation = useMemo(() => {
+    const frames = available.filter((i) => i < IMAGE_SLOTS);
+    return frames.length > 0 ? frames : available;
+  }, [available]);
+  const frames = useMemo(() => rotation.filter((i) => i < IMAGE_SLOTS), [rotation]);
   const showImage = !hidden && rotation.length > 0;
   // cursor is always a valid index: it is only ever set from `rotation`,
   // from `remaining`, or reset to 0.
@@ -135,7 +143,7 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
         </View>
 
         {showImage && (
-          <View>
+          <View style={styles.imageBlock}>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={advance}
@@ -159,6 +167,9 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
                     onPress={() => handleDotPress(i)}
                     accessibilityRole="button"
                     accessibilityLabel={`Photo ${i + 1}`}
+                    accessibilityState={{ selected: i === currentIndex }}
+                    // The dot is 6pt; hitSlop brings the touch target up to a usable size.
+                    hitSlop={{ top: 19, bottom: 19, left: 19, right: 19 }}
                     testID={`career-detail-dot-${i}`}
                     style={[
                       styles.dot,
@@ -274,12 +285,16 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
   } as ImageStyle,
+  // Spacing lives on the wrapper, which renders whether or not the dots are shown,
+  // so the single-photo case keeps the same gap as before.
+  imageBlock: {
+    marginBottom: 20,
+  } as ViewStyle,
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 6,
     marginTop: 8,
-    marginBottom: 20,
   } as ViewStyle,
   dot: {
     width: 6,
