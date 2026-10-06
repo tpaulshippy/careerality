@@ -11,7 +11,7 @@ require 'time'
 require_relative 'pipeline'
 
 # Generates career images through the Draw Things/mflux HTTP service running on the
-# M5 (see IMAGE_GENERATION.md), verifies each one with a vision model, and retries
+# M5 (see docs/CAREER_IMAGES.md), verifies each one with a vision model, and retries
 # with a fresh seed until it passes or the attempt budget is spent.
 #
 # Files are named <code>_<slot>.png where slot is 1..IMAGE_COUNT. Progress is

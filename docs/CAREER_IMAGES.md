@@ -160,12 +160,32 @@ Anything else — `{}`, `{"pass": "yes"}`, `{"pass": true, "issues": "..."}` —
 as `unverified` rather than retried, because a response the verifier did not actually
 produce must not be read as a rejection.
 
+### Generator environment variables
+
+| Variable | Default | Notes |
+|---|---|---|
+| `IMAGE_API_URL` | `http://127.0.0.1:8777` | the mflux service on the M5; a tailnet URL from elsewhere |
+| `IMAGE_WIDTH` / `IMAGE_HEIGHT` | `1024` / `576` | 16:9; the client crops with `resizeMode="cover"` |
+| `IMAGE_STEPS` | `4` | distilled `klein 4B`; `50` for the Base model — see the quality knob below |
+| `IMAGE_TIMEOUT` | `300` | seconds to wait for one `/generate` or `/verify` response. **Raise it for `IMAGE_STEPS=50`**, which can exceed 300s on a cold start; because seeds are deterministic, a timeout fails identically on every retry. The connect timeout is a separate hardcoded 30s |
+| `MAX_ATTEMPTS` | `3` | attempts per slot; must be ≥ 1. Covers rejections *and* generation errors |
+| `VERIFY_IMAGES` | `true` | `false` skips verification and records `unverified` |
+| `IMAGE_COUNT` | `3` | slots per career; must be `1..3` |
+
 ### Resumability
 
 Progress is written to `image_generation_state.json` after every image. Re-running skips
-anything already generated with a terminal status and retries only what failed. Seeds are
-derived deterministically from `occupation_code`, `slot` and `attempt`, so a resumed run
-reproduces the same images it would have produced the first time.
+`passed` and `rejected` slots and retries `failed` ones. `unverified` slots are the
+exception: they are regenerated when verification is enabled, because an entry recorded
+with verification switched off was never actually checked. A slot is also regenerated when
+its prompt text has changed, so editing a narrative and re-running replaces the images
+built from the old wording.
+
+Seeds are derived deterministically from `occupation_code`, `slot` and `attempt`, so a
+resumed run reproduces the same images it would have produced the first time. The flip side
+is that a failure caused by the environment rather than the prompt — a timeout, most
+commonly — reproduces identically on every attempt, so raising `IMAGE_TIMEOUT` is needed
+for those; changing `IMAGE_STEPS` or the endpoint will not help on their own.
 
 Interrupt with Ctrl-C at any time; just run the same command again to continue.
 
@@ -202,9 +222,15 @@ runs 50 steps, and is markedly cleaner — at roughly 10x the time.
 Compare on a sample before committing to all ~3,200 images:
 
 ```bash
-IMAGE_STEPS=50 ruby generate_images.rb \
+IMAGE_STEPS=50 IMAGE_TIMEOUT=1800 ruby generate_images.rb \
   image_prompts.json /tmp/base50 /tmp/base50-state.json 11-1011,29-1141,33-3011
 ```
+
+`IMAGE_TIMEOUT` matters here. The generator's read timeout defaults to **300 seconds**,
+which the 50-step model will exceed on a cold start; because seeds are deterministic per
+attempt, a slot that times out fails identically on every retry and on every resume. Raise
+it alongside `IMAGE_STEPS` for the full run. The connection timeout is a separate, hardcoded
+30s and only covers establishing the TCP connection, not the wait for a response.
 
 The peak-memory figure from the setup step determines whether both models fit alongside
 the verifier in memory at once.
@@ -217,10 +243,16 @@ the verifier in memory at once.
 export R2_BUCKET_URL="https://<account>.r2.cloudflarestorage.com/<bucket>"
 export R2_ACCESS_KEY_ID=...
 export R2_SECRET_ACCESS_KEY=...
-export R2_PUBLIC_URL="https://pub-<account>.r2.dev"   # defaults to the app's bucket
-
 ruby upload_images.rb
 ```
+
+`R2_PUBLIC_URL` is normally **left unset** — it defaults to the app's own bucket, which is
+the only host the client requests. Setting it to your own account's
+`https://pub-<account>.r2.dev` makes the uploader refuse to run, because objects published
+there are invisible to the app and every image would silently fall back to the legacy one.
+Only set it together with a matching `EXPO_PUBLIC_R2_IMAGE_BASE_URL` on the client, or set
+`ALLOW_PUBLIC_URL_MISMATCH=true` if you are deliberately publishing somewhere the app does
+not read.
 
 Requires `cwebp` (`brew install webp` / `apt install webp`).
 
