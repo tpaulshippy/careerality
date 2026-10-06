@@ -229,19 +229,21 @@ class UploadImages
     objects = SLOT_OBJECTS.map { |t| format(t, code: code, slot: slot) }
 
     deleted = objects.count { |name| delete_from_r2(name) }
+    complete = deleted == objects.size
 
     # The manifest entry is only dropped once every object is gone. Removing it while a
     # delete failed would make the slot invisible to the next prune, so the leftover
     # objects would stay live forever with nothing left to retry.
-    if deleted == objects.size
+    if complete
       manifest.delete("#{code}:#{slot}")
       save_manifest(manifest, output_file)
+      puts "Removed slot #{slot} for #{code}: deleted #{objects.size} object(s)"
     else
-      warn "Keeping manifest entry #{code}:#{slot}: only #{deleted}/#{objects.size} objects deleted"
+      warn "Slot #{slot} for #{code} only partly removed: #{deleted}/#{objects.size} object(s). " \
+           "Keeping manifest entry #{code}:#{slot} so the next run retries."
     end
 
-    puts "Removed slot #{slot} for #{code}: deleted #{deleted}/#{objects.size} object(s)"
-    deleted == objects.size
+    complete
   end
 
   def upload_file(local_path, filename, content_type: 'image/png')
@@ -446,7 +448,13 @@ class UploadImages
   def load_manifest(output_file)
     return {} unless File.exist?(output_file)
 
-    JSON.parse(File.read(output_file))
+    manifest = JSON.parse(File.read(output_file))
+    # A syntactically valid but non-object document (null, [], a string) is as
+    # unusable as a parse error: prune calls key? on the result and entries are indexed
+    # by string key, so returning it would abort the run instead of starting clean.
+    return {} unless manifest.is_a?(Hash)
+
+    manifest
   rescue JSON::ParserError
     {}
   end

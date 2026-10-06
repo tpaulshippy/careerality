@@ -262,6 +262,27 @@ class TestGenerateImagesConfig < Minitest::Test
     end
   end
 
+  # A manifest holding valid non-object JSON is as unusable as a parse error: the prune
+  # calls key? on it and entries are indexed by string key.
+  def test_load_manifest_rejects_non_object_documents
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'uploaded_images.json')
+
+      ['', 'null', '[]', '"text"', '42', 'not json', '['].each do |body|
+        File.write(path, body)
+        assert_equal({}, UploadImages.new(bucket_url: 'https://a.r2.cloudflarestorage.com/b',
+                                          access_key: 'k', secret_key: 's')
+                              .send(:load_manifest, path), "load_manifest(#{body.inspect})")
+      end
+
+      File.write(path, '{"111011:1":{"sha":"abc"}}')
+      assert_equal({ '111011:1' => { 'sha' => 'abc' } },
+                   UploadImages.new(bucket_url: 'https://a.r2.cloudflarestorage.com/b',
+                                    access_key: 'k', secret_key: 's')
+                              .send(:load_manifest, path))
+    end
+  end
+
   def test_generated_filenames_are_all_parseable
     # The contract the uploader depends on: every file it sees must map to a slot.
     (1..Pipeline::IMAGE_COUNT).each do |slot|
