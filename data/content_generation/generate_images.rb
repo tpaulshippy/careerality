@@ -171,9 +171,25 @@ class GenerateImages
   def load_state(state_file)
     return {} unless File.exist?(state_file)
 
-    JSON.parse(File.read(state_file))
+    state = JSON.parse(File.read(state_file))
+    # A syntactically valid but non-object document (null, [], a string) is as
+    # unusable as a parse error: run indexes state with string keys, so returning it
+    # would abort the whole run instead of starting clean.
+    return {} unless state.is_a?(Hash)
+
+    state
   rescue JSON::ParserError
     {}
+  end
+
+  # Written via a temp file and renamed, for the same reason as save_state: a direct
+  # write interrupted by a crash or a full disk leaves a truncated PNG on disk, while
+  # the prior checkpoint still says the slot is done. The next run would skip it and
+  # upload the truncated image, and an Image component cannot recover from partial data.
+  def write_image(path, bytes)
+    tmp = "#{path}.tmp"
+    File.binwrite(tmp, bytes)
+    File.rename(tmp, path)
   end
 
   def save_state(state, state_file)
@@ -289,7 +305,7 @@ class GenerateImages
 
         case result[:status]
         when :passed, :unverified
-          File.binwrite(path, result[:bytes])
+          write_image(path, result[:bytes])
           counts[:generated] += 1
           counts[result[:status]] += 1
           state[key] = {
@@ -304,7 +320,7 @@ class GenerateImages
           }
           puts "#{result[:status]} after #{result[:attempts]} attempt(s) #{result[:seed]}"
         when :rejected
-          File.binwrite(path, result[:bytes])
+          write_image(path, result[:bytes])
           counts[:generated] += 1
           counts[:rejected] += 1
           state[key] = {

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
+require 'tmpdir'
 require_relative 'generate_images'
 
 # The generator's configuration is entirely environment-driven, and two of those
@@ -133,5 +134,66 @@ class TestGenerateImagesConfig < Minitest::Test
     with_env('VERIFY_IMAGES' => nil) { assert GenerateImages.new.config[:verify] }
     with_env('VERIFY_IMAGES' => 'true') { assert GenerateImages.new.config[:verify] }
     with_env('VERIFY_IMAGES' => 'false') { refute GenerateImages.new.config[:verify] }
+  end
+
+  # A syntactically valid but non-object state document is as unusable as a parse
+  # error: run indexes it with string keys, so returning it would abort the run.
+  def test_load_state_rejects_non_object_documents
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'state.json')
+
+      ['', 'null', '[]', '"text"', '42', 'not json', '{'].each do |body|
+        File.write(path, body)
+        assert_equal({}, GenerateImages.new.send(:load_state, path), "load_state(#{body.inspect})")
+      end
+
+      File.write(path, '{"111011:1":{"status":"passed"}}')
+      assert_equal({ '111011:1' => { 'status' => 'passed' } },
+                   GenerateImages.new.send(:load_state, path))
+    end
+  end
+
+  def test_load_state_of_a_missing_file_is_empty
+    assert_equal({}, GenerateImages.new.send(:load_state, '/nonexistent/state.json'))
+  end
+
+  # A direct write interrupted mid-flight leaves a truncated PNG while the prior
+  # checkpoint still reads as done, so the next run would skip and upload it.
+  def test_write_image_leaves_no_temp_file_and_replaces_atomically
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, '111011_1.png')
+      gen = GenerateImages.new
+
+      gen.send(:write_image, path, 'first')
+      assert_equal 'first', File.read(path)
+      refute File.exist?("#{path}.tmp"), 'temp file must not survive'
+
+      gen.send(:write_image, path, 'second')
+      assert_equal 'second', File.read(path), 'must replace, not append'
+      refute File.exist?("#{path}.tmp")
+
+      assert_equal ['111011_1.png'], Dir.children(dir), "stray files: #{Dir.children(dir)}"
+    end
+  end
+
+  # A rename is atomic on the same filesystem; the failure mode that matters is a
+  # partial write never reaching `path`.
+  def test_write_image_never_leaves_a_partial_file_at_the_target
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'img.png')
+      File.write(path, 'complete-original')
+
+      gen = GenerateImages.new
+      boom = Class.new(StandardError)
+      gen.define_singleton_method(:write_image) do |_p, bytes|
+        tmp = "#{_p}.tmp"
+        File.binwrite(tmp, bytes[0, 3]) # simulate a partial write
+        raise boom, 'interrupted'
+      end
+
+      assert_raises(boom) { gen.send(:write_image, path, 'x' * 100) }
+      assert_equal 'complete-original', File.read(path),
+                   'the previous complete file must survive a failed write'
+    end
   end
 end
