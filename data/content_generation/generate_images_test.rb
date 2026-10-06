@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
+require 'minitest/mock'
 require 'tmpdir'
 require 'json'
 require_relative 'generate_images'
@@ -179,23 +180,45 @@ class TestGenerateImagesConfig < Minitest::Test
   end
 
   # A rename is atomic on the same filesystem; the failure mode that matters is a
-  # partial write never reaching `path`.
+  # partial write never reaching `path`. Exercises the real write_image by making the
+  # underlying write raise, so a regression to a direct write is caught.
   def test_write_image_never_leaves_a_partial_file_at_the_target
     Dir.mktmpdir do |dir|
       path = File.join(dir, 'img.png')
-      File.write(path, 'complete-original')
+      File.binwrite(path, 'complete-original')
 
-      gen = GenerateImages.new
       boom = Class.new(StandardError)
-      gen.define_singleton_method(:write_image) do |_p, bytes|
-        tmp = "#{_p}.tmp"
-        File.binwrite(tmp, bytes[0, 3]) # simulate a partial write
-        raise boom, 'interrupted'
+      gen = GenerateImages.new
+
+      # Fail only the write of the new content, leaving the setup write alone.
+      original = File.method(:binwrite)
+      File.stub(:binwrite, ->(target, bytes) {
+        raise boom, 'disk full' if target.to_s.end_with?('.tmp')
+
+        original.call(target, bytes)
+      }) do
+        assert_raises(boom) { gen.send(:write_image, path, 'x' * 100) }
       end
 
-      assert_raises(boom) { gen.send(:write_image, path, 'x' * 100) }
       assert_equal 'complete-original', File.read(path),
                    'the previous complete file must survive a failed write'
+      refute File.exist?("#{path}.tmp"), 'a failed write must not leave its temp file'
+    end
+  end
+
+  # The happy path, so the atomicity assertion above cannot pass by write_image simply
+  # never writing anything.
+  def test_write_image_replaces_the_file_completely
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'img.png')
+      File.binwrite(path, 'original')
+
+      gen = GenerateImages.new
+      gen.send(:write_image, path, 'second')
+
+      assert_equal 'second', File.read(path), 'must replace, not append'
+      refute File.exist?("#{path}.tmp"), 'temp file must not survive'
+      assert_equal ['img.png'], Dir.children(dir), "stray files: #{Dir.children(dir)}"
     end
   end
 
