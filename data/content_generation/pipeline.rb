@@ -12,15 +12,20 @@ module Pipeline
   # The shots cycle through framing styles so a career's images read as a sequence
   # rather than three near-identical portraits. Must stay sized to IMAGE_COUNT.
   #
-  # Every direction keeps exactly one person in frame. The first version asked for "the
-  # room and the people around them", which reliably produced a populated boardroom
-  # instead of one person's day -- and the verifier could not catch it, because it
-  # checks the image against the prompt, so a prompt asking for a crowd gets a crowd
-  # approved. The single-subject constraint has to be in the prompt.
+  # Every direction keeps the subject the clear focus. The first version asked for "the room
+  # and the people around them", which reliably produced a populated boardroom instead of
+  # one person's day -- and the verifier could not catch it, because it checks the image
+  # against the prompt, so a prompt asking for a crowd gets a crowd approved.
+  #
+  # The replacement is about prominence, not headcount. "Exactly one person in frame" fixed
+  # the boardroom but then failed every occupation whose work inherently involves a group:
+  # preschool teachers, nurses, firefighters and waiters were rejected 3/3 for depicting
+  # "multiple children" and for "specifying exactly one person". Asking for the subject to
+  # be the focus satisfies both cases.
   SHOT_STYLES = [
     {
       framing: 'wide establishing shot',
-      direction: 'Pull back to show their whole workplace, but keep them the only person in the room.'
+      direction: 'Pull back to show their whole workplace, keeping them the visual focus of the frame.'
     },
     {
       framing: 'over-the-shoulder medium shot',

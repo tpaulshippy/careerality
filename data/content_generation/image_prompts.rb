@@ -150,8 +150,9 @@ module ImagePrompts
   SHOT_STYLES = Pipeline::SHOT_STYLES
 
   STYLE_SUFFIX = 'Photorealistic editorial documentary photograph. Natural available light, ' \
-                 'true-to-life colors, shallow depth of field, 35mm. Exactly one person in frame, ' \
-                 'seen alone and absorbed in the work, unaware of the camera. No text, no captions, ' \
+                 'true-to-life colors, shallow depth of field, 35mm. The subject is the clear ' \
+                 'focus of the frame, absorbed in the work and unaware of the camera. Other people ' \
+                 'may be present only where the work itself calls for them. No text, no captions, ' \
                  'no logos, no watermarks.'
 
   # Builds IMAGE_COUNT prompts that share a subject but differ in framing, so the

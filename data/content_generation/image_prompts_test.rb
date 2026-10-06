@@ -80,19 +80,34 @@ class TestImagePrompts < Minitest::Test
   # expose hand artefacts, so the guidance must be present.
   # The verifier checks the image against the prompt, so a prompt that asks for a crowd
   # gets a crowd approved. The first version of slot 1 did exactly that and produced a
-  # populated boardroom. Every shot must constrain the frame to one person.
-  def test_every_shot_constrains_the_frame_to_one_person
+  # populated boardroom. Every shot must make the subject the clear focus.
+  def test_every_shot_makes_the_subject_the_focus
     prompts = ImagePrompts.build_prompts(ONET, 'Chief Executives', nil)
     prompts.each_with_index do |p, i|
-      assert_match(/one person/i, p, "slot #{i + 1} must require a single subject")
+      assert_match(/clear focus of the frame/i, p, "slot #{i + 1} must make the subject the focus")
+    end
+  end
+
+  # Headcount is the wrong constraint: it fixed the boardroom but then failed every
+  # occupation whose work inherently involves a group. Preschool teachers were rejected
+  # 3/3 for depicting "multiple children" and for "specifying exactly one person", and a
+  # rejection is terminal, so those careers would have shipped nothing.
+  def test_prompts_do_not_forbid_other_people
+    prompts = ImagePrompts.build_prompts(ONET, 'Preschool Teachers', nil)
+    prompts.each do |p|
+      refute_match(/exactly one person|only person|alone\b/i, p,
+                   'a group occupation must not be told to exclude everyone else')
+      assert_match(/Other people may be present only where the work itself calls for them/i, p)
     end
   end
 
   # The verifier can only catch a defect the prompt does not itself sanction.
   def test_no_shot_direction_asks_for_other_people
     Pipeline::SHOT_STYLES.each_with_index do |style, i|
-      refute_match(/people around|others|coworkers|colleagues/i, style[:direction],
+      refute_match(/people around|coworkers|colleagues/i, style[:direction],
                    "slot #{i + 1} invites extra subjects: #{style[:direction].inspect}")
+      refute_match(/only person|exactly one/i, style[:direction],
+                   "slot #{i + 1} forbids colleagues: #{style[:direction].inspect}")
     end
   end
 

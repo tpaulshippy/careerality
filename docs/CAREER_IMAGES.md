@@ -276,8 +276,13 @@ verifier never blocks the run.
 **The verifier only catches defects the prompt does not itself sanction.** It checks the
 image against the intended prompt, so a prompt that asks for a crowd gets a crowd approved.
 The first version of slot 1 asked to "show the whole room and the people around them" and
-produced a populated boardroom that verified clean. Every shot now constrains the frame to
-exactly one person, and `image_prompts_test.rb` asserts it.
+produced a populated boardroom that verified clean.
+
+Prompts therefore ask for the subject to be **the clear focus**, not to be *the only person
+in frame*. Headcount is the wrong constraint: it fixed the boardroom and then failed every
+occupation whose work inherently involves a group. Preschool teachers were rejected 3/3 for
+depicting "multiple children" and for "specifying exactly one person" — and since a rejection
+is terminal, those careers would have shipped nothing at all.
 
 **Expect the verifier to be strict, and to be weak at fine hand anatomy.** It reliably
 catches garbled text, melted background faces, wrong subjects and illustration-instead-of-
