@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, ImageStyle, Image, Linking } from 'react-native';
 import { Card } from './Card';
 import { Section } from './Section';
@@ -9,7 +9,7 @@ import { CareerROI, CareerImage } from '../types';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
 import { useTheme } from '../hooks/useTheme';
 import { getOccupationGroup } from '../utils/occupationGroup';
-import { getImageUrl } from '../utils/careerImage';
+import { getImageUrls, IMAGE_SLOTS } from '../utils/careerImage';
 
 const JOB_ZONE_LABELS: Record<number, string> = {
   1: 'Little to no preparation',
@@ -18,6 +18,8 @@ const JOB_ZONE_LABELS: Record<number, string> = {
   4: 'Considerable preparation',
   5: 'Extensive preparation',
 };
+
+export const SLIDE_INTERVAL_MS = 4000;
 
 interface CareerDetailViewProps {
   career: CareerROI;
@@ -28,12 +30,79 @@ interface CareerDetailViewProps {
 
 export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, images, onClose, onInterest }) => {
   const theme = useTheme();
-  const imageUrl = getImageUrl(career.occupation_code);
-  const [imageFailed, setImageFailed] = useState(false);
 
+  // Slideshow state. `urls` holds one candidate per generated slot plus the
+  // pre-slideshow single image as a final fallback. The legacy image is only ever
+  // shown when no slot loaded at all: for a regenerated career it duplicates slot
+  // 1, so including it in the rotation would repeat a photo.
+  //
+  // Everything derived from these must be memoised. The auto-advance effect below
+  // depends on `advance`, so an unstable dependency would tear down and restart the
+  // interval on every render and reset the countdown.
+  const occupationCode = career.occupation_code;
+  const urls = useMemo(() => getImageUrls(occupationCode), [occupationCode]);
+  const [cursor, setCursor] = useState(0);
+  const [failed, setFailed] = useState<Set<number>>(() => new Set());
+  const [hidden, setHidden] = useState(false);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Candidate indices that have not 404'd.
+  const available = useMemo(
+    () => urls.map((_, i) => i).filter((i) => !failed.has(i)),
+    [urls, failed]
+  );
+  // Prefer real slots; fall back to the legacy object only when none survived.
+  const rotation = useMemo(() => {
+    const frames = available.filter((i) => i < IMAGE_SLOTS);
+    return frames.length > 0 ? frames : available;
+  }, [available]);
+  const frames = useMemo(() => rotation.filter((i) => i < IMAGE_SLOTS), [rotation]);
+  const showImage = !hidden && rotation.length > 0;
+  const canAdvance = rotation.length > 1;
+  // cursor is always a valid index: it is only ever set from `rotation`,
+  // from `remaining`, or reset to 0.
+  const currentIndex = failed.has(cursor) ? rotation[0] : cursor;
+  const currentUrl = urls[currentIndex];
+
+  const advance = useCallback(() => {
+    if (rotation.length <= 1) return;
+    const position = rotation.indexOf(currentIndex);
+    setCursor(rotation[(position + 1) % rotation.length]);
+  }, [rotation, currentIndex]);
+
+  // Reset whenever the career changes.
   useEffect(() => {
-    setImageFailed(false);
-  }, [imageUrl]);
+    setCursor(0);
+    setFailed(new Set());
+    setHidden(false);
+  }, [career.occupation_code]);
+
+  // Auto-advance only while more than one image is actually available.
+  useEffect(() => {
+    if (!showImage || rotation.length <= 1) return undefined;
+    timer.current = setInterval(advance, SLIDE_INTERVAL_MS);
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, [showImage, rotation.length, advance]);
+
+  const handleImageError = () => {
+    const next = new Set(failed);
+    next.add(currentIndex);
+    setFailed(next);
+
+    const remaining = urls.map((_, i) => i).filter((i) => !next.has(i));
+    if (remaining.length === 0) {
+      setHidden(true);
+      return;
+    }
+    if (next.has(cursor)) {
+      const nextFrames = remaining.filter((i) => i < IMAGE_SLOTS);
+      setCursor(nextFrames.length > 0 ? nextFrames[0] : remaining[0]);
+    }
+  };
+
+  const handleDotPress = (target: number) => setCursor(target);
 
   const isNational = career.area_code === '99' || career.area_name === 'U.S.';
   const showColIndex = !isNational && career.adjusted_salary !== career.annual_median_salary;
@@ -74,14 +143,54 @@ export const CareerDetailView: React.FC<CareerDetailViewProps> = ({ career, imag
           )}
         </View>
 
-        {!imageFailed && (
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.careerImage}
-            resizeMode="cover"
-            testID="career-detail-image"
-            onError={() => setImageFailed(true)}
-          />
+        {showImage && (
+          <View style={styles.imageBlock}>
+            {/* With a single photo there is nothing to advance to, so the wrapper is
+                inert rather than an enabled button that does nothing. */}
+            <TouchableOpacity
+              activeOpacity={canAdvance ? 0.9 : 1}
+              onPress={canAdvance ? advance : undefined}
+              disabled={!canAdvance}
+              accessibilityRole={canAdvance ? 'button' : 'image'}
+              accessibilityLabel={
+                canAdvance
+                  ? `Show next photo of ${career.occupation_name}`
+                  : `Photo of ${career.occupation_name}`
+              }
+            >
+              <Image
+                source={{ uri: currentUrl }}
+                style={styles.careerImage}
+                resizeMode="cover"
+                testID="career-detail-image"
+                onError={handleImageError}
+              />
+            </TouchableOpacity>
+
+            {canAdvance && (
+              <View style={styles.dots} testID="career-detail-dots">
+                {frames.map((i) => (
+                  <TouchableOpacity
+                    key={urls[i]}
+                    onPress={() => handleDotPress(i)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Photo ${i + 1}`}
+                    accessibilityState={{ selected: i === currentIndex }}
+                    // The dot is 6pt; hitSlop brings the touch target up to a usable size.
+                    hitSlop={{ top: 19, bottom: 19, left: 19, right: 19 }}
+                    testID={`career-detail-dot-${i}`}
+                    style={[
+                      styles.dot,
+                      {
+                        backgroundColor:
+                          i === currentIndex ? theme.colors.primary : theme.colors.border,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
         )}
 
         {career.day_in_life_full && (
@@ -183,8 +292,23 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 8,
-    marginBottom: 20,
   } as ImageStyle,
+  // Spacing lives on the wrapper, which renders whether or not the dots are shown,
+  // so the single-photo case keeps the same gap as before.
+  imageBlock: {
+    marginBottom: 20,
+  } as ViewStyle,
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+  } as ViewStyle,
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  } as ViewStyle,
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',

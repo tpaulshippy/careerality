@@ -2,67 +2,142 @@
 
 require_relative 'image_prompts'
 
+# Writes image_prompts.json: one entry per occupation, each carrying IMAGE_COUNT
+# prompts so the in-app slideshow has distinct framings to cycle through.
+#
+# Runs entirely off generated_narratives/ by default. The database is only
+# consulted for a career that has no narrative, and only if one is reachable.
 class GenerateImagePrompts
-  def initialize
-    ImagePrompts.establish_connection
+  # "111011" -> "11-1011.00". career_profiles stores the SOC form, so a lookup for a
+  # compact code has to restore it or the query silently matches nothing.
+  def self.soc_code(compact)
+    Pipeline.soc(compact)
   end
 
-  def generate_image_prompt(occupation_data, occupation_name)
-    singular_name = ImagePrompts.singularize_occupation(occupation_name)
-    primary_task = ImagePrompts.primary_task(occupation_data)
-    work_context = ImagePrompts.work_context(occupation_data)
+  def initialize(connect_to_db: false)
+    @connect_to_db = connect_to_db
+    @connected = false
+  end
 
-    prompt = <<~PROMPT
-      Cinematic documentary photograph of a #{singular_name} at work.
-      
-      Scene: #{primary_task}.
-      Environment: #{work_context}.
-      
-      Shot on 35mm, shallow depth of field, natural window light, candid mid-action moment.
-      Photorealistic, editorial style, no text, no logos.
-      Subject is focused and competent, not posed or looking at camera.
-    PROMPT
+  # Connects on demand. The default run needs no database, so the connection is only
+  # opened if a career turns out to be missing its narrative.
+  def connect_db
+    return if @connected || !@connect_to_db
 
-    prompt.strip
+    ImagePrompts.establish_connection
+    @connected = true
+  end
+
+  # The full career list, when the database is reachable. Without it the default run
+  # covers only careers that have a narrative file, so a missing one would be silently
+  # omitted instead of reaching the O*NET/generic fallback below.
+  def database_codes
+    return [] unless @connect_to_db
+
+    connect_db
+    ImagePrompts.load_all_occupation_codes
+  rescue StandardError => e
+    warn "Could not read career_profiles (#{e.class}); using the narratives on their own"
+    []
+  end
+
+  def generate_image_prompts(occupation_data, occupation_name, narrative = nil)
+    ImagePrompts.build_prompts(occupation_data, occupation_name, narrative)
   end
 
   def process_all(occupation_codes = nil)
-    codes = occupation_codes || ImagePrompts.load_all_occupation_codes
+    narratives = ImagePrompts.narrative_index
+    # Default to every career we can name: the narrative index, unioned with
+    # career_profiles when a database is reachable, so a career missing its narrative
+    # still reaches the O*NET/generic fallback instead of being silently dropped.
+    codes = occupation_codes ||
+            (narratives.keys + database_codes.map { |c| ImagePrompts.compact_code(c) }).uniq.sort
+    if codes.empty?
+      raise 'No occupations to build prompts for. Expected narrative JSON files in ' \
+            "#{File.expand_path('generated_narratives', __dir__)}; " \
+            'pass explicit codes as the second argument to override.'
+    end
 
     results = {}
+    from_narrative = 0
+    missing_narrative = []
+    onet_misses = 0
+    lookup_failures = 0
 
-    codes.each do |code|
-      puts "Generating prompt for #{code}..."
+    codes.each do |raw_code|
+      # Normalise once: the narrative index and the output keys are compact codes,
+      # while career_profiles is keyed by SOC format.
+      code = ImagePrompts.compact_code(raw_code)
+      narrative = narratives[code]
+      occupation_data = nil
 
-      occupation_data = ImagePrompts.load_occupation_data(code)
-      unless occupation_data
-        puts "No data found for #{code}, skipping"
-        next
+      if narrative
+        from_narrative += 1
+      else
+        missing_narrative << code
+        begin
+          connect_db
+          occupation_data = ImagePrompts.load_occupation_data(self.class.soc_code(code))
+        rescue StandardError => e
+          # The database is a fallback only. If it is unreachable, degrade to generic
+          # copy for this career rather than aborting a run that can otherwise
+          # produce good prompts for everything else.
+          warn "  #{code}: O*NET lookup unavailable (#{e.class}), using generic copy"
+          lookup_failures += 1
+          occupation_data = nil
+        end
+        onet_misses += 1 if occupation_data.nil?
       end
 
-      name = occupation_data['OnetTitle'] || code
-      prompt = generate_image_prompt(occupation_data, name)
+      name = narrative&.dig('occupation_name') ||
+             occupation_data&.dig('OnetTitle') ||
+             code
 
       results[code] = {
-        occupation_name: name,
-        prompt: prompt
+        'occupation_name' => name,
+        # Distinguish a real O*NET fallback from a placeholder so downstream audits
+        # can tell which careers got generic copy.
+        'source' => if narrative then 'narrative'
+                    elsif occupation_data then 'onet'
+                    else 'generic'
+                    end,
+        'prompts' => generate_image_prompts(
+          occupation_data || { 'OnetTitle' => name },
+          name,
+          narrative
+        )
       }
     end
 
+    # onet_misses had no career_profiles row either, so they did not actually reach
+    # ONET data and must not be counted with the ones that did.
+    from_onet = missing_narrative.size - onet_misses
+    puts "Prompts built from narratives: #{from_narrative}, from ONET fallback: #{from_onet}"
+    unless missing_narrative.empty?
+      puts "  no narrative: #{missing_narrative.first(10).join(', ')}#{missing_narrative.size > 10 ? ' ...' : ''}"
+    end
+    if onet_misses.positive?
+      puts "  #{onet_misses} had no usable O*NET row, so generic copy was used" \
+           "#{lookup_failures.positive? ? " (#{lookup_failures} lookup failure(s))" : ''}"
+    end
     results
   end
 
   def save_prompts(output_file, occupation_codes = nil)
     results = process_all(occupation_codes)
     File.write(output_file, JSON.pretty_generate(results))
-    puts "Saved prompts to #{output_file}"
+    puts "Saved #{results.size} occupations x #{ImagePrompts::IMAGE_COUNT} prompts to #{output_file}"
+    results
   end
 end
 
 if __FILE__ == $PROGRAM_NAME
   output = ARGV[0] || File.expand_path('image_prompts.json', __dir__)
-  codes = ARGV[1]&.split(',') || nil
+  codes = ARGV[1]&.split(',')
 
-  generator = GenerateImagePrompts.new
+  # No database by default: a career with a narrative needs none. Set USE_DB=true to
+  # also cover careers missing one, which unions career_profiles so they reach the
+  # O*NET fallback rather than being dropped.
+  generator = GenerateImagePrompts.new(connect_to_db: ENV['USE_DB'] == 'true')
   generator.save_prompts(output, codes)
 end
