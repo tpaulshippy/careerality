@@ -130,9 +130,12 @@ VERIFY_IMAGES=false ruby generate_images.rb
 MAX_ATTEMPTS=5 ruby generate_images.rb
 ```
 
-A rejected image is recorded as terminal, so raising `MAX_ATTEMPTS` and re-running
-will **not** retry it. To re-roll a rejected slot, delete its entry from the state
-file first:
+A rejected image is **not written to disk** — the verifier flagged it, so the bytes are
+known-bad, and the uploader publishes every file it finds. That slot keeps no PNG, so the
+client falls back to the legacy image for it instead of showing the defect.
+
+A rejection is recorded as terminal, so raising `MAX_ATTEMPTS` and re-running will **not**
+retry it. To re-roll a rejected slot, delete its entry from the state file first:
 
 ```bash
 ruby -rjson -e '
@@ -192,8 +195,10 @@ Interrupt with Ctrl-C at any time; just run the same command again to continue.
 ### Verifier behaviour
 
 `/verify` returns `pass` plus a list of issues. On rejection the generator **reseeds and
-retries** (default 3 attempts), keeping the last image either way and recording the reason
-in the state file.
+retries** (default 3 attempts). If every attempt is rejected, the reasons are recorded in
+the state file and **no PNG is written** — the last attempt's bytes are known-bad, so
+keeping them would publish the exact defects the verifier exists to catch. The slot stays
+empty and the client falls back to the legacy image for it.
 
 If the verifier is unreachable the image is accepted and marked `unverified` — a flaky
 verifier never blocks the run.

@@ -320,8 +320,13 @@ class GenerateImages
           }
           puts "#{result[:status]} after #{result[:attempts]} attempt(s) #{result[:seed]}"
         when :rejected
-          write_image(path, result[:bytes])
-          counts[:generated] += 1
+          # Deliberately not written to disk. Every attempt failed vision
+          # verification, so the bytes are known-bad: garbled text, extra fingers, a
+          # mangled face. The uploader publishes every <code>_<slot>.png it finds, so
+          # writing them would ship exactly the defects the verifier exists to catch,
+          # and the slot would then look complete. Leaving the file absent means the
+          # client falls back to the legacy image for that slot instead.
+          File.delete(path) if File.exist?(path)
           counts[:rejected] += 1
           state[key] = {
             'occupation_code' => code,
