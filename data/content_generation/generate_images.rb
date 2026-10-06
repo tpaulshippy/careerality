@@ -97,6 +97,43 @@ class GenerateImages
     get_json('/health')
   end
 
+  # True when the service can actually verify an image right now.
+  #
+  # /health reports the verifier as e.g. "qwen3-vl:4b (ready)" or "(degraded)". A
+  # degraded verifier returns HTTP 500 for every image after ~142s -- including images
+  # that verified seconds earlier -- and does not recover on a cooldown or after a
+  # generate. That is indistinguishable from a batch that simply has no rejections, so
+  # without this gate a multi-day run quietly produces thousands of unverified images.
+  #
+  # The readiness word is matched as a substring because it is interpolated into a model
+  # string we do not control. A model that renamed the state would read as ready rather
+  # than as a hard failure.
+  def verifier_ready?(info = health)
+    return false unless info.is_a?(Hash)
+    return false unless info['loaded']
+
+    # A missing or blank verifier field fails closed. Reading it as ready would mean a
+    # truncated or older /health payload silently disables the gate.
+    verifier = info['verifier'].to_s.strip
+    return false if verifier.empty?
+
+    !verifier.include?('degraded')
+  end
+
+  # Aborts the batch before any image is generated when the verifier cannot be trusted.
+  # Skipped when verification is disabled, since a degraded verifier is then irrelevant.
+  def preflight!(info = nil)
+    return :skipped unless @config[:verify]
+
+    info ||= health
+    return :ok if verifier_ready?(info)
+
+    raise "Verifier is not ready: #{info.inspect}. Refusing to start, because every " \
+          'image would be recorded as unverified and the run would look successful. ' \
+          'Wait for /health to report the verifier ready, or set VERIFY_IMAGES=false to ' \
+          'generate without checking.'
+  end
+
   def generate(prompt, seed)
     body = {
       prompt: prompt,
@@ -223,9 +260,14 @@ class GenerateImages
 
   # --- Main loop ------------------------------------------------------------
 
-  def run(prompts_file, output_dir, state_file:, codes: nil, limit: nil)
+  def run(prompts_file, output_dir, state_file:, codes: nil, limit: nil, health: nil)
     prompts = load_prompts(prompts_file)
     FileUtils.mkdir_p(output_dir)
+
+    # Before anything expensive: a batch takes days, and a degraded verifier turns that
+    # into days of unverified images. `health` lets a caller that already fetched it
+    # avoid a second request.
+    puts "Preflight: #{preflight!(health)}"
 
     state = load_state(state_file)
 
@@ -452,8 +494,10 @@ if __FILE__ == $PROGRAM_NAME
   rescue StandardError => e
     puts "Error: cannot reach image API at #{generator.config[:endpoint]} (#{e.message})"
     puts 'See docs/CAREER_IMAGES.md for setup, or set IMAGE_API_URL to your tailnet URL.'
+    puts 'Reaching a tailnet IP also needs IMAGE_API_HOST; a bare 404 usually means that.'
     exit 1
   end
 
-  generator.run(prompts_file, output_dir, state_file: state_file, codes: codes, limit: limit)
+  generator.run(prompts_file, output_dir, state_file: state_file, codes: codes, limit: limit,
+                 health: info)
 end

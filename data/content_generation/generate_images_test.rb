@@ -225,7 +225,52 @@ class TestGenerateImagesConfig < Minitest::Test
 
   # The PNG sources are 1024 wide and the slideshow renders at width:'100%' on a
   # ~390pt screen, so a 600px WebP discards the resolution the 16:9 change delivers.
-  # Tailscale routes on Host, so a request to a tailnet IP without this override gets a
+  # A degraded verifier 500s on every image, including ones that verified seconds
+  # earlier, and does not recover on a cooldown. Without this gate a multi-day batch
+  # produces thousands of unverified images and still reports success.
+  def test_verifier_readiness_fails_closed
+    gen = GenerateImages.new
+
+    assert gen.verifier_ready?('loaded' => true, 'verifier' => 'qwen3-vl:4b (ready)')
+    refute gen.verifier_ready?('loaded' => true, 'verifier' => 'qwen3-vl:4b (degraded)')
+    refute gen.verifier_ready?('loaded' => false, 'verifier' => 'qwen3-vl:4b (ready)')
+  end
+
+  # Every malformed shape must refuse rather than read as ready.
+  def test_verifier_readiness_refuses_unexpected_payloads
+    gen = GenerateImages.new
+
+    [nil, 'a string', [], 42, {}, { 'verifier' => 'ready' },
+     { 'loaded' => true },
+     { 'loaded' => true, 'verifier' => '' },
+     { 'loaded' => true, 'verifier' => '   ' }].each do |info|
+      refute gen.verifier_ready?(info), "#{info.inspect} must not read as ready"
+    end
+  end
+
+  def test_preflight_aborts_on_a_degraded_verifier
+    gen = GenerateImages.new
+    e = assert_raises(RuntimeError) do
+      gen.preflight!('loaded' => true, 'verifier' => 'qwen3-vl:4b (degraded)')
+    end
+    assert_match(/Refusing to start/, e.message)
+    assert_match(/VERIFY_IMAGES=false/, e.message)
+  end
+
+  def test_preflight_passes_a_ready_verifier
+    assert_equal :ok, GenerateImages.new.preflight!(
+      'loaded' => true, 'verifier' => 'qwen3-vl:4b (ready)'
+    )
+  end
+
+  # A degraded verifier is irrelevant when the operator turned verification off.
+  def test_preflight_is_skipped_when_verification_is_disabled
+    with_env('VERIFY_IMAGES' => 'false') do
+      assert_equal :skipped, GenerateImages.new.preflight!(nil)
+    end
+  end
+
+# Tailscale routes on Host, so a request to a tailnet IP without this override gets a
   # 404 that looks like an unhealthy service. The endpoint stays the IP because a host
   # with Funnel enabled resolves its MagicDNS name to the public address.
   def test_host_header_override_is_applied_to_every_request

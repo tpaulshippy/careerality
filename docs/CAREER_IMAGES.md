@@ -232,15 +232,32 @@ Interrupt with Ctrl-C at any time; just run the same command again to continue.
 
 ### ⚠️ Verifier reliability — check before a full run
 
-`GET /health` reports the verifier as `qwen3-vl:4b (ready)` or `(degraded)`. **Poll it
-before starting a batch.** While degraded, every `/verify` returns HTTP 500 after ~142s
-— including images that verified seconds earlier — and it does not recover on a
-five-minute cooldown or after a `/generate`.
+`GET /health` reports the verifier as `qwen3-vl:4b (ready)` or `(degraded)`. **While
+degraded, every `/verify` returns HTTP 500 after ~142s** — including images that verified
+seconds earlier — and it does not recover on a five-minute cooldown or after a
+`/generate`. It has been observed to come back on its own after longer.
 
-The generator treats a failed verification as `unverified` rather than as a failure, which
-is honest but means a long run against a degraded verifier will quietly produce thousands
-of unverified images. If a run is reporting mostly `unverified`, stop and check `/health`
-rather than letting it continue.
+`generate_images.rb` therefore runs a **pre-flight check** and refuses to start when the
+verifier is not ready, because a degraded verifier records every image as `unverified` and
+the run still reports success:
+
+```
+$ ruby generate_images.rb
+Image API: {"status"=>"ok", ..., "verifier"=>"qwen3-vl:4b (degraded)", "loaded"=>true}
+Preflight: Verifier is not ready: ... Refusing to start, ...
+```
+
+Pass `VERIFY_IMAGES=false` to bypass it and generate without checking. To check by hand:
+
+```bash
+curl -fsS -H "Host: your-mac.<tailnet>.ts.net" http://100.x.y.z:8777/health \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if d["loaded"] and "degraded" not in d["verifier"] else 1)' \
+  || { echo "verifier degraded - refusing to start batch"; exit 1; }
+```
+
+The pre-flight only covers the *start* of a batch. Degradation mid-run is still recorded
+as `unverified` per image, so **watch the summary** — if it is mostly `unverified`, stop and
+re-check `/health` rather than letting a multi-day run continue unchecked.
 
 A full batch is 3,246 images. At the measured ~21s per `/generate` and ~9–30s per healthy
 `/verify` that is roughly 2–3 days of continuous generation on one machine.
