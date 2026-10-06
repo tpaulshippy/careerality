@@ -42,6 +42,11 @@ class UploadImages
   CONNECT_TIMEOUT = Integer(ENV['R2_CONNECT_TIMEOUT'] || 30)
   MAX_TIME = Integer(ENV['R2_MAX_TIME'] || 300)
 
+  # Objects per slot, in the order they are deleted. The bare legacy aliases exist
+  # only for slot 1.
+  SLOT_OBJECTS = ['%<code>s-%<slot>d.png', '%<code>s-%<slot>d.webp'].freeze
+  SLOT_ALIASES = ['%<code>s.png', '%<code>s.webp'].freeze
+
   def initialize(bucket_url:, access_key:, secret_key:, public_url: ENV['R2_PUBLIC_URL'] || DEFAULT_PUBLIC_URL)
     uri = URI.parse(bucket_url)
     @bucket_name = uri.path.gsub(%r{^/}, '').split('/').first
@@ -150,6 +155,84 @@ class UploadImages
     webp_path
   end
 
+  # Deletes an object. Needed when a slot is removed: the client resolves all three
+  # slot URLs unconditionally, so a leftover <code>-3.webp keeps serving an image for a
+  # prompt that no longer exists. R2 has no directory semantics, so the object has to go
+  # explicitly.
+  #
+  # The signature differs from a PUT only in the method, the payload hash (S3 uses the
+  # hash of the empty string) and the omission of cache-control/content-type, which are
+  # not sent on a DELETE.
+  def delete_from_r2(filename)
+    url = "#{@endpoint_url}/#{@bucket_name}/#{filename}"
+    date = Time.now.utc.strftime('%Y%m%dT%H%M%SZ')
+    date_stamp = Time.now.utc.strftime('%Y%m%d')
+    region = 'auto'
+    service = 's3'
+
+    payload_hash = Digest::SHA256.hexdigest('')
+    host = URI.parse(url).host
+    canonical_headers = "host:#{host}\nx-amz-content-sha256:#{payload_hash}\nx-amz-date:#{date}"
+    signed_headers = 'host;x-amz-content-sha256;x-amz-date'
+    canonical_request = "DELETE\n/#{@bucket_name}/#{filename}\n\n#{canonical_headers}\n\n#{signed_headers}\n#{payload_hash}"
+    algorithm = 'AWS4-HMAC-SHA256'
+    credential_scope = "#{date_stamp}/#{region}/#{service}/aws4_request"
+    string_to_sign = "#{algorithm}\n#{date}\n#{credential_scope}\n#{Digest::SHA256.hexdigest(canonical_request)}"
+
+    k_date = OpenSSL::HMAC.digest('sha256', "AWS4#{@secret_key}", date_stamp)
+    k_region = OpenSSL::HMAC.digest('sha256', k_date, region)
+    k_service = OpenSSL::HMAC.digest('sha256', k_region, service)
+    k_signing = OpenSSL::HMAC.digest('sha256', k_service, 'aws4_request')
+    signature = OpenSSL::HMAC.hexdigest('sha256', k_signing, string_to_sign)
+    authorization = "#{algorithm} Credential=#{@access_key}/#{credential_scope}, " \
+                    "SignedHeaders=#{signed_headers}, Signature=#{signature}"
+
+    cmd = [
+      'curl', '--silent', '--show-error',
+      '--connect-timeout', CONNECT_TIMEOUT.to_s,
+      '--max-time', MAX_TIME.to_s,
+      '-X', 'DELETE',
+      '-H', "x-amz-date: #{date}",
+      '-H', "x-amz-content-sha256: #{payload_hash}",
+      '-H', "Authorization: #{authorization}",
+      '--write-out', '%{http_code}',
+      '--output', '/dev/null',
+      url
+    ]
+
+    stdout, stderr, status = Open3.capture3(*cmd)
+    code = stdout.strip
+    # 204 is the S3/R2 success code; 404 means it is already gone, which is the
+    # desired end state either way.
+    return true if status.success? && %w[200 202 204 404].include?(code)
+
+    warn "Delete failed for #{filename} (HTTP #{code}): #{stderr}"
+    false
+  end
+
+  # Removes a slot's published objects and its manifest entry. Called when a career has
+  # fewer prompts than configured slots, so the old per-slot images do not linger in the
+  # slideshow.
+  def delete_slot(code, slot, manifest, output_file)
+    objects = SLOT_OBJECTS.map { |t| format(t, code: code, slot: slot) }
+    objects += SLOT_ALIASES.map { |t| format(t, code: code) } if slot == 1
+
+    deleted = objects.count { |name| delete_from_r2(name) }
+
+    # The manifest entry is only dropped once every object is gone. Removing it while a
+    # delete failed would make the slot invisible to the next prune, so the leftover
+    # objects would stay live forever with nothing left to retry.
+    if deleted == objects.size
+      manifest.delete("#{code}:#{slot}")
+      save_manifest(manifest, output_file)
+    else
+      warn "Keeping manifest entry #{code}:#{slot}: only #{deleted}/#{objects.size} objects deleted"
+    end
+
+    puts "Removed slot #{slot} for #{code}: deleted #{deleted}/#{objects.size} object(s)"
+    deleted == objects.size
+  end
+
   def upload_file(local_path, filename, content_type: 'image/png')
     return nil unless File.exist?(local_path)
 
@@ -180,7 +263,9 @@ class UploadImages
   def process_images_dir(images_dir, output_file)
     manifest = load_manifest(output_file)
     images = Dir.glob(File.join(images_dir, '*.png')).sort
-    counts = { png: 0, webp: 0, skipped: 0, failed: 0, repaired: 0 }
+    counts = { png: 0, webp: 0, skipped: 0, failed: 0, repaired: 0, deleted: 0 }
+
+    prune_stale_slots(images_dir, manifest, output_file, counts)
 
     images.each do |image_path|
       parsed = self.class.parse_filename(File.basename(image_path))
@@ -304,8 +389,39 @@ class UploadImages
     end
 
     puts "\npng=#{counts[:png]} webp=#{counts[:webp]} already_present=#{counts[:skipped]} " \
-         "re_uploaded_missing=#{counts[:repaired]} failed=#{counts[:failed]}"
+         "re_uploaded_missing=#{counts[:repaired]} " \
+         "stale_slots_removed=#{counts[:deleted]} failed=#{counts[:failed]}"
     manifest
+  end
+
+  # Deletes slots whose image is no longer being produced. The client resolves all
+  # IMAGE_COUNT slot URLs unconditionally, so a career dropped from three prompts to two
+  # would otherwise keep showing its old third image indefinitely — the generator removes
+  # the local file, but R2 has no directory semantics and keeps serving the object.
+  #
+  # Scoped to codes that are present in this directory but short a slot. That matters:
+  # this script is routinely pointed at a subset of careers (a smoke test, or a
+  # single regenerated career), and a manifest-wide sweep would delete every other
+  # career's live images. A code absent from the directory entirely is never touched,
+  # because its absence proves nothing about whether it should still exist.
+  def prune_stale_slots(images_dir, manifest, output_file, counts)
+    present = {}
+    Dir.glob(File.join(images_dir, '*.png')).each do |path|
+      parsed = self.class.parse_filename(File.basename(path))
+      next unless parsed
+
+      (present[parsed[:code]] ||= []) << parsed[:slot]
+    end
+
+    stale = present.flat_map do |code, slots|
+      (1..Pipeline::IMAGE_COUNT).to_a.reject { |s| slots.include?(s) }.map { |s| "#{code}:#{s}" }
+    end.select { |key| manifest.key?(key) }
+    return if stale.empty?
+
+    stale.sort.each do |key|
+      code, slot = key.split(':')
+      delete_slot(code, slot.to_i, manifest, output_file) ? counts[:deleted] += 1 : counts[:failed] += 1
+    end
   end
 
   def load_manifest(output_file)

@@ -3,6 +3,7 @@
 require 'minitest/autorun'
 require 'tmpdir'
 require_relative 'generate_images'
+require_relative 'upload_images'
 
 # The generator's configuration is entirely environment-driven, and two of those
 # knobs are destructive when set wrong. image_count in particular interacts with the
@@ -178,6 +179,14 @@ class TestGenerateImagesConfig < Minitest::Test
 
   # A rename is atomic on the same filesystem; the failure mode that matters is a
   # partial write never reaching `path`.
+  def test_generated_filenames_are_all_parseable
+    # The contract the uploader depends on: every file it sees must map to a slot.
+    (1..Pipeline::IMAGE_COUNT).each do |slot|
+      name = "111011_#{slot}.png"
+      assert_equal({ code: '111011', slot: slot }, UploadImages.parse_filename(name))
+    end
+  end
+
   def test_write_image_never_leaves_a_partial_file_at_the_target
     Dir.mktmpdir do |dir|
       path = File.join(dir, 'img.png')
