@@ -279,14 +279,20 @@ Objects are written under a stable name with `Cache-Control: public, max-age=360
 are overwritten in place, and a year-long immutable cache would leave installed clients
 showing the pre-regeneration image long after R2 accepted the replacement.
 
-**Slots are pruned when they go away.** The client requests all three slot URLs
-unconditionally, so a career reduced from three prompts to two would otherwise keep
+**Per-slot objects are pruned when a slot goes away.** The client requests all three slot
+URLs unconditionally, so a career reduced from three prompts to two would otherwise keep
 showing its old third image forever — the generator removes the local PNG, but R2 has no
 directory semantics and keeps serving the object. Each run deletes the objects for any slot
 the manifest records that has no PNG in the directory, and drops the manifest entry once
 every object is confirmed gone. Deletions are scoped to careers present in the directory:
 pointing the script at a subset (a smoke test, or one regenerated career) never deletes
 another career's live images.
+
+The `<code>.png` and `<code>.webp` legacy aliases are **never** pruned. A missing slot-1
+PNG usually means that slot was rejected or the run is still in progress, not that the
+career is gone, and those aliases are the only image five screens load. Deleting them in
+that situation would leave every one of those consumers with no image rather than the
+previous one.
 
 The summary reports `stale_slots_removed`. If a delete fails the manifest entry is kept, so
 the next run retries it rather than leaving orphaned objects with nothing tracking them.

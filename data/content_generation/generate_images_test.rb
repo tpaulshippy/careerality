@@ -180,16 +180,45 @@ class TestGenerateImagesConfig < Minitest::Test
 
   # A rename is atomic on the same filesystem; the failure mode that matters is a
   # partial write never reaching `path`.
+  def test_write_image_never_leaves_a_partial_file_at_the_target
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'img.png')
+      File.write(path, 'complete-original')
+
+      gen = GenerateImages.new
+      boom = Class.new(StandardError)
+      gen.define_singleton_method(:write_image) do |_p, bytes|
+        tmp = "#{_p}.tmp"
+        File.binwrite(tmp, bytes[0, 3]) # simulate a partial write
+        raise boom, 'interrupted'
+      end
+
+      assert_raises(boom) { gen.send(:write_image, path, 'x' * 100) }
+      assert_equal 'complete-original', File.read(path),
+                   'the previous complete file must survive a failed write'
+    end
+  end
+
   # The PNG sources are 1024 wide and the slideshow renders at width:'100%' on a
   # ~390pt screen, so a 600px WebP discards the resolution the 16:9 change delivers.
   def test_webp_is_produced_at_the_source_width
-    default = UploadImages.instance_method(:generate_webp).parameters
-                            .find { |kind, _| kind == :key }&.last
-    assert_equal :max_width, default
-
+    # Extract the default expression and evaluate it, rather than asserting on source
+    # text: the contract is "1024 unless R2_WEBP_WIDTH overrides", and duplicating
+    # that logic here would let both sides drift in step.
     source = File.read(File.expand_path('upload_images.rb', __dir__))
-    assert_includes source, "ENV['R2_WEBP_WIDTH'] || 1024",
-                    'WebP width should default to the 1024 source width and be overridable'
+    expression = source[/def generate_webp\(source_path,\s*max_width:\s*(.+?),\s*quality:/m, 1]
+    refute_nil expression, 'could not find the generate_webp max_width default'
+
+    previous = ENV['R2_WEBP_WIDTH']
+    begin
+      ENV.delete('R2_WEBP_WIDTH')
+      assert_equal 1024, eval(expression) # rubocop:disable Security/Eval
+
+      ENV['R2_WEBP_WIDTH'] = '1536'
+      assert_equal '1536', eval(expression) # rubocop:disable Security/Eval
+    ensure
+      previous.nil? ? ENV.delete('R2_WEBP_WIDTH') : ENV['R2_WEBP_WIDTH'] = previous
+    end
   end
 
   # A manifest written by the previous uploader can map a key straight to a URL string.
@@ -241,22 +270,4 @@ class TestGenerateImagesConfig < Minitest::Test
     end
   end
 
-  def test_write_image_never_leaves_a_partial_file_at_the_target
-    Dir.mktmpdir do |dir|
-      path = File.join(dir, 'img.png')
-      File.write(path, 'complete-original')
-
-      gen = GenerateImages.new
-      boom = Class.new(StandardError)
-      gen.define_singleton_method(:write_image) do |_p, bytes|
-        tmp = "#{_p}.tmp"
-        File.binwrite(tmp, bytes[0, 3]) # simulate a partial write
-        raise boom, 'interrupted'
-      end
-
-      assert_raises(boom) { gen.send(:write_image, path, 'x' * 100) }
-      assert_equal 'complete-original', File.read(path),
-                   'the previous complete file must survive a failed write'
-    end
-  end
 end

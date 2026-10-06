@@ -42,10 +42,10 @@ class UploadImages
   CONNECT_TIMEOUT = Integer(ENV['R2_CONNECT_TIMEOUT'] || 30)
   MAX_TIME = Integer(ENV['R2_MAX_TIME'] || 300)
 
-  # Objects per slot, in the order they are deleted. The bare legacy aliases exist
-  # only for slot 1.
+  # Per-slot objects, the only ones the prune deletes. The bare <code>.png and
+  # <code>.webp legacy aliases are published for slot 1 and never pruned; see
+  # delete_slot.
   SLOT_OBJECTS = ['%<code>s-%<slot>d.png', '%<code>s-%<slot>d.webp'].freeze
-  SLOT_ALIASES = ['%<code>s.png', '%<code>s.webp'].freeze
 
   def initialize(bucket_url:, access_key:, secret_key:, public_url: ENV['R2_PUBLIC_URL'] || DEFAULT_PUBLIC_URL)
     uri = URI.parse(bucket_url)
@@ -218,8 +218,15 @@ class UploadImages
   # fewer prompts than configured slots, so the old per-slot images do not linger in the
   # slideshow.
   def delete_slot(code, slot, manifest, output_file)
+    # Only the per-slot objects are removed. The bare <code>.webp / <code>.png aliases
+    # are deliberately left alone: they are the only image five screens load (SwipeCard,
+    # MapScreen, CompareScreen, SearchScreen, ActionPlansScreen) and the slideshow's
+    # final fallback. A missing slot-1 PNG usually means that slot was rejected or the
+    # run is mid-flight, not that the career is gone — deleting the aliases then would
+    # leave every one of those consumers with no image instead of the previous one. The
+    # upload path keeps them pointing at slot 1, and a career with no slots at all is out
+    # of scope for the prune.
     objects = SLOT_OBJECTS.map { |t| format(t, code: code, slot: slot) }
-    objects += SLOT_ALIASES.map { |t| format(t, code: code) } if slot == 1
 
     deleted = objects.count { |name| delete_from_r2(name) }
 
@@ -431,7 +438,8 @@ class UploadImages
 
     stale.sort.each do |key|
       code, slot = key.split(':')
-      delete_slot(code, slot.to_i, manifest, output_file) ? counts[:deleted] += 1 : counts[:failed] += 1
+      result = delete_slot(code, slot.to_i, manifest, output_file)
+      result ? counts[:deleted] += 1 : counts[:failed] += 1
     end
   end
 
