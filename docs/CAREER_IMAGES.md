@@ -9,7 +9,9 @@ Everything runs locally on an Apple Silicon Mac at **$0** — no API keys, no pe
 ## How it works
 
 ```
-generated_narratives/*.json   (existing, 1082 careers)
+generate_narratives.rb ──────► narrative_prompts.json
+generate_narratives_with_llm ► generated_narratives/*.json   (1082 careers)
+                               ↑ NOT in git — produced by the step below
         │
         ▼
 generate_image_prompts.rb ──► image_prompts.json   3 prompts per career
@@ -32,11 +34,12 @@ literally `Scene: .` / `Environment: .` and still produced an uploaded image, an
 1,082 prompts shared a single identical style suffix — which is why the old set looks
 like interchangeable stock photography.
 
-Prompts are now built from the existing day-in-the-life narratives, which describe real
-sensoried detail ("a quiet, glass-walled corner office with the hum of the city
-outside"). Coverage is 1082/1082, so there is no empty-prompt case left to fall back
-from. Each career gets 3 different framings — wide establishing, over-the-shoulder,
-close detail — so the slideshow reads as a sequence.
+Prompts are now built from the day-in-the-life narratives, which describe real
+sensory detail ("a quiet, glass-walled corner office with the hum of the city
+outside"). With a full narrative set generated (all 1,082 careers) there is no
+empty-prompt case left to fall back from; a missing narrative instead reaches the
+O\*NET fallback described under step 2. Each career gets 3 different framings — wide
+establishing, over-the-shoulder, close detail — so the slideshow reads as a sequence.
 
 ### URL convention (no database required)
 
@@ -84,6 +87,34 @@ not be downloaded or used.
 ---
 
 ## Running it
+
+### Step 0: generate the narratives (once, or when a narrative changes)
+
+`generated_narratives/` is **not in git** — it is a generated input, listed in
+`.gitignore` alongside the other build artefacts. On a fresh checkout the directory is
+absent and step 2 below fails with `No occupations to build prompts for`, because the
+career list comes only from that directory.
+
+The narratives are written by an LLM, not by this pipeline. They need a running Ollama
+server, which is where the cost of this step goes:
+
+```bash
+cd data/content_generation
+
+# 1a. Build narrative prompts from the database (career_profiles + onet_tasks).
+ruby generate_narratives.rb                 # writes narrative_prompts.json
+
+# 1b. Turn those prompts into narrative JSON via Ollama. ~1,082 calls, so this
+#     takes a while; it skips codes that already have a file.
+ollama pull llama3.2
+ruby generate_narratives_with_llm.rb        # writes generated_narratives/*.json
+```
+
+Only needed once, or when you rewrite a narrative — `generate_image_prompts.rb` reads
+whatever is already there. If you skip it entirely, set `USE_DB=true` on step 2 so careers
+without a narrative reach the O\*NET fallback instead of being omitted.
+
+### Steps 1-3
 
 ```bash
 cd data/content_generation
@@ -315,6 +346,8 @@ and not required**: the app resolves URLs by convention. Two caveats if you enab
 
 | File | Role |
 |---|---|
+| `generate_narratives.rb` | writes `narrative_prompts.json` (the narrative *prompts*) |
+| `generate_narratives_with_llm.rb` | calls Ollama to write `generated_narratives/*.json` — **not in git** |
 | `image_prompts.rb` | prompt construction: narratives primary, O\*NET fallback, 3 shot styles |
 | `generate_image_prompts.rb` | writes `image_prompts.json` |
 | `generate_images.rb` | calls `/generate` + `/verify`, retries, checkpoints |
