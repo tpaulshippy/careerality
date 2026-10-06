@@ -63,6 +63,26 @@ class GenerateImages
     issues.is_a?(Array)
   end
 
+  # Whether the model actually produced a verdict.
+  #
+  # The server sets this itself, outside the JSON schema handed to the vision model, so
+  # `verified: true` always means a real answer. It is false when the model's reasoning
+  # channel never terminated and it burned its token budget -- which the server reports as
+  # `pass: false` with a VERIFIER INCOMPLETE issue.
+  #
+  # That response must NOT be read as a rejection. A rejection is a finding about the
+  # image, and acting on one drops the slot permanently; an incomplete verdict says
+  # nothing about the image at all. Conflating the two is how a 30-image trial reported
+  # success while 26 images went unchecked.
+  #
+  # An absent `verified` means an older server that only ever returned real verdicts, or
+  # returned HTTP 500 on failure, so it is treated as verified.
+  def verdict_produced?(verdict)
+    return false unless verdict.is_a?(Hash)
+
+    verdict.fetch('verified', true) != false
+  end
+
   # A zero budget is destructive rather than merely useless. run() deletes any slot
   # whose generation failed, and deletes slots past image_count as stale, so
   # image_count: 0 or max_attempts: 0 would each remove every generated PNG in the
@@ -461,6 +481,15 @@ class GenerateImages
       end
 
       issues = verdict['issues'].map(&:to_s)
+
+      # A well-formed response that carries no verdict is an incomplete check, not a
+      # finding. Record it as unverified and stop, rather than burning the attempt budget
+      # retrying an image nothing has judged.
+      unless verdict_produced?(verdict)
+        warn "  verifier incomplete: #{issues.first || 'no reason given'}"
+        return { status: :unverified, bytes: bytes, seed: seed, attempts: attempts, issues: [] }
+      end
+
       passed = verdict['pass']
 
       if passed

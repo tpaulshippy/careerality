@@ -270,6 +270,36 @@ class TestGenerateImagesConfig < Minitest::Test
     end
   end
 
+# The server sets `verified` itself, outside the schema given to the model, and returns
+  # pass:false + VERIFIER INCOMPLETE when the model's reasoning channel ran out of tokens.
+  # That is not a finding about the image: acting on it would drop the slot permanently.
+  def test_incomplete_verdict_is_not_read_as_a_rejection
+    gen = GenerateImages.new
+    incomplete = {
+      'pass' => false,
+      'issues' => ['VERIFIER INCOMPLETE: the vision model did not return a verdict'],
+      'notes' => 'Treat as unverified and retry later; do not read this as a finding.',
+      'verified' => false
+    }
+
+    refute gen.verdict_produced?(incomplete), 'verified:false means no verdict was produced'
+    # The shape is still well formed, which is exactly why pass alone is not enough.
+    assert gen.valid_verdict?(incomplete), 'the incomplete response is structurally valid'
+    refute gen.valid_verdict?(incomplete) && gen.verdict_produced?(incomplete)
+  end
+
+  def test_verdict_produced_distinguishes_a_real_finding
+    gen = GenerateImages.new
+
+    assert gen.verdict_produced?('pass' => true, 'issues' => [], 'verified' => true)
+    assert gen.verdict_produced?('pass' => false, 'issues' => ['bad hands'], 'verified' => true)
+    # An older server omits the field entirely; it only ever returned real verdicts.
+    assert gen.verdict_produced?('pass' => true, 'issues' => [])
+    assert gen.verdict_produced?('pass' => false, 'issues' => ['bad hands'])
+    refute gen.verdict_produced?(nil)
+    refute gen.verdict_produced?('a string')
+  end
+
 # Tailscale routes on Host, so a request to a tailnet IP without this override gets a
   # 404 that looks like an unhealthy service. The endpoint stays the IP because a host
   # with Funnel enabled resolves its MagicDNS name to the public address.
