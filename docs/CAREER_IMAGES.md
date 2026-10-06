@@ -119,9 +119,15 @@ without a narrative reach the O\*NET fallback instead of being omitted.
 ```bash
 cd data/content_generation
 
-# 1. Point at your Mac (from the setup step). HTTPS is handled; certs are
-#    verified normally, which Tailscale satisfies.
-export IMAGE_API_URL=https://your-mac.<tailnet>.ts.net
+# 1. Point at your Mac (from the setup step).
+#
+#    Address the tailnet IP and set IMAGE_API_HOST to the MagicDNS name. Tailscale
+#    routes by Host header, so an IP-addressed request without the header gets a bare
+#    404 even when the service is healthy — it reads as "the server is down" and costs a
+#    lot of time. Do NOT resolve the MagicDNS name instead: if the Mac has Funnel
+#    enabled on :443, MagicDNS returns the public Funnel address, which only serves 443.
+export IMAGE_API_URL=http://100.x.y.z:8777
+export IMAGE_API_HOST=your-mac.<tailnet>.ts.net
 
 # 2. Build prompts  (writes image_prompts.json). Reads generated_narratives/ and
 #    needs no database.
@@ -198,7 +204,8 @@ produce must not be read as a rejection.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `IMAGE_API_URL` | `http://127.0.0.1:8777` | the mflux service on the M5; a tailnet URL from elsewhere |
+| `IMAGE_API_URL` | `http://127.0.0.1:8777` | the mflux service on the M5. Address the **tailnet IP**, not the MagicDNS name — see below |
+| `IMAGE_API_HOST` | unset | **required whenever `IMAGE_API_URL` is a tailnet IP.** Tailscale dispatches on the `Host` header, so without this every request gets a bare 404 that looks exactly like an unhealthy service |
 | `IMAGE_WIDTH` / `IMAGE_HEIGHT` | `1024` / `576` | 16:9, matching the ~1.95:1 slideshow viewport instead of the old 600×600 square. The client still crops with `resizeMode="cover"`, and the WebP is produced at the full 1024 width (override with `R2_WEBP_WIDTH`) |
 | `IMAGE_STEPS` | `4` | distilled `klein 4B`; `50` for the Base model — see the quality knob below |
 | `IMAGE_TIMEOUT` | `300` | seconds to wait for one `/generate` or `/verify` response. **Raise it for `IMAGE_STEPS=50`**, which can exceed 300s on a cold start; because seeds are deterministic, a timeout fails identically on every retry. The connect timeout is a separate hardcoded 30s |
@@ -223,6 +230,21 @@ for those; changing `IMAGE_STEPS` or the endpoint will not help on their own.
 
 Interrupt with Ctrl-C at any time; just run the same command again to continue.
 
+### ⚠️ Verifier reliability — check before a full run
+
+`GET /health` reports the verifier as `qwen3-vl:4b (ready)` or `(degraded)`. **Poll it
+before starting a batch.** While degraded, every `/verify` returns HTTP 500 after ~142s
+— including images that verified seconds earlier — and it does not recover on a
+five-minute cooldown or after a `/generate`.
+
+The generator treats a failed verification as `unverified` rather than as a failure, which
+is honest but means a long run against a degraded verifier will quietly produce thousands
+of unverified images. If a run is reporting mostly `unverified`, stop and check `/health`
+rather than letting it continue.
+
+A full batch is 3,246 images. At the measured ~21s per `/generate` and ~9–30s per healthy
+`/verify` that is roughly 2–3 days of continuous generation on one machine.
+
 ### Verifier behaviour
 
 `/verify` returns `pass` plus a list of issues. On rejection the generator **reseeds and
@@ -233,6 +255,12 @@ empty and the client falls back to the legacy image for it.
 
 If the verifier is unreachable the image is accepted and marked `unverified` — a flaky
 verifier never blocks the run.
+
+**The verifier only catches defects the prompt does not itself sanction.** It checks the
+image against the intended prompt, so a prompt that asks for a crowd gets a crowd approved.
+The first version of slot 1 asked to "show the whole room and the people around them" and
+produced a populated boardroom that verified clean. Every shot now constrains the frame to
+exactly one person, and `image_prompts_test.rb` asserts it.
 
 **Expect the verifier to be strict, and to be weak at fine hand anatomy.** It reliably
 catches garbled text, melted background faces, wrong subjects and illustration-instead-of-

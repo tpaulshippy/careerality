@@ -78,6 +78,24 @@ class TestImagePrompts < Minitest::Test
 
   # Slot 3 moves in tight on the subject's hands, which is the shot most likely to
   # expose hand artefacts, so the guidance must be present.
+  # The verifier checks the image against the prompt, so a prompt that asks for a crowd
+  # gets a crowd approved. The first version of slot 1 did exactly that and produced a
+  # populated boardroom. Every shot must constrain the frame to one person.
+  def test_every_shot_constrains_the_frame_to_one_person
+    prompts = ImagePrompts.build_prompts(ONET, 'Chief Executives', nil)
+    prompts.each_with_index do |p, i|
+      assert_match(/one person/i, p, "slot #{i + 1} must require a single subject")
+    end
+  end
+
+  # The verifier can only catch a defect the prompt does not itself sanction.
+  def test_no_shot_direction_asks_for_other_people
+    Pipeline::SHOT_STYLES.each_with_index do |style, i|
+      refute_match(/people around|others|coworkers|colleagues/i, style[:direction],
+                   "slot #{i + 1} invites extra subjects: #{style[:direction].inspect}")
+    end
+  end
+
   def test_close_detail_shot_explains_the_framing
     prompts = ImagePrompts.build_prompts(ONET, 'Electricians', nil)
     assert prompts.last.include?('Move in tight on their hands')

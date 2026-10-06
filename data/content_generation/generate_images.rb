@@ -30,7 +30,12 @@ class GenerateImages
       verify: ENV['VERIFY_IMAGES'] != 'false',
       max_attempts: Integer(ENV['MAX_ATTEMPTS'] || 3),
       timeout: Integer(ENV['IMAGE_TIMEOUT'] || 300),
-      image_count: ENV['IMAGE_COUNT'] ? Integer(ENV['IMAGE_COUNT']) : Pipeline::IMAGE_COUNT
+      image_count: ENV['IMAGE_COUNT'] ? Integer(ENV['IMAGE_COUNT']) : Pipeline::IMAGE_COUNT,
+      # Tailscale routes by hostname, so a request addressed to a bare tailnet IP gets a
+      # bare 404 even when the service is healthy. Set IMAGE_API_HOST to the machine's
+      # MagicDNS name (and keep IMAGE_API_URL pointed at the IP) whenever the endpoint is
+      # not already addressed by name.
+      host_header: ENV['IMAGE_API_HOST']
     }
   end
 
@@ -117,7 +122,9 @@ class GenerateImages
 
   def get_json(path)
     uri = URI.join("#{@config[:endpoint]}/", path.sub(%r{\A/}, ''))
-    response = http_for(uri).start { |http| http.request(Net::HTTP::Get.new(uri)) }
+    request = Net::HTTP::Get.new(uri)
+    apply_host_header(request)
+    response = http_for(uri).start { |http| http.request(request) }
     raise "GET #{path} failed: #{response.code}" unless response.is_a?(Net::HTTPSuccess)
 
     JSON.parse(response.body)
@@ -153,7 +160,20 @@ class GenerateImages
   def request(uri, body)
     req = Net::HTTP::Post.new(uri.request_uri, 'Content-Type' => 'application/json')
     req.body = JSON.generate(body)
+    apply_host_header(req)
     http_for(uri).start { |http| http.request(req) }
+  end
+
+  # Tailscale dispatches on the Host header, so pointing at a tailnet IP without
+  # overriding it produces a 404 that looks exactly like an unhealthy service. The
+  # header is set explicitly rather than by resolving the name: a host with Funnel
+  # enabled has its MagicDNS name resolving to the public Funnel address, which only
+  # serves :443.
+  def apply_host_header(req)
+    host = @config[:host_header]
+    req['Host'] = host if host && !host.to_s.strip.empty?
+
+    req
   end
 
   # --- Checkpointing --------------------------------------------------------

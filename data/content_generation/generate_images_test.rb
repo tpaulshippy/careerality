@@ -4,6 +4,7 @@ require 'minitest/autorun'
 require 'minitest/mock'
 require 'tmpdir'
 require 'json'
+require 'net/http'
 require_relative 'generate_images'
 require_relative 'upload_images'
 
@@ -224,6 +225,38 @@ class TestGenerateImagesConfig < Minitest::Test
 
   # The PNG sources are 1024 wide and the slideshow renders at width:'100%' on a
   # ~390pt screen, so a 600px WebP discards the resolution the 16:9 change delivers.
+  # Tailscale routes on Host, so a request to a tailnet IP without this override gets a
+  # 404 that looks like an unhealthy service. The endpoint stays the IP because a host
+  # with Funnel enabled resolves its MagicDNS name to the public address.
+  def test_host_header_override_is_applied_to_every_request
+    with_env('IMAGE_API_HOST' => 'mac.example.ts.net') do
+      gen = GenerateImages.new
+      assert_equal 'mac.example.ts.net', gen.config[:host_header]
+
+      %w[get post].each do |kind|
+        req = kind == 'get' ? Net::HTTP::Get.new('/health') : Net::HTTP::Post.new('/generate')
+        gen.send(:apply_host_header, req)
+        assert_equal 'mac.example.ts.net', req['Host'], "#{kind} must carry the Host override"
+      end
+    end
+  end
+
+  def test_host_header_is_omitted_when_unset_or_blank
+    with_env('IMAGE_API_HOST' => nil) do
+      gen = GenerateImages.new
+      req = Net::HTTP::Get.new('/health')
+      gen.send(:apply_host_header, req)
+      assert_nil req['Host'], 'must leave the default Host alone when not configured'
+    end
+
+    with_env('IMAGE_API_HOST' => '   ') do
+      gen = GenerateImages.new
+      req = Net::HTTP::Get.new('/health')
+      gen.send(:apply_host_header, req)
+      assert_nil req['Host'], 'a blank value must not become an empty Host header'
+    end
+  end
+
   def test_webp_is_produced_at_the_source_width
     # Extract the default expression and evaluate it, rather than asserting on source
     # text: the contract is "1024 unless R2_WEBP_WIDTH overrides", and duplicating

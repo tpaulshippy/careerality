@@ -11,10 +11,16 @@ module Pipeline
 
   # The shots cycle through framing styles so a career's images read as a sequence
   # rather than three near-identical portraits. Must stay sized to IMAGE_COUNT.
+  #
+  # Every direction keeps exactly one person in frame. The first version asked for "the
+  # room and the people around them", which reliably produced a populated boardroom
+  # instead of one person's day -- and the verifier could not catch it, because it
+  # checks the image against the prompt, so a prompt asking for a crowd gets a crowd
+  # approved. The single-subject constraint has to be in the prompt.
   SHOT_STYLES = [
     {
       framing: 'wide establishing shot',
-      direction: 'Pull back far enough to show the whole room and the people around them.'
+      direction: 'Pull back to show their whole workplace, but keep them the only person in the room.'
     },
     {
       framing: 'over-the-shoulder medium shot',
