@@ -2,6 +2,7 @@
 
 require 'minitest/autorun'
 require 'tmpdir'
+require 'json'
 require_relative 'generate_images'
 require_relative 'upload_images'
 
@@ -179,6 +180,59 @@ class TestGenerateImagesConfig < Minitest::Test
 
   # A rename is atomic on the same filesystem; the failure mode that matters is a
   # partial write never reaching `path`.
+  # The PNG sources are 1024 wide and the slideshow renders at width:'100%' on a
+  # ~390pt screen, so a 600px WebP discards the resolution the 16:9 change delivers.
+  def test_webp_is_produced_at_the_source_width
+    default = UploadImages.instance_method(:generate_webp).parameters
+                            .find { |kind, _| kind == :key }&.last
+    assert_equal :max_width, default
+
+    source = File.read(File.expand_path('upload_images.rb', __dir__))
+    assert_includes source, "ENV['R2_WEBP_WIDTH'] || 1024",
+                    'WebP width should default to the 1024 source width and be overridable'
+  end
+
+  # A manifest written by the previous uploader can map a key straight to a URL string.
+  # Every read must be guarded, or the run raises on the first such entry.
+  def test_manifest_entries_that_are_not_objects_are_tolerated
+    Dir.mktmpdir do |dir|
+      File.write(File.join(dir, '111011_1.png'), 'not really a png')
+
+      ['https://old.example/111011-1.webp', 42, nil, ['a'], { 'sha' => 'x' }].each do |entry|
+        manifest_path = File.join(dir, 'manifest.json')
+        File.write(manifest_path, JSON.generate({ '111011:1' => entry }))
+
+        up = UploadImages.new(bucket_url: 'https://a.r2.cloudflarestorage.com/b',
+                              access_key: 'k', secret_key: 's',
+                              public_url: UploadImages::DEFAULT_PUBLIC_URL)
+        up.define_singleton_method(:r2_exists?) { |_f| true }
+        up.define_singleton_method(:upload_file) { |_l, f, **_o| "https://x/#{f}" }
+        up.define_singleton_method(:delete_from_r2) { |_f| true }
+
+        # Digesting the stub bytes is fine; the point is that nothing raises.
+        assert_silent { up.send(:load_manifest, manifest_path) }
+        up.define_singleton_method(:generate_webp) do |src, **_o|
+          d = File.join(Dir.tmpdir, File.basename(src, '.*') + '.webp')
+          File.binwrite(d, 'RIFF')
+          d
+        end
+
+        uploaded = []
+        up.define_singleton_method(:upload_file) do |_l, f, **_o|
+          uploaded << f
+          "https://x/#{f}"
+        end
+
+        begin
+          up.process_images_dir(dir, manifest_path)
+          refute_empty uploaded, "entry #{entry.inspect} should be re-uploaded, not skipped"
+        rescue StandardError => e
+          flunk "entry #{entry.inspect} raised #{e.class}: #{e.message}"
+        end
+      end
+    end
+  end
+
   def test_generated_filenames_are_all_parseable
     # The contract the uploader depends on: every file it sees must map to a slot.
     (1..Pipeline::IMAGE_COUNT).each do |slot|

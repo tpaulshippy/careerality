@@ -143,7 +143,11 @@ class UploadImages
 
   # --- WebP -----------------------------------------------------------------
 
-  def generate_webp(source_path, max_width: 600, quality: 80)
+  # width: the PNG sources are 1024 wide and the slideshow renders at width:'100%'
+  # (~390pt, so ~780-1170 physical px on a 2-3x screen). Downscaling to 600 discarded
+  # most of the generation resolution that the 16:9 change was meant to deliver, so the
+  # WebP is produced at the source width. R2_WEBP_WIDTH can override it.
+  def generate_webp(source_path, max_width: ENV['R2_WEBP_WIDTH'] || 1024, quality: 80)
     webp_path = File.join(Dir.tmpdir, "#{File.basename(source_path, '.*')}.webp")
     cmd = ['cwebp', '-q', quality.to_s, '-resize', max_width.to_s, '0', source_path, '-o', webp_path]
     _stdout, stderr, status = Open3.capture3(*cmd)
@@ -293,22 +297,29 @@ class UploadImages
       # accounted for. A transient alias failure still records the digest, so without
       # the alias flag every rerun would take the skip path and getImageUrl() would
       # keep serving a stale alias indefinitely.
-      aliases_done = slot != 1 || prior&.dig('aliases') == true
-      unchanged = prior.is_a?(Hash) && prior['sha'] == digest && aliases_done
+      aliases_done = slot != 1 || prior.is_a?(Hash) && prior['aliases'] == true
 
-      # A matching digest alone is not enough: the object may have been deleted from
-      # R2 since the checkpoint, and skipping would leave a URL the app 404s on.
-      if unchanged && !r2_exists?(webp_key)
+      # A manifest written by an older uploader may hold bare URL strings rather than
+      # objects, so every read is guarded on is_a?(Hash). Anything else is treated as
+      # unknown and re-uploaded.
+      #
+      # Skipping requires three things: a matching digest, the slot-1 aliases, and the
+      # object still being present. The alias flag matters because a transient alias
+      # failure still records the digest, and without it every rerun would take the skip
+      # path and getImageUrl() would keep serving a stale alias indefinitely.
+      #
+      # No manifest write on the skip path: an idempotent re-run touches ~3,000 entries,
+      # and rewriting the whole manifest per entry would serialise a multi-hundred-KB
+      # file thousands of times for no change.
+      if prior.is_a?(Hash) && prior['sha'] == digest && aliases_done
+        if r2_exists?(webp_key)
+          counts[:skipped] += 1
+          next
+        end
+
+        # The object was deleted out from under the manifest; re-upload rather than
+        # leaving a URL the app would 404 on.
         counts[:repaired] += 1
-        unchanged = false
-      end
-
-      if unchanged
-        # No manifest write: an idempotent re-run touches ~3,000 entries, and
-        # rewriting the whole manifest per entry would serialise a multi-hundred-KB
-        # file thousands of times for no change.
-        counts[:skipped] += 1
-        next
       end
 
       png_ok = true
@@ -415,7 +426,7 @@ class UploadImages
 
     stale = present.flat_map do |code, slots|
       (1..Pipeline::IMAGE_COUNT).to_a.reject { |s| slots.include?(s) }.map { |s| "#{code}:#{s}" }
-    end.select { |key| manifest.key?(key) }
+    end.select { |key| manifest[key].is_a?(Hash) }
     return if stale.empty?
 
     stale.sort.each do |key|

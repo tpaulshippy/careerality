@@ -168,7 +168,7 @@ produce must not be read as a rejection.
 | Variable | Default | Notes |
 |---|---|---|
 | `IMAGE_API_URL` | `http://127.0.0.1:8777` | the mflux service on the M5; a tailnet URL from elsewhere |
-| `IMAGE_WIDTH` / `IMAGE_HEIGHT` | `1024` / `576` | 16:9; the client crops with `resizeMode="cover"` |
+| `IMAGE_WIDTH` / `IMAGE_HEIGHT` | `1024` / `576` | 16:9, matching the ~1.95:1 slideshow viewport instead of the old 600×600 square. The client still crops with `resizeMode="cover"`, and the WebP is produced at the full 1024 width (override with `R2_WEBP_WIDTH`) |
 | `IMAGE_STEPS` | `4` | distilled `klein 4B`; `50` for the Base model — see the quality knob below |
 | `IMAGE_TIMEOUT` | `300` | seconds to wait for one `/generate` or `/verify` response. **Raise it for `IMAGE_STEPS=50`**, which can exceed 300s on a cold start; because seeds are deterministic, a timeout fails identically on every retry. The connect timeout is a separate hardcoded 30s |
 | `MAX_ATTEMPTS` | `3` | attempts per slot; must be ≥ 1. Covers rejections *and* generation errors |
