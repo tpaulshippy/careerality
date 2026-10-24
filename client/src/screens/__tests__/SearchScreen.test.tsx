@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { SearchScreen } from '../SearchScreen';
 import { apiClient } from '../../api/client';
+import { routeNaturalLanguage } from '../../api/jevFilters';
 
 jest.mock('@react-native-picker/picker', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -51,6 +52,11 @@ jest.mock('../../api/client', () => ({
   },
 }));
 
+jest.mock('../../api/jevFilters', () => {
+  const actual = jest.requireActual('../../api/jevFilters');
+  return { ...actual, routeNaturalLanguage: jest.fn().mockResolvedValue(null) };
+});
+
 describe('SearchScreen', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -71,6 +77,7 @@ describe('SearchScreen', () => {
       expect(apiClient.searchCareers).toHaveBeenCalledWith(
         'nurse',
         '06',
+        undefined,
         expect.any(AbortSignal),
       );
     }, { timeout: 1000 });
@@ -100,5 +107,87 @@ describe('SearchScreen', () => {
     await waitFor(() => {
       expect(apiClient.submitSwipe).toHaveBeenCalledWith(42, 'right', 'very_interested');
     });
+  });
+
+  it('routes a natural-language query and applies real filter params', async () => {
+    (routeNaturalLanguage as jest.Mock).mockResolvedValue({
+      education_pathway: 'no_degree',
+      work_env: 'remote',
+      min_salary: 80000,
+      requires_clarification: false,
+      confidence: 0.5,
+      provider: 'fallback',
+    });
+    const screen = await render(<SearchScreen />);
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Search careers…'),
+      'I hate school but want $80k+ remote',
+    );
+
+    await waitFor(() => {
+      expect(routeNaturalLanguage).toHaveBeenCalledWith('I hate school but want $80k+ remote');
+    }, { timeout: 2000 });
+    await waitFor(() => expect(screen.getByTestId('nl-apply')).toBeTruthy(), { timeout: 2000 });
+
+    fireEvent.press(screen.getByTestId('nl-apply'));
+
+    await waitFor(() => {
+      expect(apiClient.searchCareers).toHaveBeenCalledWith(
+        'I hate school but want $80k+ remote',
+        '06',
+        { minSalary: 80000, educationPathway: 'no_degree' },
+        expect.any(AbortSignal),
+      );
+    }, { timeout: 2000 });
+    await waitFor(() => expect(screen.getByTestId('nl-applied')).toBeTruthy(), { timeout: 2000 });
+    expect(screen.getByPlaceholderText('Search careers…').props.value)
+      .toBe('I hate school but want $80k+ remote');
+  });
+
+  it('clears applied filters and re-searches without them', async () => {
+    (routeNaturalLanguage as jest.Mock).mockResolvedValue({
+      education_pathway: 'no_degree',
+      work_env: 'remote',
+      min_salary: 80000,
+      requires_clarification: false,
+      confidence: 0.5,
+      provider: 'fallback',
+    });
+    const screen = await render(<SearchScreen />);
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Search careers…'),
+      'I hate school but want $80k+ remote',
+    );
+    await waitFor(() => expect(screen.getByTestId('nl-apply')).toBeTruthy(), { timeout: 2000 });
+    fireEvent.press(screen.getByTestId('nl-apply'));
+    await waitFor(() => expect(screen.getByTestId('nl-applied')).toBeTruthy(), { timeout: 2000 });
+
+    fireEvent.press(screen.getByTestId('nl-clear'));
+
+    await waitFor(() => {
+      const calls = (apiClient.searchCareers as jest.Mock).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      expect(calls[calls.length - 1][2]).toBeUndefined();
+    }, { timeout: 2000 });
+    await waitFor(() => expect(screen.queryByTestId('nl-applied')).toBeNull(), { timeout: 2000 });
+  });
+
+  it('does not route short keyword searches', async () => {
+    const screen = await render(<SearchScreen />);
+
+    fireEvent.changeText(screen.getByPlaceholderText('Search careers…'), 'nurse');
+
+    await waitFor(() => {
+      expect(apiClient.searchCareers).toHaveBeenCalledWith(
+        'nurse',
+        '06',
+        undefined,
+        expect.any(AbortSignal),
+      );
+    }, { timeout: 1000 });
+    expect(routeNaturalLanguage).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('nl-apply')).toBeNull();
   });
 });

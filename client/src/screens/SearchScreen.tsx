@@ -13,8 +13,9 @@ import {
   Animated,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { CareerROI } from '../types';
+import { CareerROI, CareerSearchFilters } from '../types';
 import { apiClient } from '../api/client';
+import { routeNaturalLanguage, looksLikeNaturalLanguage, JevFilterRoute } from '../api/jevFilters';
 import { CareerDetailView, Button, FeedbackModal } from '../components';
 import { InterestLevel } from '../components/FeedbackModal';
 import { useTheme, Theme } from '../hooks/useTheme';
@@ -33,6 +34,9 @@ import {
 
 const MIN_QUERY_LENGTH = 2;
 const SKELETON_ROWS = 5;
+// Router education enums the server passes through unfiltered. Mirrors
+// EDUCATION_PATHWAY_LEVELS nil entries in Api::RoiController.
+const NL_UNFILTERABLE_EDUCATION = [ 'no_match', 'apprenticeship' ];
 
 const CareerResultRow: React.FC<{
   career: CareerROI;
@@ -103,6 +107,11 @@ export const SearchScreen: React.FC = () => {
   const [statesError, setStatesError] = useState<string | null>(null);
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const [feedbackCareer, setFeedbackCareer] = useState<CareerROI | null>(null);
+  // Single-box NL assist: the main query doubles as NL input. Long,
+  // multi-word queries are routed in the background; chips render below.
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlResult, setNlResult] = useState<JevFilterRoute | null>(null);
+  const [nlSource, setNlSource] = useState<string | null>(null);
 
   const pulseAnim = useRef(new Animated.Value(0.45)).current;
 
@@ -147,9 +156,13 @@ export const SearchScreen: React.FC = () => {
     return () => { cancelled = true; };
   }, [filters.stateCode]);
 
-  const runSearch = useCallback(async (q: string, area: string, signal: AbortSignal) => {
+  // Search-scoped NL filters. Deliberately separate from the global
+  // useFilters (Discover owns those) so NL apply never leaks elsewhere.
+  const [appliedFilters, setAppliedFilters] = useState<CareerSearchFilters | null>(null);
+
+  const runSearch = useCallback(async (q: string, area: string, signal: AbortSignal, searchFilters?: CareerSearchFilters | null) => {
     try {
-      const json = await apiClient.searchCareers(q, area, signal);
+      const json = await apiClient.searchCareers(q, area, searchFilters ?? undefined, signal);
       if (signal.aborted) return;
       setResults(json.records || []);
       setError(null);
@@ -175,8 +188,8 @@ export const SearchScreen: React.FC = () => {
     abortRef.current = controller;
     setIsSearching(true);
     setError(null);
-    runSearch(q, filters.stateCode, controller.signal);
-  }, [runSearch, filters.stateCode]);
+    runSearch(q, filters.stateCode, controller.signal, appliedFilters);
+  }, [runSearch, filters.stateCode, appliedFilters]);
 
   useEffect(() => {
     startSearch(debouncedQuery);
@@ -207,8 +220,83 @@ export const SearchScreen: React.FC = () => {
     setResults(null);
     setError(null);
     setIsSearching(false);
+    setNlResult(null);
+    setNlSource(null);
+    setNlLoading(false);
+    setAppliedFilters(null);
     inputRef.current?.focus();
   }, []);
+
+  // Background NL route off the debounced query. Keyword search runs
+  // as usual; when the route resolves, chips offer a one-tap refine.
+  useEffect(() => {
+    if (!looksLikeNaturalLanguage(debouncedQuery)) {
+      setNlLoading(false);
+      setNlResult(null);
+      setNlSource(null);
+      return;
+    }
+    let cancelled = false;
+    setNlLoading(true);
+    routeNaturalLanguage(debouncedQuery).then(
+      (route) => {
+        if (cancelled) return;
+        setNlResult(route);
+        setNlSource(debouncedQuery);
+        setNlLoading(false);
+      },
+      () => {
+        if (cancelled) return;
+        setNlResult(null);
+        setNlSource(null);
+        setNlLoading(false);
+      },
+    );
+    return () => { cancelled = true; };
+  }, [debouncedQuery]);
+
+  const handleQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    // Drop stale chips and search-scoped filters once the text diverges.
+    // Programmatic setQuery (e.g. from Apply) bypasses this handler, so
+    // Apply's own query rewrite keeps its filters.
+    if (nlSource !== null && value !== nlSource) {
+      setNlResult(null);
+      setNlSource(null);
+      setAppliedFilters(null);
+    }
+  }, [nlSource]);
+
+  // Router enums the server cannot turn into rows. Mirrors
+  // EDUCATION_PATHWAY_LEVELS nil entries in Api::RoiController.
+  const nlAppliable = nlResult !== null
+    && !nlResult.requires_clarification
+    && (nlResult.min_salary != null || !NL_UNFILTERABLE_EDUCATION.includes(nlResult.education_pathway));
+
+  const handleNlApply = useCallback(() => {
+    if (!nlResult || nlResult.requires_clarification || !nlAppliable) return;
+    const searchFilters: CareerSearchFilters = {};
+    if (nlResult.min_salary != null) searchFilters.minSalary = nlResult.min_salary;
+    if (nlResult.education_pathway && !NL_UNFILTERABLE_EDUCATION.includes(nlResult.education_pathway)) {
+      searchFilters.educationPathway = nlResult.education_pathway;
+    }
+    // The query stays as typed: tokenized server search matches the
+    // sentence's own subject words, so no keyword rewrite is needed.
+    // The debounced effect re-runs the current query with these filters.
+    setAppliedFilters(searchFilters);
+  }, [nlResult, nlAppliable]);
+
+  const handleClearNlFilters = useCallback(() => {
+    // Effect re-runs the current query without filters via startSearch deps.
+    setAppliedFilters(null);
+  }, []);
+
+  const appliedLabels = appliedFilters
+    ? [
+        appliedFilters.minSalary != null ? `💵 $${appliedFilters.minSalary.toLocaleString()}+` : null,
+        appliedFilters.educationPathway ? `🎓 ${appliedFilters.educationPathway}` : null,
+      ].filter((label): label is string => label !== null)
+    : [];
 
   const handleResultPress = useCallback((career: CareerROI) => {
     const q = sanitizeQuery(query);
@@ -278,6 +366,10 @@ export const SearchScreen: React.FC = () => {
   const showResults = results !== null && !error && !isSearching && trimmed.length >= MIN_QUERY_LENGTH;
   const showRecents = isInputFocused && trimmed.length === 0 && recent.length > 0;
   const showPopular = !hasQuery && !showRecents;
+  // Only show chips for the exact query that was routed; stale results hide.
+  // Once applied, the refined query is usually no longer NL-shaped, so the
+  // applied banner below renders independently of the chips.
+  const showNlResult = nlResult !== null && nlSource !== null && trimmed === nlSource && appliedFilters === null;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -293,7 +385,7 @@ export const SearchScreen: React.FC = () => {
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"
-            onChangeText={setQuery}
+            onChangeText={handleQueryChange}
             onFocus={() => setIsInputFocused(true)}
             onBlur={() => setIsInputFocused(false)}
             onSubmitEditing={handleSubmit}
@@ -304,6 +396,54 @@ export const SearchScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+        {nlLoading && !showNlResult && (
+          <View style={[styles.nlChips, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Text style={[styles.nlHint, { color: theme.colors.text.secondary }]}>
+              ✨ Understanding…
+            </Text>
+          </View>
+        )}
+        {appliedFilters && (
+          <View style={[styles.nlChips, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={styles.nlAppliedRow}>
+              <Text style={[styles.nlHint, { color: theme.colors.primary }]} testID="nl-applied">
+                {`Applied ✓ ${appliedLabels.join(' · ')}`}
+              </Text>
+              <TouchableOpacity onPress={handleClearNlFilters} testID="nl-clear" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={[styles.nlClear, { color: theme.colors.text.muted }]}>
+                  Clear
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        {showNlResult && (
+          <View style={[styles.nlChips, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={styles.nlChipRow}>
+              <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
+                {`🎓 ${nlResult.education_pathway}`}
+              </Text>
+              {/* No work-env chip: nothing filters on it (no backing column),
+                  so showing one would imply filtering that doesn't happen. */}
+              {nlResult.min_salary != null && (
+                <Text style={[styles.nlChip, { color: theme.colors.text.primary }]}>
+                  {`💵 $${nlResult.min_salary.toLocaleString()}+`}
+                </Text>
+              )}
+            </View>
+            {nlResult.requires_clarification ? (
+              <Text style={[styles.nlHint, { color: theme.colors.text.secondary }]}>
+                Not sure what you mean — try rephrasing.
+              </Text>
+            ) : nlAppliable ? (
+              <TouchableOpacity onPress={handleNlApply} testID="nl-apply">
+                <Text style={[styles.nlApply, { color: theme.colors.primary }]}>
+                  Apply filters →
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        )}
       </View>
 
       <View style={styles.stateRow}>
@@ -370,8 +510,13 @@ export const SearchScreen: React.FC = () => {
               No matches for “{trimmed}”
             </Text>
             <Text style={[styles.stateSubtitle, { color: theme.colors.text.secondary }]}>
-              Check the spelling or try a broader term like “nurse” or “engineer”.
+              {appliedFilters
+                ? `Filters active: ${appliedLabels.join(' · ')} — try clearing them or a broader term.`
+                : 'Check the spelling or try a broader term like “nurse” or “engineer”.'}
             </Text>
+            {appliedFilters && (
+              <Button title="Clear filters" onPress={handleClearNlFilters} style={styles.retryButton} />
+            )}
           </View>
         ) : showRecents ? (
           <View>
@@ -444,6 +589,13 @@ interface Styles {
   searchIcon: TextStyle;
   input: TextStyle;
   clearButton: TextStyle;
+  nlChips: ViewStyle;
+  nlChipRow: ViewStyle;
+  nlChip: TextStyle;
+  nlHint: TextStyle;
+  nlApply: TextStyle;
+  nlAppliedRow: ViewStyle;
+  nlClear: TextStyle;
   stateRow: ViewStyle;
   stateIcon: TextStyle;
   stateError: TextStyle;
@@ -512,6 +664,43 @@ const styles = StyleSheet.create<Styles>({
     fontSize: 16,
     fontWeight: '600',
     paddingLeft: 8,
+  },
+  nlChips: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  nlChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  nlChip: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 12,
+    marginBottom: 4,
+  },
+  nlHint: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  nlApply: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 6,
+  },
+  nlAppliedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  nlClear: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 12,
   },
   stateRow: {
     flexDirection: 'row',

@@ -24,11 +24,22 @@ export interface CareerROI {
   video_url?: string;
 }
 
+export interface AppliedSearchFilters {
+  min_salary: number | null;
+  education_pathway: string | null;
+}
+
+export interface CareerSearchFilters {
+  minSalary?: number | null;
+  educationPathway?: string | null;
+}
+
 export interface RoiResponse {
   records: CareerROI[];
   pagy: { page: number; items: number; count: number; pages: number };
   area_code?: string;
   area_name?: string;
+  applied?: AppliedSearchFilters;
 }
 
 export interface LikedResponse {

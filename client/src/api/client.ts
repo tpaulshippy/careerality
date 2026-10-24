@@ -1,6 +1,6 @@
 import { API_BASE } from '../constants/dataSources';
 import { getUserId } from '../utils/userId';
-import { CareerROI, RoiResponse, LikedResponse, SwipeApiRecord } from '../types';
+import { CareerROI, CareerSearchFilters, RoiResponse, LikedResponse, SwipeApiRecord } from '../types';
 
 export interface SwipePayload {
   career_id: number;
@@ -90,11 +90,23 @@ class ApiClient {
     await this.post('/api/swipes', payload);
   }
 
-  async searchCareers(query: string, areaOrSignal?: string | AbortSignal, signal?: AbortSignal): Promise<RoiResponse> {
+  async searchCareers(
+    query: string,
+    areaOrSignal?: string | AbortSignal,
+    filtersOrSignal?: CareerSearchFilters | AbortSignal,
+    signal?: AbortSignal,
+  ): Promise<RoiResponse> {
     const areaCode = typeof areaOrSignal === 'string' ? areaOrSignal : undefined;
-    const resolvedSignal = signal ?? (areaOrSignal instanceof AbortSignal ? areaOrSignal : undefined);
+    const filters = filtersOrSignal instanceof AbortSignal || filtersOrSignal == null
+      ? undefined
+      : filtersOrSignal;
+    const resolvedSignal = signal
+      ?? (filtersOrSignal instanceof AbortSignal ? filtersOrSignal : undefined)
+      ?? (areaOrSignal instanceof AbortSignal ? areaOrSignal : undefined);
     const params: Record<string, string> = { q: query };
     if (areaCode) params.area = areaCode;
+    if (filters?.minSalary != null) params.min_salary = String(filters.minSalary);
+    if (filters?.educationPathway) params.education_pathway = filters.educationPathway;
     const queryString = '?' + new URLSearchParams(params).toString();
     return this.request<RoiResponse>(`/api/roi/search${queryString}`, { method: 'GET', signal: resolvedSignal });
   }

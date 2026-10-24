@@ -21,6 +21,7 @@ Rails.application.routes.draw do
         get :states
       end
     end
+    post "jev/route_filters", to: "jev#route_filters"
     post "jev/rank", to: "jev#rank"
   end
 
