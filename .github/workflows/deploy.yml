@@ -7,6 +7,11 @@ on:
     types: [completed]
     branches: [main]
 
+# Only one deploy at a time; extra runs wait their turn.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
