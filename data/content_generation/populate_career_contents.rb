@@ -99,6 +99,11 @@ class PopulateCareerContents
       normalized_code = normalize_occupation_code(code)
       next unless normalized_code
 
+      # JEV_QA_GATE=1 enables the System One QA judge (server/app/services/jev_qa_judge_service.rb):
+      #   score = JevQaJudgeService.score(narrative: data[:full], onet_tasks: tasks_for(code), occupation_code: code)
+      #   next if score.regenerate # quarantined for regeneration instead of persisting
+      next if ENV["JEV_QA_GATE"] == "1" && jev_quarantined?(code, data)
+
       ActiveRecord::Base.connection.exec_insert(
         <<~SQL,
           INSERT INTO career_contents (occupation_code, day_in_life_summary, day_in_life_full, video_url, created_at, updated_at)
@@ -113,6 +118,17 @@ class PopulateCareerContents
         [normalized_code, data[:summary], data[:full], data[:video_url]]
       )
     end
+  end
+
+  private
+
+  # No-op unless the Rails service is loadable; never quarantines by accident.
+  def jev_quarantined?(code, data)
+    require_relative "../../server/app/services/jev_qa_judge_service"
+    JevQaJudgeService.score(narrative: data[:full].to_s, onet_tasks: [],
+                            occupation_code: code).regenerate
+  rescue LoadError, StandardError
+    false
   end
 end
 
