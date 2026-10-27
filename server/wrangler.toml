@@ -1,0 +1,43 @@
+name = "careerality-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom hostname for TestFlight validation. Add the matching DNS record in
+# the Cloudflare dashboard (or let "Add Route" create it), then build
+# TestFlight with EXPO_PUBLIC_API_URL=https://api-staging.careerality.app.
+[[routes]]
+pattern = "api-staging.careerality.app/*"
+zone_name = "careerality.app"
+
+# Production cutover: uncomment to take over careerality.app/api/* from
+# Rails. This IS the production switch — add it only after the staging
+# hostname validates cleanly. Rollback is deleting the route.
+# [[routes]]
+# pattern = "careerality.app/api/*"
+# zone_name = "careerality.app"
+
+# D1 (SQLite) database. Create it once, then paste the id:
+#   wrangler d1 create careerality
+# Local dev uses a local copy automatically (`wrangler dev` / `--local`).
+# Schema changes apply via `wrangler d1 migrations apply` (see package.json
+# db:migrate:*); deploy does NOT auto-apply them.
+[[d1_databases]]
+binding = "DB"
+database_name = "careerality"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+# Tracked by `wrangler d1 migrations apply`; never apply these with --file
+# or later applies will try to recreate the tables.
+migrations_dir = "migrations"
+
+[vars]
+# Comma-separated list of allowed browser origins (mirrors Rails rack-cors).
+CORS_ORIGINS = "https://careerality.app"
+# Base URL for TypeSafe Jev (System One). Default is the hosted API.
+TYPESAFE_API_BASE = "https://api.typesafe.ai"
+# Model id for Jev ranking. `jev-latest` tracks the flagship model.
+JEV_MODEL = "jev-latest"
+
+# Secrets (set with `wrangler secret put`):
+#   TYPESAFE_API_KEY — TypeSafe API key for POST /api/jev/rank. When unset,
+#                      ranking gracefully falls back to input order.
