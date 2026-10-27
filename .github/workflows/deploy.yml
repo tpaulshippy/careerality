@@ -44,7 +44,7 @@ jobs:
           # `npx --yes wrangler@...` swallows the `--json` flag on some runners.
           DB_ID=$(./node_modules/.bin/wrangler d1 list --json | jq -r '.[] | select(.name=="careerality") | .uuid // empty')
           if [ -z "$DB_ID" ]; then
-            ./node_modules/.bin/wrangler d1 create careerality --json | jq -r .uuid)
+            DB_ID=$(./node_modules/.bin/wrangler d1 create careerality --json | jq -r .uuid)
           fi
           sed -i "s/database_id = \".*\"/database_id = \"$DB_ID\"/" wrangler.toml
 
