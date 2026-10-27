@@ -36,6 +36,12 @@ fi
 
 TABLES="career_roi career_contents salary_occupations career_images swipes"
 
+# Statements are cheap; `wrangler` invocations are not (~2s startup each).
+# Concatenate chunk files into batches so one invocation imports many
+# statements. Verified locally; `wrangler d1 execute --file` splits remote
+# files into API batches the same way.
+BATCH_BYTES="${BATCH_BYTES:-400000}"
+
 echo "== applying D1 migrations ($TARGET)"
 npx wrangler d1 migrations apply careerality "$TARGET"
 
@@ -53,10 +59,30 @@ if [ "${FORCE:-0}" != "1" ]; then
 fi
 
 echo "== importing chunks into D1 ($TARGET)"
+batch_dir="$(mktemp -d)"
+trap 'rm -rf "$batch_dir"' EXIT
+batch_file="$batch_dir/batch.sql"
+: > "$batch_file"
+batch_bytes=0
+batch_n=0
+run_batch() {
+  if [ "$batch_n" -eq 0 ]; then return 0; fi
+  echo "-- batch of $batch_n chunk(s)"
+  npx wrangler d1 execute careerality "$TARGET" --file "$batch_file" --json | tail -1
+  : > "$batch_file"
+  batch_bytes=0
+  batch_n=0
+}
 for f in "$EXPORT_DIR"/chunk_*.sql; do
-  echo "-- $f"
-  npx wrangler d1 execute careerality "$TARGET" --file "$f" --json | tail -1
+  size=$(stat -c%s "$f")
+  if [ "$batch_n" -gt 0 ] && [ $((batch_bytes + size)) -gt "$BATCH_BYTES" ]; then
+    run_batch
+  fi
+  cat "$f" >> "$batch_file"
+  batch_bytes=$((batch_bytes + size))
+  batch_n=$((batch_n + 1))
 done
+run_batch
 
 echo "== verifying counts"
 python3 - "$EXPORT_DIR/counts.json" "$TARGET" <<'EOF'

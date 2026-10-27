@@ -16,11 +16,12 @@ Output: export/chunk_0001.sql ... plus export/counts.json with per-table
 row counts for verification after import (see scripts/import_to_d1.sh).
 
 Each chunk is one transaction of multi-row INSERTs sized to stay under D1's
-per-statement limits: chunks are split by byte size (default 400 KB per
-statement, well under the limit) with a row cap as a second guard.
-Type mapping Postgres -> SQLite: JSONB -> JSON text, timestamptz/timestamps ->
-ISO-8601 UTC 'YYYY-MM-DDTHH:MM:SS.sssZ' (matching the Worker's toISOString
-output and the old Rails JSON shape), bool -> 0/1.
+per-statement limits: at most 300 rows / 96 KB per INSERT (the local D1 runner rejects
+statements above ~100 KB / ~10k bound parameters; career_roi has
+21 columns) with the byte budget as a second guard for text-heavy tables for text-heavy tables. Types map Postgres ->
+SQLite: JSONB -> JSON text, timestamptz/timestamps -> ISO-8601 UTC
+'YYYY-MM-DDTHH:MM:SS.sssZ' (matching the Worker's toISOString output and
+the old Rails JSON shape), bool -> 0/1.
 """
 
 import argparse
@@ -123,8 +124,8 @@ def export_table(cursor, table, out_dir, chunk_rows, chunk_bytes, counts, chunk_
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="export")
-    parser.add_argument("--chunk-rows", type=int, default=4000)
-    parser.add_argument("--chunk-bytes", type=int, default=400_000)
+    parser.add_argument("--chunk-rows", type=int, default=300)
+    parser.add_argument("--chunk-bytes", type=int, default=96_000)
     args = parser.parse_args()
 
     out_dir = Path(args.out)

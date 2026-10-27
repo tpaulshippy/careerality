@@ -105,6 +105,7 @@ Postgres `PERCENTILE_CONT` / `FILTER (WHERE …)` / `~` regex aggregate is
 expressed as plain `GROUP BY` + JS median (covered by tests).
 
 D1 limits to keep in mind: `career_roi` is the large table (occupation ×
-area × industry rows); chunks of 4000 multi-row INSERTs stay within D1's
-per-statement limits. If `wrangler d1 execute --file` ever rejects a chunk,
-re-run the export with `--chunk-rows 1000`.
+area × industry rows); chunks of at most 300 rows / 96 KB per INSERT stay
+under the statement limits the D1 runner enforces (verified: 400 rows pass,
+500 fail locally). If `wrangler d1 execute --file` ever rejects a chunk,
+re-run the export with a smaller `--chunk-rows` or `--chunk-bytes`.
