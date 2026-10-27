@@ -71,8 +71,9 @@ jobs:
           ./node_modules/.bin/wrangler deploy 2>&1 | tee "$RUNNER_TEMP/deploy.log"
           DEPLOY_URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -n 1 || true)
           if [ -z "$DEPLOY_URL" ]; then
-            echo "Could not parse a workers.dev URL from the deploy output"
-            exit 1
+            # Deploys with only custom-domain routes print no workers.dev
+            # URL; fall back to the staging hostname for smoke checks.
+            DEPLOY_URL="https://api-staging.careerality.app"
           fi
           echo "DEPLOY_URL=$DEPLOY_URL" >> "$GITHUB_ENV"
           echo "Deployed to $DEPLOY_URL"
