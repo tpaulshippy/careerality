@@ -46,6 +46,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm ci
+          npx wrangler d1 migrations apply careerality --remote
           npx wrangler deploy
 
       - name: Deploy web to Pages

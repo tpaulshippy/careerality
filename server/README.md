@@ -53,7 +53,8 @@ order (`provider: "fallback"`) — same as Rails without the key.
 ```bash
 npx wrangler d1 create careerality   # paste database_id into wrangler.toml
 npx wrangler secret put TYPESAFE_API_KEY
-npx wrangler deploy                  # applies migrations/ automatically
+npm run db:migrate:remote            # applies migrations/ to the remote D1
+npx wrangler deploy                   # deploys the worker (migrations are NOT auto-applied)
 ```
 
 Recommended production routing on `careerality.app`:
@@ -79,7 +80,11 @@ Postgres with the `data/` pipeline and are not needed at runtime:
 | `swipes` | per-device swipe history | `/api/swipes*`, roi exclusion |
 
 SQLite type mapping: `SERIAL` → `INTEGER PRIMARY KEY AUTOINCREMENT`,
-`JSONB` → `TEXT` (parsed on serialize), timestamps → ISO-8601 `TEXT`.
+`JSONB` → `TEXT` (parsed on serialize), all seven decimal columns
+(`annual_median_salary`, `education_cost`, `roi_percentage`,
+`cost_of_living_index`, `adjusted_salary`, `projected_growth_percent`,
+`demand_score`) → `REAL` in storage but serialized back to Rails-style
+numeric strings (e.g. `"50000.0"`), timestamps → ISO-8601 `TEXT`.
 
 Run:
 
@@ -88,10 +93,8 @@ Run:
 DATABASE_URL=postgres://user:pass@host/careerality \
   python scripts/export_pg_to_sqlite.py --out export
 
-# 2. Fresh D1 only: apply schema (deploys do this automatically)
-npx wrangler d1 execute careerality --remote --file ./migrations/0001_init.sql
-
-# 3. Import chunks and verify counts match Postgres
+# 2. Import chunks (applies pending migrations first, aborts on non-empty
+#    tables unless FORCE=1; see the script header to clear a partial import)
 ./scripts/import_to_d1.sh export --remote
 ```
 

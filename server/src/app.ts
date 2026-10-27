@@ -43,5 +43,12 @@ export function createApp(db: AppDb, env: Env) {
 
   app.notFound((c) => c.json({ error: "Not found" }, 404));
 
+  // Keep the JSON error contract for unexpected failures instead of
+  // Hono's plain-text "Internal Server Error".
+  app.onError((err, c) => {
+    console.error("unhandled error", err);
+    return c.json({ error: "Internal Server Error" }, 500);
+  });
+
   return app;
 }

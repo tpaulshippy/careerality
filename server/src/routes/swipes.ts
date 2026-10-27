@@ -56,6 +56,7 @@ export function swipesRoute(db: AppDb) {
         demand_score: careerRoi.demand_score,
         created_at: careerRoi.created_at,
         updated_at: careerRoi.updated_at,
+        content_id: careerContents.id,
         day_in_life_summary: careerContents.day_in_life_summary,
         day_in_life_full: careerContents.day_in_life_full,
         video_url: careerContents.video_url,
@@ -73,9 +74,20 @@ export function swipesRoute(db: AppDb) {
       // Matches Rails filter_map: swipes whose career was deleted drop out.
       if (r.id == null || r.occupation_code == null) return [];
       const base = roiJson(r as RoiRow);
+      // Unlike the ROI endpoints, Rails liked always selects the content
+      // columns (NULL when absent), so backfill them here when missing.
+      const content =
+        r.content_id == null
+          ? {
+              day_in_life_summary: null,
+              day_in_life_full: null,
+              video_url: null,
+            }
+          : {};
       return [
         {
           ...base,
+          ...content,
           swipe_id: r.swipe_id,
           swiped_at: r.swiped_at,
         },
@@ -87,18 +99,31 @@ export function swipesRoute(db: AppDb) {
   app.post("/", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const errors: string[] = [];
+    // Rails validates presence only, so 0 passes but fractions never occur
+    // (PG would reject them); require an integer to avoid storing IDs that
+    // can never join to a career.
     const careerId =
-      typeof body?.career_id === "number" ? body.career_id : null;
+      typeof body?.career_id === "number" && Number.isInteger(body.career_id)
+        ? body.career_id
+        : null;
+    // Rails presence validation rejects blank (whitespace-only) strings.
+    const rawUserId = typeof body?.user_id === "string" ? body.user_id : null;
     const userId =
-      typeof body?.user_id === "string" && body.user_id !== ""
-        ? body.user_id
-        : null;
+      rawUserId != null && rawUserId.trim() !== "" ? rawUserId : null;
+    const rawDirection = body?.direction;
     const direction =
-      body?.direction === "left" || body?.direction === "right"
-        ? body.direction
+      rawDirection === "left" || rawDirection === "right"
+        ? rawDirection
         : null;
+    // Rails full_messages follow validator order: career, user, then the
+    // direction presence + inclusion messages.
     if (careerId == null) errors.push("Career can't be blank");
     if (userId == null) errors.push("User can't be blank");
+    // Rails runs both presence and inclusion validators: a missing/blank
+    // direction yields both messages, an invalid one only the inclusion one.
+    if (typeof rawDirection !== "string" || rawDirection.trim() === "") {
+      errors.push("Direction can't be blank");
+    }
     if (direction == null)
       errors.push("Direction is not included in the list");
     if (errors.length > 0) return c.json({ error: errors }, 422);
@@ -121,7 +146,7 @@ export function swipesRoute(db: AppDb) {
 
   app.delete("/destroy_all", async (c) => {
     const userId = c.req.query("user_id");
-    if (!userId) {
+    if (!userId || userId.trim() === "") {
       return c.json({ error: "user_id is required" }, 400);
     }
     const deleted = await db

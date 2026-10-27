@@ -21,8 +21,18 @@ export const HIGH_ROI_THRESHOLD = 15;
 const ROI_PER_PAGE = 20;
 const ROI_TOP_PER_PAGE = 50;
 
+// Rails serializes PG NUMERIC/BigDecimal columns as JSON strings
+// (e.g. "50000.0"), while integers stay numbers. Reproduce that formatting
+// so the client contracts (which type these fields as string) keep working.
+function dec(v: number | null): string | null {
+  if (v == null) return null;
+  return Number.isInteger(v) ? `${v}.0` : String(v);
+}
+
 // Full career_roi row plus the joined career_contents columns.
+// content_id is non-null exactly when a content row was joined.
 export type RoiRow = typeof careerRoi.$inferSelect & {
+  content_id: number | null;
   day_in_life_summary: string | null;
   day_in_life_full: string | null;
   video_url: string | null;
@@ -37,29 +47,34 @@ function parseSkills(raw: string | null): unknown {
   }
 }
 
-// Mirrors Rails CareerRoi#as_json (content merged in when present).
+// Mirrors Rails CareerRoi#as_json. The day-in-the-life keys are emitted only
+// when a career_contents row exists, exactly like the Rails conditional.
 export function roiJson(row: RoiRow) {
-  return {
+  const base = {
     id: row.id,
     occupation_code: row.occupation_code,
     occupation_name: row.occupation_name,
     area_code: row.area_code,
     area_name: row.area_name,
-    annual_median_salary: row.annual_median_salary,
-    education_cost: row.education_cost,
+    annual_median_salary: dec(row.annual_median_salary),
+    education_cost: dec(row.education_cost),
     years_to_breakeven: row.years_to_breakeven,
-    roi_percentage: row.roi_percentage,
+    roi_percentage: dec(row.roi_percentage),
     job_zone: row.job_zone,
     education_level: row.education_level,
     skills: parseSkills(row.skills),
-    cost_of_living_index: row.cost_of_living_index,
-    adjusted_salary: row.adjusted_salary,
+    cost_of_living_index: dec(row.cost_of_living_index),
+    adjusted_salary: dec(row.adjusted_salary),
     industry_code: row.industry_code,
     industry_name: row.industry_name,
     demand_rank: row.demand_rank,
     avg_annual_openings: row.avg_annual_openings,
-    projected_growth_percent: row.projected_growth_percent,
-    demand_score: row.demand_score,
+    projected_growth_percent: dec(row.projected_growth_percent),
+    demand_score: dec(row.demand_score),
+  };
+  if (row.content_id == null) return base;
+  return {
+    ...base,
     day_in_life_summary: row.day_in_life_summary,
     day_in_life_full: row.day_in_life_full,
     video_url: row.video_url,
@@ -89,6 +104,7 @@ const roiColumns = {
   demand_score: careerRoi.demand_score,
   created_at: careerRoi.created_at,
   updated_at: careerRoi.updated_at,
+  content_id: careerContents.id,
   day_in_life_summary: careerContents.day_in_life_summary,
   day_in_life_full: careerContents.day_in_life_full,
   video_url: careerContents.video_url,
@@ -110,14 +126,28 @@ function areaFilter(area: string | undefined): Where {
   return area ? eq(careerRoi.area_code, area) : undefined;
 }
 
+function parseSalaryBound(raw: string | undefined): number | null {
+  if (raw == null || raw === "") return null;
+  // Rails String#to_f turns non-numeric input into 0.0 rather than filtering
+  // everything out, so fall back to 0 instead of propagating NaN.
+  const v = Number.parseFloat(raw);
+  return Number.isFinite(v) ? v : 0;
+}
+
 function salaryFilters(params: Record<string, string | undefined>): Where[] {
+  // Rails applies each alias independently when both are present, so the
+  // strictest bound wins rather than one alias shadowing the other.
   const out: Where[] = [];
-  const min = params["min_salary"] ?? params["salary_min"];
-  const max = params["max_salary"] ?? params["salary_max"];
-  if (min != null && min !== "")
-    out.push(gte(careerRoi.annual_median_salary, Number(min)));
-  if (max != null && max !== "")
-    out.push(lte(careerRoi.annual_median_salary, Number(max)));
+  for (const key of ["min_salary", "salary_min"]) {
+    const bound = parseSalaryBound(params[key]);
+    if (bound != null)
+      out.push(gte(careerRoi.annual_median_salary, bound));
+  }
+  for (const key of ["max_salary", "salary_max"]) {
+    const bound = parseSalaryBound(params[key]);
+    if (bound != null)
+      out.push(lte(careerRoi.annual_median_salary, bound));
+  }
   return out;
 }
 
@@ -159,6 +189,11 @@ export function roiRoute(db: AppDb) {
     const page = parsePage(q["page"]);
 
     const conditions: Where[] = [areaFilter(area), ...salaryFilters(q)];
+    // Rails decides the demand-vs-roi sort from the area/salary filters
+    // alone, before the per-user swipe exclusion is applied.
+    const filterWhere = and(
+      ...conditions.filter((w): w is SQL => w !== undefined),
+    );
     if (q["user_id"]) {
       conditions.push(
         notInArray(
@@ -188,8 +223,8 @@ export function roiRoute(db: AppDb) {
         .select({ n: count() })
         .from(careerRoi)
         .where(
-          where
-            ? and(where, isNotNull(careerRoi.demand_score))
+          filterWhere
+            ? and(filterWhere, isNotNull(careerRoi.demand_score))
             : isNotNull(careerRoi.demand_score),
         );
       const demandCount = demandRows[0]?.n ?? 0;
@@ -258,7 +293,8 @@ export function roiRoute(db: AppDb) {
     const query = c.req.query("q");
     const area = c.req.query("area") ?? "99";
     const page = parsePage(c.req.query("page"));
-    if (!query) {
+    // Rails uses query.present?, which also rejects whitespace-only input.
+    if (!query || query.trim() === "") {
       return c.json({ error: "Query parameter q is required" }, 400);
     }
     return c.json(

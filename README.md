@@ -161,11 +161,10 @@ This stack is a starting point. Contributors are encouraged to propose architect
 
 ### Prerequisites
 
-- Node.js 18+ (frontend)
-- Ruby 3.1+ with Rails 7+
+- Node.js 22+ (frontend + backend)
 - Python 3.10+ (data processing)
-- PostgreSQL 14+
-- npm or yarn, bundler
+- A Cloudflare account with a D1 database (or use the local D1 copy for dev)
+- npm or yarn
 
 ### Installation
 
@@ -180,18 +179,19 @@ npm install
 
 # Install backend dependencies
 cd ../server
-bundle install
+npm install
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials and API keys
+# Set up environment variables for local dev
+cp .env.example .dev.vars
+# Edit .dev.vars (add TYPESAFE_API_KEY for live Jev ranking)
 
-# Set up the database
-rails db:create db:migrate
-
-# Start the development server
-rails server
+# Set up the local database and start the API
+npm run db:migrate:local
+npx wrangler dev
 ```
+
+The API serves at `http://127.0.0.1:8787`. Point the client at it with
+`EXPO_PUBLIC_API_URL=http://127.0.0.1:8787`.
 
 For detailed setup instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

@@ -34,48 +34,105 @@ async function seedCareer() {
   return row!.id;
 }
 
+function postSwipe(payload: unknown, query = "") {
+  return testApp(db).request(`/api/swipes${query}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }, testEnv);
+}
+
 beforeEach(async () => {
   ({ db, client } = await createTestDb());
 });
 
 describe("swipes", () => {
-  test("POST validates, GET lists newest-first, DELETE removes", async () => {
+  test("POST validates like the Rails model", async () => {
     const careerId = await seedCareer();
-    const app = testApp(db);
-
-    const invalid = await app.request(
-      "/api/swipes",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: "u1", direction: "up" }),
-      },
-      testEnv,
-    );
+    const invalid = await postSwipe({
+      user_id: "u1",
+      direction: "up",
+    });
     expect(invalid.status).toBe(422);
     expect(await body(invalid)).toEqual({
       error: ["Career can't be blank", "Direction is not included in the list"],
     });
 
-    const created = await app.request(
-      "/api/swipes",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          career_id: careerId,
-          user_id: "u1",
-          direction: "right",
-          feedback: "great pay",
-        }),
-      },
-      testEnv,
+    const missingDirection = await postSwipe({
+      career_id: careerId,
+      user_id: "u1",
+    });
+    expect(missingDirection.status).toBe(422);
+    // Rails presence + inclusion validators both fire on a missing direction.
+    expect(await body(missingDirection)).toEqual({
+      error: [
+        "Direction can't be blank",
+        "Direction is not included in the list",
+      ],
+    });
+
+    const blankUser = await postSwipe({
+      career_id: careerId,
+      user_id: "   ",
+      direction: "left",
+    });
+    expect(blankUser.status).toBe(422);
+    expect(await body(blankUser)).toEqual({
+      error: ["User can't be blank"],
+    });
+
+    const fractionalId = await postSwipe({
+      career_id: 1.5,
+      user_id: "u1",
+      direction: "left",
+    });
+    expect(fractionalId.status).toBe(422);
+    expect(await body(fractionalId)).toEqual({
+      error: ["Career can't be blank"],
+    });
+  });
+
+  test("GET lists newest first", async () => {
+    const careerId = await seedCareer();
+    const app = testApp(db);
+    for (const [direction, at] of [
+      ["left", "2026-01-01T00:00:00.000Z"],
+      ["right", "2026-01-02T00:00:00.000Z"],
+    ] as const) {
+      await db.insert(swipes).values({
+        career_id: careerId,
+        user_id: "u1",
+        direction,
+        feedback: null,
+        created_at: at,
+        updated_at: at,
+      });
+    }
+    const res = await body(
+      await app.request("/api/swipes?user_id=u1", {}, testEnv),
     );
+    expect(
+      res.swipes.map((s: { direction: string }) => s.direction),
+    ).toEqual(["right", "left"]);
+  });
+
+  test("liked / destroy / destroy_all", async () => {
+    const careerId = await seedCareer();
+    const app = testApp(db);
+
+    const created = await postSwipe({
+      career_id: careerId,
+      user_id: "u1",
+      direction: "right",
+      feedback: "great pay",
+    });
     expect(created.status).toBe(201);
     const swipe = await body(created);
     expect(swipe.direction).toBe("right");
 
-    const liked = await body(await app.request("/api/swipes/liked?user_id=u1", {}, testEnv));
+    const liked = await body(
+      await app.request("/api/swipes/liked?user_id=u1", {}, testEnv),
+    );
     expect(liked.records).toHaveLength(1);
     expect(liked.records[0]).toMatchObject({
       occupation_code: "15-1252.00",
@@ -100,18 +157,30 @@ describe("swipes", () => {
   test("DELETE /api/swipes/destroy_all requires user_id and deletes", async () => {
     const careerId = await seedCareer();
     const app = testApp(db);
-    const noUser = await app.request(
-      "/api/swipes/destroy_all",
-      { method: "DELETE" },
-      testEnv,
-    );
-    expect(noUser.status).toBe(400);
+    for (const q of ["", "?user_id=%20%20"]) {
+      const noUser = await app.request(
+        `/api/swipes/destroy_all${q}`,
+        { method: "DELETE" },
+        testEnv,
+      );
+      expect(noUser.status).toBe(400);
+    }
     await db.insert(swipes).values([
       { career_id: careerId, user_id: "u1", direction: "left", feedback: null, created_at: stamp, updated_at: stamp },
       { career_id: careerId, user_id: "u1", direction: "right", feedback: null, created_at: stamp, updated_at: stamp },
       { career_id: careerId, user_id: "u2", direction: "right", feedback: null, created_at: stamp, updated_at: stamp },
     ]);
-    const res = await body(await app.request("/api/swipes/destroy_all?user_id=u1", { method: "DELETE" }, testEnv));
+    const res = await body(
+      await app.request("/api/swipes/destroy_all?user_id=u1", { method: "DELETE" }, testEnv),
+    );
     expect(res).toEqual({ deleted: 2 });
+    const u1Left = await body(
+      await app.request("/api/swipes?user_id=u1", {}, testEnv),
+    );
+    expect(u1Left.swipes).toEqual([]);
+    const u2Left = await body(
+      await app.request("/api/swipes?user_id=u2", {}, testEnv),
+    );
+    expect(u2Left.swipes).toHaveLength(1);
   });
 });

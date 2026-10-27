@@ -30,6 +30,14 @@ beforeEach(async () => {
     {
       occupation_code: "29-1141.00",
       occupation_name: "Registered Nurses",
+      area_code: "07",
+      area_name: "Testville, ST",
+      created_at: stamp,
+      updated_at: stamp,
+    },
+    {
+      occupation_code: "29-1141.00",
+      occupation_name: "Registered Nurses",
       area_code: "36",
       area_name: "New York",
       created_at: stamp,
@@ -40,6 +48,8 @@ beforeEach(async () => {
 
 describe("GET /api/areas/states", () => {
   test("returns state-level areas, excluding metros", async () => {
+    // "0644000" fails the two-digit code predicate; "07" passes it but
+    // fails the metro-name predicate. Both must stay out of the list.
     const res = await testApp(db).request("/api/areas/states", {}, testEnv);
     expect(res.status).toBe(200);
     expect(await body(res)).toEqual({

@@ -13,6 +13,16 @@ import { careerRoi } from "../db/schema";
 export const JEV_MODEL_DEFAULT = "jev-latest";
 export const JEV_API_BASE_DEFAULT = "https://api.typesafe.ai";
 export const MAX_CANDIDATES = 50;
+// D1 caps bound parameters per query (~100); chunk enrichment lookups well
+// below that so large swipe histories can't 500 the rank endpoint.
+export const LOOKUP_CHUNK_SIZE = 50;
+const TYPESAFE_TIMEOUT_MS = 15_000;
+
+export function chunk<T>(values: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < values.length; i += size) out.push(values.slice(i, i + size));
+  return out;
+}
 
 const NEXT_CARD_INSTRUCTIONS =
   "Which career should be shown next given the user's swipe history?";
@@ -56,7 +66,7 @@ async function withCodes(
   db: AppDb,
   swipes: LooseRecord[],
 ): Promise<LooseRecord[]> {
-  const ids = [
+  const careerIds = [
     ...new Set(
       swipes
         .map((s) => s["career_id"])
@@ -64,7 +74,8 @@ async function withCodes(
     ),
   ];
   const byId = new Map<number, { code: string; name: string }>();
-  if (ids.length > 0) {
+  for (const ids of chunk(careerIds, LOOKUP_CHUNK_SIZE)) {
+    if (ids.length === 0) continue;
     const rows = await db
       .select({
         id: careerRoi.id,
@@ -114,18 +125,19 @@ async function withCandidateNames(
     ),
   ];
   if (missing.length === 0) return candidates;
-  const rows = await db
-    .select({
-      occupation_code: careerRoi.occupation_code,
-      occupation_name: careerRoi.occupation_name,
-    })
-    .from(careerRoi)
-    .where(inArray(careerRoi.occupation_code, missing));
-  const names = new Map(
-    rows
-      .filter((r) => r.occupation_name != null)
-      .map((r) => [r.occupation_code, r.occupation_name as string]),
-  );
+  const names = new Map<string, string>();
+  for (const codes of chunk(missing, LOOKUP_CHUNK_SIZE)) {
+    const rows = await db
+      .select({
+        occupation_code: careerRoi.occupation_code,
+        occupation_name: careerRoi.occupation_name,
+      })
+      .from(careerRoi)
+      .where(inArray(careerRoi.occupation_code, codes));
+    for (const r of rows) {
+      if (r.occupation_name != null) names.set(r.occupation_code, r.occupation_name);
+    }
+  }
   return candidates.map((c) => {
     const code = field(c, "occupation_code");
     const name = code !== undefined ? names.get(code) : undefined;
@@ -166,19 +178,21 @@ export async function rank(
   const codes = candidateRows
     .map((c) => field(c, "occupation_code"))
     .filter((v): v is string => typeof v === "string");
+  if (codes.length === 0) return [];
 
-  const enrichedSwipes = await withCodes(db, swipeRows);
-  const enrichedCandidates = await withCandidateNames(db, candidateRows);
-  const orderedCodes = enrichedCandidates
-    .map((c) => field(c, "occupation_code"))
-    .filter((v): v is string => typeof v === "string");
-
-  const apiKey = env.TYPESAFE_API_KEY ?? "";
-  if (apiKey === "" || codes.length === 0) {
-    return orderedCodes.map(fallbackResult);
-  }
-
+  // Enrichment runs inside the protected path so a D1 failure degrades to
+  // the input-order fallback instead of 500ing (mirrors the Rails rescue).
   try {
+    const enrichedSwipes = await withCodes(db, swipeRows);
+    const enrichedCandidates = await withCandidateNames(db, candidateRows);
+    const orderedCodes = enrichedCandidates
+      .map((c) => field(c, "occupation_code"))
+      .filter((v): v is string => typeof v === "string");
+
+    const apiKey = env.TYPESAFE_API_KEY ?? "";
+    if (apiKey === "") {
+      return orderedCodes.map(fallbackResult);
+    }
     const base = (env.TYPESAFE_API_BASE ?? JEV_API_BASE_DEFAULT).replace(
       /\/+$/,
       "",
@@ -196,6 +210,8 @@ export async function rank(
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
+      // A stalled provider must degrade to the fallback, not hang the feed.
+      signal: AbortSignal.timeout(TYPESAFE_TIMEOUT_MS),
       body: JSON.stringify({
         model,
         state: { swipes: enrichedSwipes, candidates: enrichedCandidates },
@@ -232,7 +248,8 @@ export async function rank(
         provider: "jev" as const,
       };
     });
-  } catch {
-    return orderedCodes.map(fallbackResult);
+  } catch (err) {
+    console.error("jev rank failed, using fallback order", err);
+    return codes.map(fallbackResult);
   }
 }

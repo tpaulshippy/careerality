@@ -9,8 +9,8 @@ export function jevRoute(db: AppDb) {
   // POST /api/jev/rank — ranks candidate careers for the Discover feed.
   // Falls back gracefully when TYPESAFE_API_KEY is missing (see lib/jev).
   //
-  // Bounded: each candidate costs one TypeSafe call, so oversized requests
-  // are rejected instead of fanning out.
+  // Bounded: the state payload sent to TypeSafe grows with the candidate
+  // set, so oversized requests are rejected instead of fanning out.
   app.post("/rank", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const swipes = Array.isArray(body?.swipes) ? body.swipes : [];

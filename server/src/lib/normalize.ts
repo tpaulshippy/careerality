@@ -1,4 +1,5 @@
-// Mirrors Api::Concerns::OccupationCodeNormalizer from Rails.
+// Mirrors OccupationCodeNormalizer
+// (server/app/controllers/concerns/occupation_code_normalizer.rb in Rails).
 
 // Accepts fully-formed "XX-XXXX.00", short "XX-XXXX" (append ".00"), and
 // compact "XXXXXX" (insert dash + ".00"). Returns null when invalid.

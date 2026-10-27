@@ -6,10 +6,14 @@ compatibility_flags = ["nodejs_compat"]
 # D1 (SQLite) database. Create it once, then paste the id:
 #   wrangler d1 create careerality
 # Local dev uses a local copy automatically (`wrangler dev` / `--local`).
+# Schema changes apply via `wrangler d1 migrations apply` (see package.json
+# db:migrate:*); deploy does NOT auto-apply them.
 [[d1_databases]]
 binding = "DB"
 database_name = "careerality"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
+# Tracked by `wrangler d1 migrations apply`; never apply these with --file
+# or later applies will try to recreate the tables.
 migrations_dir = "migrations"
 
 [vars]

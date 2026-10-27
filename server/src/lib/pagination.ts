@@ -17,7 +17,9 @@ export function pagy(total: number, page: number, perPage: number): Pagy {
     page,
     items: perPage,
     count: total,
-    pages: Math.ceil(total / perPage),
+    // Pagy reports at least 1 page even when empty
+    // (pagy gem: @pages = [ceil, 1].max).
+    pages: Math.max(Math.ceil(total / perPage), 1),
   };
 }
 

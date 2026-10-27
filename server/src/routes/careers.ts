@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { asc, count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import type { AppDb } from "../db/client";
 import { salaryOccupations } from "../db/schema";
 import type { Env } from "../env";
@@ -45,7 +45,8 @@ export function careersRoute(db: AppDb) {
       })
       .from(salaryOccupations)
       .where(whereSelectable)
-      .orderBy(asc(salaryOccupations.sort_sequence))
+      // SQLite sorts NULLs first on ASC; Postgres (and Rails) sort them last.
+      .orderBy(sql`${salaryOccupations.sort_sequence} ASC NULLS LAST`)
       .limit(CAREERS_PER_PAGE)
       .offset(offset(page, CAREERS_PER_PAGE));
     return c.json({

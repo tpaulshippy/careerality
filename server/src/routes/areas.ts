@@ -9,13 +9,16 @@ export function areasRoute(db: AppDb) {
 
   app.get("/states", async (c) => {
     // State-level entries: numeric area codes of length <= 2 whose names
-    // are not metro-style ("City, ST"). GLOB spells the old ~ '^[0-9]+$'.
+    // are not metro-style ("City, ST"). GLOB spells the old ~ '^[0-9]+$';
+    // the '[0-9]*' clause additionally excludes empty codes, which the
+    // Postgres regex rejected but '*[^0-9]*' negation alone would allow.
     const rows = await db
       .select({ area_code: careerRoi.area_code, area_name: careerRoi.area_name })
       .from(careerRoi)
       .where(
         and(
           sql`${careerRoi.area_code} NOT GLOB '*[^0-9]*'`,
+          sql`${careerRoi.area_code} GLOB '[0-9]*'`,
           sql`length(${careerRoi.area_code}) <= 2`,
           sql`${careerRoi.area_name} NOT LIKE '%,%'`,
         ),

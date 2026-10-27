@@ -1,6 +1,7 @@
 -- D1 (SQLite) schema for the Careerality API.
 -- Minimal serving set migrated from Postgres; see ../README.md ("Data migration").
--- Applied automatically by `wrangler deploy` / `wrangler dev` via migrations_dir.
+-- Apply with `wrangler d1 migrations apply careerality [--local|--remote]`
+-- (wrangler dev also applies these to the local D1 automatically).
 -- Keep in sync with src/db/schema.ts (drizzle-kit source of truth).
 
 CREATE TABLE career_roi (

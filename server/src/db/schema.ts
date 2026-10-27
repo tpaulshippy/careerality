@@ -95,7 +95,9 @@ export const swipes = sqliteTable(
   "swipes",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    career_id: integer("career_id"),
+    career_id: integer("career_id").references(() => careerRoi.id, {
+      onDelete: "set null",
+    }),
     user_id: text("user_id"),
     direction: text("direction"),
     feedback: text("feedback"),

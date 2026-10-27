@@ -3,6 +3,7 @@ import type { Client } from "@libsql/client";
 import type { AppDb } from "../src/db/client";
 import { careerRoi } from "../src/db/schema";
 import { body, createTestDb, testApp, testEnv } from "./setup";
+import { chunk } from "../src/lib/jev";
 
 let db: AppDb;
 let client: Client;
@@ -30,8 +31,9 @@ beforeEach(async () => {
   ]);
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals();
+  await client.close();
 });
 
 function postRank(payload: unknown, env = testEnv) {
@@ -163,6 +165,24 @@ describe("POST /api/jev/rank", () => {
       { ...testEnv, TYPESAFE_API_KEY: "test-key" },
     );
     const json = await body(res);
+    expect(json.results[0].provider).toBe("fallback");
+  });
+
+  test("chunks enrichment lookups past the D1 parameter limit", async () => {
+    expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    // 110 distinct career_ids would exceed D1's ~100 bound parameters in a
+    // single inArray lookup; chunked enrichment must still fall back cleanly.
+    const swipes = Array.from({ length: 110 }, (_, i) => ({
+      career_id: i + 1,
+      direction: "right",
+    }));
+    const res = await postRank(
+      { swipes, candidates: [{ occupation_code: "15-1252.00" }] },
+      { ...testEnv, TYPESAFE_API_KEY: undefined },
+    );
+    expect(res.status).toBe(200);
+    const json = await body(res);
+    expect(json.results).toHaveLength(1);
     expect(json.results[0].provider).toBe("fallback");
   });
 });

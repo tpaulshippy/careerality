@@ -38,6 +38,14 @@ beforeEach(async () => {
 });
 
 describe("GET /api/careers", () => {
+  test("empty result still reports one page like Pagy", async () => {
+    await db.delete(salaryOccupations);
+    const res = await testApp(db).request("/api/careers", {}, testEnv);
+    const json = await body(res);
+    expect(json.careers).toEqual([]);
+    expect(json.pagy).toEqual({ page: 1, items: 10, count: 0, pages: 1 });
+  });
+
   test("lists selectable careers ordered by sort_sequence with pagy meta", async () => {
     const res = await testApp(db).request("/api/careers", {}, testEnv);
     expect(res.status).toBe(200);
