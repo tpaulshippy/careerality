@@ -54,7 +54,8 @@ order (`provider: "fallback"`) — same as Rails without the key.
 npx wrangler d1 create careerality   # paste database_id into wrangler.toml
 npx wrangler secret put TYPESAFE_API_KEY
 npm run db:migrate:remote            # applies migrations/ to the remote D1
-npx wrangler deploy                   # deploys the worker (migrations are NOT auto-applied)
+npx wrangler deploy                   # deploy; the GH Action also provisions
+                                      # D1 by name, migrates, then deploys
 ```
 
 Recommended production routing on `careerality.app`:

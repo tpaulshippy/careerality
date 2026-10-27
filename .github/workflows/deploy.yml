@@ -30,6 +30,21 @@ jobs:
           npm ci --legacy-peer-deps
           npm run web:build
 
+      - name: Provision D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          cd server
+          # wrangler.toml ships a placeholder database_id: resolve the real
+          # id by name (creating the database on first run) and inject it,
+          # so `d1 migrations apply` and `deploy` below target a real DB.
+          DB_ID=$(npx --yes wrangler@4.153.0 d1 list --json | jq -r '.[] | select(.name=="careerality") | .uuid // empty')
+          if [ -z "$DB_ID" ]; then
+            DB_ID=$(npx --yes wrangler@4.153.0 d1 create careerality --json | jq -r .uuid)
+          fi
+          sed -i "s/database_id = \".*\"/database_id = \"$DB_ID\"/" wrangler.toml
+
       - name: Deploy API worker
         working-directory: server
         env:
@@ -38,9 +53,10 @@ jobs:
         run: |
           set -euo pipefail
           npm ci
-          # NOTE: D1 migrations stay a manual, verified step (see server/README
-          # "Data migration"). They are NOT applied here, so a deploy can
-          # never leave the schema ahead of the code.
+          # Apply pending D1 migrations, then deploy. The Postgres seed
+          # import (scripts/export_pg_to_sqlite.py + import_to_d1.sh) is a
+          # one-time cutover step run manually, not on every deploy.
+          npx --yes wrangler@4.153.0 d1 migrations apply careerality --remote
           npx --yes wrangler@4.153.0 deploy 2>&1 | tee "$RUNNER_TEMP/deploy.log"
           DEPLOY_URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -n 1 || true)
           if [ -z "$DEPLOY_URL" ]; then

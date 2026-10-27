@@ -21,7 +21,8 @@ zone_name = "careerality.app"
 #   wrangler d1 create careerality
 # Local dev uses a local copy automatically (`wrangler dev` / `--local`).
 # Schema changes apply via `wrangler d1 migrations apply` (see package.json
-# db:migrate:*); deploy does NOT auto-apply them.
+# db:migrate:*); the deploy workflow also applies pending migrations and
+# resolves the placeholder database_id by name before deploying.
 [[d1_databases]]
 binding = "DB"
 database_name = "careerality"
