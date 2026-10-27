@@ -40,11 +40,19 @@ jobs:
           # wrangler.toml ships a placeholder database_id: resolve the real
           # id by name (creating the database on first run) and inject it,
           # so `d1 migrations apply` and `deploy` below target a real DB.
-          # NOTE: use the repo-installed wrangler via plain `npx wrangler`;
-          # `npx --yes wrangler@...` swallows the `--json` flag on some runners.
-          DB_ID=$(./node_modules/.bin/wrangler d1 list --json | jq -r '.[] | select(.name=="careerality") | .uuid // empty')
+          # NOTE: plain table output is parsed instead of --json because some
+          # runner-resolved wrangler versions reject the --json flag.
+          D1_LS=$(./node_modules/.bin/wrangler d1 list 2>&1 || true)
+          DB_ID=$(echo "$D1_LS" | grep -E '(^|[^a-z0-9-])careerality([^a-z0-9-]|$)' | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1 || true)
           if [ -z "$DB_ID" ]; then
-            DB_ID=$(./node_modules/.bin/wrangler d1 create careerality --json | jq -r .uuid)
+            ./node_modules/.bin/wrangler d1 create careerality
+            D1_LS=$(./node_modules/.bin/wrangler d1 list 2>&1 || true)
+            DB_ID=$(echo "$D1_LS" | grep -E '(^|[^a-z0-9-])careerality([^a-z0-9-]|$)' | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1 || true)
+          fi
+          if [ -z "$DB_ID" ]; then
+            echo "could not determine the careerality D1 database id"
+            echo "$D1_LS"
+            exit 1
           fi
           sed -i "s/database_id = \".*\"/database_id = \"$DB_ID\"/" wrangler.toml
 
