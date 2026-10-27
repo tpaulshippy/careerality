@@ -3,6 +3,20 @@ main = "src/index.ts"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Custom hostname for TestFlight validation. Add the matching DNS record in
+# the Cloudflare dashboard (or let "Add Route" create it), then build
+# TestFlight with EXPO_PUBLIC_API_URL=https://api-staging.careerality.app.
+[[routes]]
+pattern = "api-staging.careerality.app/*"
+zone_name = "careerality.app"
+
+# Production cutover: uncomment to take over careerality.app/api/* from
+# Rails. This IS the production switch — add it only after the staging
+# hostname validates cleanly. Rollback is deleting the route.
+# [[routes]]
+# pattern = "careerality.app/api/*"
+# zone_name = "careerality.app"
+
 # D1 (SQLite) database. Create it once, then paste the id:
 #   wrangler d1 create careerality
 # Local dev uses a local copy automatically (`wrangler dev` / `--local`).
