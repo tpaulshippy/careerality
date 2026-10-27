@@ -147,8 +147,8 @@ All data is publicly available, regularly updated, and free from commercial bias
 Careerality is designed as a modern, cross-platform application:
 
 - **Frontend**: React Native (iOS and Android)
-- **Backend**: Ruby on Rails
-- **Database**: PostgreSQL
+- **Backend**: Node (Hono) on Cloudflare Workers
+- **Database**: Cloudflare D1 (SQLite)
 - **Data Processing**: Python (pandas, NumPy) for ROI calculations
 - **AI/NLP**: OpenAI API for virtual counselor and card generation
 - **Maps**: Mapbox or Google Maps API

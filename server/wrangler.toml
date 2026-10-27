@@ -1,0 +1,25 @@
+name = "careerality-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 (SQLite) database. Create it once, then paste the id:
+#   wrangler d1 create careerality
+# Local dev uses a local copy automatically (`wrangler dev` / `--local`).
+[[d1_databases]]
+binding = "DB"
+database_name = "careerality"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[vars]
+# Comma-separated list of allowed browser origins (mirrors Rails rack-cors).
+CORS_ORIGINS = "https://careerality.app"
+# Base URL for TypeSafe Jev (System One). Default is the hosted API.
+TYPESAFE_API_BASE = "https://api.typesafe.ai"
+# Model id for Jev ranking. `jev-latest` tracks the flagship model.
+JEV_MODEL = "jev-latest"
+
+# Secrets (set with `wrangler secret put`):
+#   TYPESAFE_API_KEY — TypeSafe API key for POST /api/jev/rank. When unset,
+#                      ranking gracefully falls back to input order.

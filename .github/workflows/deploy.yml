@@ -39,35 +39,29 @@ jobs:
           npm ci --legacy-peer-deps
           npm run web:build
 
-      - name: Deploy to server
+      - name: Deploy API worker
+        working-directory: server
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          echo "$SSH_KEY" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
-          tar -C client/dist -cf - . | ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key root@$SERVER_HOST '
-          set -euo pipefail
-          cd /home/careerality/repo
-          git pull --ff-only
-          rm -rf server/public/app.next
-          mkdir -p server/public/app.next
-          tar -xf - -C server/public/app.next
-          rm -rf server/public/app
-          mv server/public/app.next server/public/app
-          cd server
-          bundle install
-          SERVICE_ENV="$(systemctl show careerality --property=Environment --value)"
-          env $SERVICE_ENV RAILS_ENV=production bundle exec rails db:migrate
-          sudo systemctl restart careerality
-          sudo systemctl is-active --quiet careerality
+          npm ci
+          npx wrangler deploy
+
+      - name: Deploy web to Pages
+        working-directory: server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler pages deploy ../client/dist --project-name careerality-web
+
+      - name: Health check
+        run: |
           for attempt in $(seq 1 15); do
             if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 \
-              -H "Host: careerality.app" \
-              http://127.0.0.1:3002/up; then
+              https://careerality.app/api/roi?page=1 ; then
               exit 0
             fi
-            sleep 2
+            sleep 10
           done
           exit 1
-          '
