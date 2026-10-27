@@ -163,6 +163,8 @@ This stack is a starting point. Contributors are encouraged to propose architect
 
 - Node.js 22+ (frontend + backend)
 - Python 3.10+ (data processing)
+- PostgreSQL 14+ (data pipeline source + the Postgres→D1 export; not needed
+  to run the API itself)
 - A Cloudflare account with a D1 database (or use the local D1 copy for dev)
 - npm or yarn
 

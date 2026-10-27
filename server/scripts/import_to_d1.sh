@@ -2,7 +2,8 @@
 # Import the minimal serving set into D1 and verify row counts.
 #
 # Usage:
-#   ./scripts/import_to_d1.sh export [--local|--remote] [FORCE=1]
+#   ./scripts/import_to_d1.sh export [--local|--remote]
+#   FORCE=1 ./scripts/import_to_d1.sh export --remote   # skip empty-table preflight
 #
 # 1. Applies pending D1 migrations (migrations/0001_init.sql on a fresh DB).
 #    This is the only path that updates D1's migration bookkeeping — never

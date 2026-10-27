@@ -103,6 +103,8 @@ def export_table(cursor, table, out_dir, chunk_rows, chunk_bytes, counts, chunk_
         if not rows:
             break
         for row in rows:
+            if len(batch) >= chunk_rows:
+                flush()
             text = "(" + ", ".join(sql_literal(v) for v in row) + ")"
             # Split text-heavy tables (e.g. career_contents) by statement size
             # so no single INSERT exceeds D1's per-statement limit.
@@ -111,8 +113,6 @@ def export_table(cursor, table, out_dir, chunk_rows, chunk_bytes, counts, chunk_
             batch.append(text)
             batch_bytes += len(text.encode("utf-8")) + 2
             rows_exported += 1
-        if len(batch) >= chunk_rows:
-            flush()
     if batch:
         flush()
     counts[table] = rows_exported

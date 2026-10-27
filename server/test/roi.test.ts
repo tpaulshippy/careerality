@@ -151,28 +151,52 @@ describe("GET /api/roi", () => {
     ).toEqual(["11-1111.00", "29-1141.00"]);
   });
 
-  test("both salary aliases apply, strictest wins", async () => {
-    await seedRoi("15-1252.00", "99", { annual_median_salary: 40000 });
-    await seedRoi("29-1141.00", "99", { annual_median_salary: 90000 });
-    await seedRoi("11-1111.00", "99", { annual_median_salary: 120000 });
-    const res = await body(
-      await testApp(db).request(
-        "/api/roi?salary_min=50000&min_salary=100000",
-        {},
-        testEnv,
-      ),
-    );
-    expect(
-      res.records.map((r: { occupation_code: string }) => r.occupation_code),
-    ).toEqual(["11-1111.00"]);
+  test("each salary alias applies independently, strictest wins", async () => {
+    // Distinct roi values keep the roi-fallback order deterministic.
+    await seedRoi("15-1252.00", "99", {
+      annual_median_salary: 40000,
+      roi_percentage: 30,
+    });
+    await seedRoi("29-1141.00", "99", {
+      annual_median_salary: 90000,
+      roi_percentage: 20,
+    });
+    await seedRoi("11-1111.00", "99", {
+      annual_median_salary: 120000,
+      roi_percentage: 10,
+    });
+    const app = testApp(db);
+    const codes = async (qs: string) =>
+      (
+        await body(await app.request(`/api/roi?${qs}`, {}, testEnv))
+      ).records.map((r: { occupation_code: string }) => r.occupation_code);
+    // Each alias alone.
+    expect(await codes("salary_min=50000")).toEqual(["29-1141.00", "11-1111.00"]);
+    expect(await codes("min_salary=100000")).toEqual(["11-1111.00"]);
+    expect(await codes("salary_max=50000")).toEqual(["15-1252.00"]);
+    expect(await codes("max_salary=100000")).toEqual(["15-1252.00", "29-1141.00"]);
+    // Both minimum aliases present: strictest wins.
+    expect(await codes("salary_min=50000&min_salary=100000")).toEqual([
+      "11-1111.00",
+    ]);
+    // Both maximum aliases present: strictest wins.
+    expect(await codes("salary_max=100000&max_salary=50000")).toEqual([
+      "15-1252.00",
+    ]);
   });
 
   test("non-numeric salary bounds behave like Rails to_f (0)", async () => {
     await seedRoi("15-1252.00", "99", { annual_median_salary: 40000 });
+    await seedRoi("29-1141.00", "99", { annual_median_salary: -5000 });
+    await seedRoi("11-1111.00", "99", { annual_median_salary: null });
+    // to_f turns "abc" into 0.0: the positive row stays, the negative and
+    // NULL rows drop. Ignoring the bound entirely would keep all three.
     const res = await body(
       await testApp(db).request("/api/roi?min_salary=abc", {}, testEnv),
     );
-    expect(res.records).toHaveLength(1);
+    expect(
+      res.records.map((r: { occupation_code: string }) => r.occupation_code),
+    ).toEqual(["15-1252.00"]);
   });
 
   test("user_id excludes swiped careers and area echo works", async () => {

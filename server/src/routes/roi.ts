@@ -127,10 +127,12 @@ function areaFilter(area: string | undefined): Where {
 }
 
 function parseSalaryBound(raw: string | undefined): number | null {
-  if (raw == null || raw === "") return null;
-  // Rails String#to_f turns non-numeric input into 0.0 rather than filtering
+  // Rails checks `present?`, which is false for blank strings, so trim first
+  // and skip. Non-numeric input coerces via to_f to 0.0 rather than filtering
   // everything out, so fall back to 0 instead of propagating NaN.
-  const v = Number.parseFloat(raw);
+  const trimmed = raw?.trim() ?? "";
+  if (trimmed === "") return null;
+  const v = Number.parseFloat(trimmed);
   return Number.isFinite(v) ? v : 0;
 }
 
@@ -290,11 +292,12 @@ export function roiRoute(db: AppDb) {
   });
 
   app.get("/search", async (c) => {
-    const query = c.req.query("q");
+    const rawQuery = c.req.query("q");
+    // Rails uses query.present?, which also rejects whitespace-only input.
+    const query = rawQuery?.trim() ?? "";
     const area = c.req.query("area") ?? "99";
     const page = parsePage(c.req.query("page"));
-    // Rails uses query.present?, which also rejects whitespace-only input.
-    if (!query || query.trim() === "") {
+    if (query === "") {
       return c.json({ error: "Query parameter q is required" }, 400);
     }
     return c.json(

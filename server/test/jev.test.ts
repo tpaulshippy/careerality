@@ -4,6 +4,7 @@ import type { AppDb } from "../src/db/client";
 import { careerRoi } from "../src/db/schema";
 import { body, createTestDb, testApp, testEnv } from "./setup";
 import { chunk } from "../src/lib/jev";
+import { createApp } from "../src/app";
 
 let db: AppDb;
 let client: Client;
@@ -171,18 +172,45 @@ describe("POST /api/jev/rank", () => {
   test("chunks enrichment lookups past the D1 parameter limit", async () => {
     expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
     // 110 distinct career_ids would exceed D1's ~100 bound parameters in a
-    // single inArray lookup; chunked enrichment must still fall back cleanly.
+    // single inArray lookup. Count the SELECTs issued through a wrapped db:
+    // 110 ids / 50 per chunk = 3 withCodes batches + 1 candidate batch.
+    let selectCalls = 0;
+    const countingDb = new Proxy(db, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (typeof value !== "function") return value;
+        if (prop === "select") {
+          return (...args: unknown[]) => {
+            selectCalls += 1;
+            return Reflect.apply(value, target, args);
+          };
+        }
+        return (...args: unknown[]) => Reflect.apply(value, target, args);
+      },
+    }) as unknown as AppDb;
     const swipes = Array.from({ length: 110 }, (_, i) => ({
       career_id: i + 1,
       direction: "right",
     }));
-    const res = await postRank(
-      { swipes, candidates: [{ occupation_code: "15-1252.00" }] },
+    const res = await createApp(countingDb, {
+      ...testEnv,
+      TYPESAFE_API_KEY: undefined,
+    }).request(
+      "/api/jev/rank",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          swipes,
+          candidates: [{ occupation_code: "15-1252.00" }],
+        }),
+      },
       { ...testEnv, TYPESAFE_API_KEY: undefined },
     );
     expect(res.status).toBe(200);
     const json = await body(res);
     expect(json.results).toHaveLength(1);
     expect(json.results[0].provider).toBe("fallback");
+    expect(selectCalls).toBe(4);
   });
 });

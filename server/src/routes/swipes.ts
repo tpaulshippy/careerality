@@ -99,9 +99,9 @@ export function swipesRoute(db: AppDb) {
   app.post("/", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const errors: string[] = [];
-    // Rails validates presence only, so 0 passes but fractions never occur
-    // (PG would reject them); require an integer to avoid storing IDs that
-    // can never join to a career.
+    // Fractional IDs can never join to a career. Rails would silently
+    // type-cast 1.5 to 1 via ActiveRecord; the Worker rejects them instead so
+    // invalid IDs surface as 422. Intentional divergence.
     const careerId =
       typeof body?.career_id === "number" && Number.isInteger(body.career_id)
         ? body.career_id
