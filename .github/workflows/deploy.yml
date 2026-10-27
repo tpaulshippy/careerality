@@ -1,34 +1,25 @@
 name: Deploy
 
 on:
-  workflow_dispatch:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
     branches: [main]
+  workflow_dispatch:
 
-# Only one deploy at a time; extra runs wait their turn.
-concurrency:
-  group: production-deploy
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout deploy commit
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
 
       - name: Build web export
         working-directory: client
@@ -44,27 +35,47 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        # NOTE: D1 migrations stay a manual, verified step (see server/README
-        # "Data migration" and scripts/import_to_d1.sh) — they are NOT applied
-        # here, so a deploy can never leave the schema ahead of the code.
         run: |
+          set -euo pipefail
           npm ci
-          npx wrangler deploy
+          # NOTE: D1 migrations stay a manual, verified step (see server/README
+          # "Data migration"). They are NOT applied here, so a deploy can
+          # never leave the schema ahead of the code.
+          npx --yes wrangler@4.153.0 deploy 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          DEPLOY_URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -n 1 || true)
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "Could not parse a workers.dev URL from the deploy output"
+            exit 1
+          fi
+          echo "DEPLOY_URL=$DEPLOY_URL" >> "$GITHUB_ENV"
+          echo "Deployed to $DEPLOY_URL"
+
+      - name: Smoke-check API worker
+        run: |
+          set -euo pipefail
+          echo "Checking $DEPLOY_URL"
+          # grep into a variable first: `curl | grep -q` trips pipefail
+          # (curl exits 23 on grep's early SIGPIPE close).
+          body=$(curl --fail --silent --max-time 15 "$DEPLOY_URL/up")
+          grep -q '"status":"ok"' <<<"$body"
+          echo "Health check OK"
+          body=$(curl --fail --silent --max-time 15 "$DEPLOY_URL/api/areas/states")
+          grep -q '"states"' <<<"$body"
+          echo "States OK"
+          body=$(curl --fail --silent --max-time 15 "$DEPLOY_URL/api/roi?page=1&sort=demand")
+          grep -q '"records"' <<<"$body"
+          grep -q '"pagy"' <<<"$body"
+          echo "ROI feed OK"
+          code=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 15 "$DEPLOY_URL/api/nope")
+          if [ "$code" != "404" ]; then
+            echo "Expected 404 for unknown route, got $code"
+            exit 1
+          fi
+          echo "404 handling OK"
 
       - name: Deploy web to Pages
         working-directory: server
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler pages deploy ../client/dist --project-name careerality-web
-
-      - name: Health check
-        run: |
-          for attempt in $(seq 1 15); do
-            if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 \
-              https://careerality.app/api/roi?page=1 ; then
-              exit 0
-            fi
-            sleep 10
-          done
-          exit 1
+        run: npx --yes wrangler@4.153.0 pages deploy ../client/dist --project-name careerality-web
