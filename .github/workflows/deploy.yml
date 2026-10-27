@@ -21,15 +21,6 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build web export
-        working-directory: client
-        env:
-          EXPO_PUBLIC_API_URL: https://careerality.app
-          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_CLIENT_DSN }}
-        run: |
-          npm ci --legacy-peer-deps
-          npm run web:build
-
       - name: Provision D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -101,9 +92,8 @@ jobs:
           fi
           echo "404 handling OK"
 
-      - name: Deploy web to Pages
-        working-directory: server
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: ./node_modules/.bin/wrangler pages deploy ../client/dist --project-name careerality-web
+          # NOTE: the Expo web export is intentionally not deployed here.
+          # careerality.app web traffic still serves from the VPS; only
+          # /api/* moves to this worker (via the api-staging route now and
+          # the production route at cutover). Retiring the VPS web server
+          # (e.g. Worker Static Assets) is a separate decision.
