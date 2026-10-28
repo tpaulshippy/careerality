@@ -1,0 +1,55 @@
+name: TestFlight Build
+
+# Native path for testing on TestFlight: builds with the `testflight`
+# eas.json profile (store distribution) and submits the result to
+# TestFlight. The API URL is baked in at build time via env, so pass the
+# staging worker URL while validating the Cloudflare backend, and the
+# production URL for release candidates.
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: 'API base URL baked into the build'
+        required: true
+        default: 'https://api-staging.careerality.app'
+
+jobs:
+  testflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci --legacy-peer-deps
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Build for TestFlight
+        working-directory: client
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CI: '1'
+          EXPO_PUBLIC_API_URL: ${{ inputs.api_url }}
+        run: |
+          npx eas build --profile testflight --platform ios \
+            --non-interactive --wait
+
+      - name: Submit to TestFlight
+        working-directory: client
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CI: '1'
+        run: |
+          # Reuses the existing submit config (ascAppId in eas.json).
+          npx eas submit -p ios --profile production --latest \
+            --non-interactive

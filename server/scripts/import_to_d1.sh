@@ -5,6 +5,14 @@
 #   ./scripts/import_to_d1.sh export [--local|--remote]
 #   FORCE=1 ./scripts/import_to_d1.sh export --remote   # skip empty-table preflight
 #
+# D1's free plan allows ~100k rows written per day; a full seed (~236k rows)
+# exceeds it. Split the load across days with 1-based chunk ranges and skip
+# verification until the final range:
+#   CHUNK_FROM=1 CHUNK_TO=400 VERIFY=0 ./scripts/import_to_d1.sh export --remote  # day 1
+#   CHUNK_FROM=401 VERIFY=0 ./scripts/import_to_d1.sh export --remote            # day 2...
+#   CHUNK_FROM=801 ./scripts/import_to_d1.sh export --remote                    # final day (verifies)
+# (Or upgrade to Workers Paid for much higher daily limits and load at once.)
+#
 # 1. Applies pending D1 migrations (migrations/0001_init.sql on a fresh DB).
 #    This is the only path that updates D1's migration bookkeeping — never
 #    apply the schema with --file, or a later `migrations apply` will try to
@@ -45,7 +53,7 @@ BATCH_BYTES="${BATCH_BYTES:-400000}"
 echo "== applying D1 migrations ($TARGET)"
 npx wrangler d1 migrations apply careerality "$TARGET"
 
-if [ "${FORCE:-0}" != "1" ]; then
+if [ "${FORCE:-0}" != "1" ] && [ "${CHUNK_FROM:-1}" -eq 1 ]; then
   echo "== preflight: target tables must be empty"
   for table in $TABLES; do
     n=$(npx wrangler d1 execute careerality "$TARGET" \
@@ -59,6 +67,14 @@ if [ "${FORCE:-0}" != "1" ]; then
 fi
 
 echo "== importing chunks into D1 ($TARGET)"
+mapfile -t ALL_CHUNKS < <(printf '%s\n' "$EXPORT_DIR"/chunk_*.sql | sort)
+total=${#ALL_CHUNKS[@]}
+if [ "$total" -eq 0 ]; then
+  echo "No chunk_*.sql files in $EXPORT_DIR" >&2
+  exit 1
+fi
+from=${CHUNK_FROM:-1}; to=${CHUNK_TO:-$total}
+echo "-- chunks $from-$to of $total"
 batch_dir="$(mktemp -d)"
 trap 'rm -rf "$batch_dir"' EXIT
 batch_file="$batch_dir/batch.sql"
@@ -73,7 +89,10 @@ run_batch() {
   batch_bytes=0
   batch_n=0
 }
-for f in "$EXPORT_DIR"/chunk_*.sql; do
+i=0
+for f in "${ALL_CHUNKS[@]}"; do
+  i=$((i + 1))
+  if [ "$i" -lt "$from" ] || [ "$i" -gt "$to" ]; then continue; fi
   size=$(stat -c%s "$f")
   if [ "$batch_n" -gt 0 ] && [ $((batch_bytes + size)) -gt "$BATCH_BYTES" ]; then
     run_batch
@@ -83,6 +102,11 @@ for f in "$EXPORT_DIR"/chunk_*.sql; do
   batch_n=$((batch_n + 1))
 done
 run_batch
+
+if [ "${VERIFY:-1}" = "0" ]; then
+  echo "== skipping verification (partial load; verify on the final range)"
+  exit 0
+fi
 
 echo "== verifying counts"
 python3 - "$EXPORT_DIR/counts.json" "$TARGET" <<'EOF'

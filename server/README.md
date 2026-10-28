@@ -110,3 +110,7 @@ area × industry rows); chunks of at most 300 rows / 96 KB per INSERT stay
 under the statement limits the D1 runner enforces (verified: 400 rows pass,
 500 fail locally). If `wrangler d1 execute --file` ever rejects a chunk,
 re-run the export with a smaller `--chunk-rows` or `--chunk-bytes`.
+D1's free plan also caps writes at ~100k rows/day, and a full seed is
+~236k rows: split the load across days with `CHUNK_FROM`/`CHUNK_TO` (see
+`import_to_d1.sh` header; skip verification until the final range), or
+upgrade to Workers Paid for much higher daily limits.
