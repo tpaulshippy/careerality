@@ -105,12 +105,17 @@ tables use exotic types — the one rewrite is `map_summary`, where the
 Postgres `PERCENTILE_CONT` / `FILTER (WHERE …)` / `~` regex aggregate is
 expressed as plain `GROUP BY` + JS median (covered by tests).
 
-D1 limits to keep in mind: `career_roi` is the large table (occupation ×
-area × industry rows); chunks of at most 300 rows / 96 KB per INSERT stay
-under the statement limits the D1 runner enforces (verified: 400 rows pass,
-500 fail locally). If `wrangler d1 execute --file` ever rejects a chunk,
-re-run the export with a smaller `--chunk-rows` or `--chunk-bytes`.
-D1's free plan also caps writes at ~100k rows/day, and a full seed is
-~236k rows: split the load across days with `CHUNK_FROM`/`CHUNK_TO` (see
-`import_to_d1.sh` header; skip verification until the final range), or
-upgrade to Workers Paid for much higher daily limits.
+D1 limits to keep in mind (free tier — this migration is designed to stay
+free, no paid plan needed):
+
+- **Statements**: chunks of at most 300 rows / 96 KB per INSERT stay under
+  the statement limits the D1 runner enforces (verified: 400 rows pass,
+  500 fail locally). If `wrangler d1 execute --file` ever rejects a chunk,
+  re-run the export with a smaller `--chunk-rows` or `--chunk-bytes`.
+- **Writes (~100k rows/day)**: a full seed is ~236k rows, so split the load
+  across days with `CHUNK_FROM`/`CHUNK_TO` (see `import_to_d1.sh` header;
+  skip verification until the final range).
+- **Reads (5M rows/day, account-wide)**: every full-table scan counts, so
+  never verify with repeated raw `COUNT(*)` — check counts once, preferably
+  through the worker API itself (`/api/roi` pagy count). The real prod
+  dataset (~13k rows) costs ~18x less per scan than the 233k-row dev seed.
