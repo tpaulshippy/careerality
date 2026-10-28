@@ -20,7 +20,8 @@
       },
       "env": {
         "SENTRY_ALLOW_FAILURE": "true",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_API_URL": "https://api-staging.careerality.app"
       },
       "channel": "testflight",
       "autoIncrement": true

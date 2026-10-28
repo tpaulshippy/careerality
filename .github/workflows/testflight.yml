@@ -7,12 +7,10 @@ name: TestFlight Build
 # production URL for release candidates.
 
 on:
+  # The API URL is baked via the testflight profile's `env` in eas.json
+  # (CI shell env does not reach EAS cloud builders). Edit eas.json to
+  # repoint a build.
   workflow_dispatch:
-    inputs:
-      api_url:
-        description: 'API base URL baked into the build'
-        required: true
-        default: 'https://api-staging.careerality.app'
 
 jobs:
   testflight:
@@ -39,7 +37,6 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           CI: '1'
-          EXPO_PUBLIC_API_URL: ${{ inputs.api_url }}
         run: |
           npx eas build --profile testflight --platform ios \
             --non-interactive --wait
