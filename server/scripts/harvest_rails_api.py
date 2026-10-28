@@ -117,6 +117,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default="https://careerality.app")
     parser.add_argument("--out", default="export_prod")
+    parser.add_argument("--sort", default="demand",
+                        help="roi sort order to paginate (demand|roi|salary|breakeven); alternate sorts surface different tie rows")
     parser.add_argument(
         "--resume",
         action="store_true",
@@ -166,7 +168,7 @@ def main():
         # Content ids were assigned 1..N in order; continue the sequence.
         content_id = len(seen_content)
         content_id = len(seen_content)
-    for data in paginate(args.base, "/api/roi?sort=demand"):
+    for data in paginate(args.base, f"/api/roi?sort={args.sort}"):
         for r in data.get("records", []):
             if r.get("id") in seen_roi:
                 dupes += 1

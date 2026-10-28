@@ -101,6 +101,21 @@ describe("GET /api/roi", () => {
     ).toEqual(["11-0000.00", "11-3333.00", "11-2222.00", "11-1111.00"]);
   });
 
+  test("demand sort excludes rows without demand scores", async () => {
+    await seedRoi("15-1252.00", "S9", { demand_score: 0.3 });
+    await seedRoi("29-1141.00", "S9", { demand_score: null, roi_percentage: 99 });
+    const res = await body(
+      await testApp(db).request("/api/roi?area_code=S9&sort=demand", {}, testEnv),
+    );
+    // Rails orders the demand-filtered relation: the NULL-demand row is
+    // excluded even though its roi is higher (no roi fallback either,
+    // since demand data exists for the area).
+    expect(
+      res.records.map((r: { occupation_code: string }) => r.occupation_code),
+    ).toEqual(["15-1252.00"]);
+    expect(res.pagy.count).toBe(1);
+  });
+
   test("falls back to roi sort when no demand scores exist", async () => {
     await seedRoi("15-1252.00", "S2", {
       roi_percentage: 5,
@@ -118,13 +133,13 @@ describe("GET /api/roi", () => {
     ).toEqual(["20.0", "5.0"]);
   });
 
-  test("demand ordering survives swiping every demand-scored career", async () => {
+  test("demand ordering excludes swiped and demand-less careers", async () => {
     const swipedId = await seedRoi("15-1252.00", "S2", {
       demand_score: 0.9,
       roi_percentage: 5,
     });
     await seedRoi("29-1141.00", "S2", {
-      demand_score: null,
+      demand_score: 0.5,
       roi_percentage: 50,
     });
     await seedRoi("11-1111.00", "S2", {
@@ -139,16 +154,15 @@ describe("GET /api/roi", () => {
       created_at: stamp,
       updated_at: stamp,
     });
-    // Rails decides the sort from the area/salary filters alone, before the
-    // per-user swipe exclusion. Demand ordering (NULLS LAST, code ASC) gives
-    // [11-1111, 29-1141]; an exclusion-aware count would fall back to roi
-    // ordering [29-1141, 11-1111].
+    // Rails orders the demand-filtered relation (before the swipe
+    // exclusion): the swiped row drops out, the NULL-demand row was never
+    // in, and only the remaining demand row is returned.
     const res = await body(
       await testApp(db).request("/api/roi?area_code=S2&user_id=u1", {}, testEnv),
     );
     expect(
       res.records.map((r: { occupation_code: string }) => r.occupation_code),
-    ).toEqual(["11-1111.00", "29-1141.00"]);
+    ).toEqual(["29-1141.00"]);
   });
 
   test("each salary alias applies independently, strictest wins", async () => {

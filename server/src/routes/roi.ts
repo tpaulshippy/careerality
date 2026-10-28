@@ -217,6 +217,10 @@ export function roiRoute(db: AppDb) {
     const where = and(...conditions.filter((w): w is SQL => w !== undefined));
 
     let order: SQL;
+    // Rails orders the demand-filtered relation when demand data exists,
+    // so NULL-demand rows are excluded from demand-sorted feeds entirely
+    // (not just sorted last).
+    let demandOnly = false;
     if (sort === "salary") order = orderSalaryDesc;
     else if (sort === "breakeven") order = orderBreakevenAsc;
     else if (sort === "roi") order = orderRoiDesc;
@@ -230,12 +234,20 @@ export function roiRoute(db: AppDb) {
             : isNotNull(careerRoi.demand_score),
         );
       const demandCount = demandRows[0]?.n ?? 0;
-      order = demandCount > 0 ? orderDemand : orderRoiDesc;
+      if (demandCount > 0) {
+        order = orderDemand;
+        demandOnly = true;
+      } else {
+        order = orderRoiDesc;
+      }
     } else {
       order = orderRoiDesc;
     }
 
-    const body = await pagedRoi(db, where, order, page, ROI_PER_PAGE);
+    const finalWhere = demandOnly
+      ? and(where, isNotNull(careerRoi.demand_score))
+      : where;
+    const body = await pagedRoi(db, finalWhere, order, page, ROI_PER_PAGE);
     const response: Record<string, unknown> = { ...body };
     if (area) {
       response["area_code"] = area;
