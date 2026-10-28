@@ -22,7 +22,8 @@
         "SENTRY_ALLOW_FAILURE": "true",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
-      "channel": "testflight"
+      "channel": "testflight",
+      "autoIncrement": true
     },
     "production": {
       "autoIncrement": true,
