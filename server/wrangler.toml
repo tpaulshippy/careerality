@@ -10,18 +10,15 @@ compatibility_flags = ["nodejs_compat"]
 pattern = "api-staging.careerality.app/*"
 zone_name = "careerality.app"
 
-# Production cutover (STAGING-GATED — do NOT activate yet):
+# Production cutover (ACTIVE — careerality.app/api/* serves from this worker):
 # Ordered cutover:
 #   (a) Pages apex first — create Pages project + attach careerality.app/*
 #       custom domain, verify web serves from Pages.
-#   (b) Then uncomment the route below to take over
-#       careerality.app/api/* from Rails.
+#   (b) This route takes over careerality.app/api/* from Rails.
 #   (c) Rollback = re-comment this route + redeploy (Rails resumes /api/*).
-# This IS the production switch — add it only after the staging
-# hostname validates cleanly.
-# [[routes]]
-# pattern = "careerality.app/api/*"
-# zone_name = "careerality.app"
+[[routes]]
+pattern = "careerality.app/api/*"
+zone_name = "careerality.app"
 
 # D1 (SQLite) database. Create it once, then paste the id:
 #   wrangler d1 create careerality
