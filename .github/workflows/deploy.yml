@@ -97,3 +97,42 @@ jobs:
           # /api/* moves to this worker (via the api-staging route now and
           # the production route at cutover). Retiring the VPS web server
           # (e.g. Worker Static Assets) is a separate decision.
+
+  # ---------------------------------------------------------------------------
+  # Future Pages deploy (DISABLED — worker-only deploy above is unchanged).
+  # Cutover order: Pages apex first, then uncomment server/wrangler.toml prod
+  # route (careerality.app/api/*). The worker /api/* route wins over Pages
+  # careerality.app/* by route specificity.
+  #
+  # Required secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+  #
+  # Manual dashboard steps (one time):
+  #   1. Create a Pages project named `careerality-web`.
+  #   2. Attach the careerality.app/* custom domain to the Pages project.
+  #   3. Verify apex web serves from Pages before activating the worker
+  #      /api/* route. Rollback = re-comment the worker route + redeploy.
+  # ---------------------------------------------------------------------------
+  # pages:
+  #   if: false # staging-gated; enable at Pages cutover
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout deploy commit
+  #       uses: actions/checkout@v4
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '22'
+  #     - name: Build Expo web (client/)
+  #       working-directory: client
+  #       run: |
+  #         npm ci && EXPO_PUBLIC_API_URL=https://careerality.app npm run web:build
+  #     - name: Deploy to Pages (client/dist + sites/marketing)
+  #       env:
+  #         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  #         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  #       run: |
+  #         # Compose the Pages output: Expo web build + marketing site.
+  #         # Adjust paths to match the Pages project setup.
+  #         npm i -g wrangler
+  #         wrangler pages deploy client/dist --project-name=careerality-web
+  #         # e.g. merge sites/marketing into the deploy directory before deploy.
