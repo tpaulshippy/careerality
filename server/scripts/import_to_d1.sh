@@ -108,23 +108,11 @@ if [ "${VERIFY:-1}" = "0" ]; then
   exit 0
 fi
 
-# The states endpoint reads the materialized `states` table, not
-# career_roi (the GLOB derivation is a full-table scan). Refresh it from the
-# freshly imported data — runs on the final range only, like verification.
+# The states endpoint reads the static `states` table (migrations/0003),
+# never career_roi. Refresh it from the canonical migration file — runs on
+# the final range only, like verification.
 echo "== refreshing states lookup"
-cat > "$batch_file" <<'SQL'
-DELETE FROM states;
-INSERT INTO states (area_code, area_name)
-SELECT area_code, area_name FROM career_roi
-WHERE (
-  area_code NOT GLOB '*[^0-9]*'
-  AND area_code GLOB '[0-9]*'
-  AND length(area_code) <= 2
-  AND area_name NOT LIKE '%,%'
-)
-GROUP BY area_code, area_name;
-SQL
-npx wrangler d1 execute careerality "$TARGET" --file "$batch_file" --json | tail -1
+npx wrangler d1 execute careerality "$TARGET" --file "migrations/0003_states_static.sql" --json | tail -1
 
 echo "== verifying counts"
 python3 - "$EXPORT_DIR/counts.json" "$TARGET" <<'EOF'
