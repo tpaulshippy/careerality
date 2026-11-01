@@ -190,6 +190,21 @@ export function roiRoute(db: AppDb) {
     const area = q["area_code"] ?? q["area"] ?? q["location"] ?? undefined;
     const page = parsePage(q["page"]);
 
+    // Anonymous feeds are shared and hot (crawlers, cold boots, CI smoke):
+    // serve them from the edge cache keyed by full URL. user_id responses
+    // are per-user — always fresh from D1.
+    const cacheable = !q["user_id"];
+    if (cacheable) {
+      try {
+        if (typeof caches !== "undefined") {
+          const hit = await caches.default.match(c.req.url);
+          if (hit) return hit;
+        }
+      } catch {
+        // Cache API unavailable (tests, dev) — D1 path.
+      }
+    }
+
     const conditions: Where[] = [areaFilter(area), ...salaryFilters(q)];
     // Rails decides the demand-vs-roi sort from the area/salary filters
     // alone, before the per-user swipe exclusion is applied.
@@ -225,16 +240,19 @@ export function roiRoute(db: AppDb) {
     else if (sort === "breakeven") order = orderBreakevenAsc;
     else if (sort === "roi") order = orderRoiDesc;
     else if (sort === "demand") {
-      const demandRows = await db
-        .select({ n: count() })
+      // Existence probe, not a count: stops at the first demand row (~1 row
+      // read) instead of scanning the table to count them all. SQLite has no
+      // usable index for a bare `demand_score IS NOT NULL` predicate.
+      const probe = await db
+        .select({ one: sql`1` })
         .from(careerRoi)
         .where(
           filterWhere
             ? and(filterWhere, isNotNull(careerRoi.demand_score))
             : isNotNull(careerRoi.demand_score),
-        );
-      const demandCount = demandRows[0]?.n ?? 0;
-      if (demandCount > 0) {
+        )
+        .limit(1);
+      if (probe.length > 0) {
         order = orderDemand;
         demandOnly = true;
       } else {
@@ -258,7 +276,19 @@ export function roiRoute(db: AppDb) {
         .limit(1);
       response["area_name"] = areaRows[0]?.area_name ?? `State ${area}`;
     }
-    return c.json(response);
+    const res = c.json(response);
+    if (cacheable) {
+      // Feed content changes only on re-seed.
+      res.headers.set("Cache-Control", "public, max-age=86400");
+      try {
+        if (typeof caches !== "undefined") {
+          c.executionCtx.waitUntil(caches.default.put(c.req.url, res.clone()));
+        }
+      } catch {
+        // Best-effort edge cache only — the response is already built.
+      }
+    }
+    return res;
   });
 
   app.get("/by_salary", async (c) => {
