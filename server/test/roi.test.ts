@@ -185,22 +185,32 @@ describe("GET /api/roi", () => {
     expect(res.pagy.count).toBe(42);
   });
 
-  test("personalized total is cell minus swiped, no scan", async () => {
+  test("personalized total subtracts only in-scope distinct swipes", async () => {
     await seedRoi("15-1252.00", "99", { demand_score: 0.3 });
     const swipedId = await seedRoi("29-1141.00", "99", { demand_score: 0.4 });
     await seedRoi("11-1111.00", "99", { demand_score: null });
+    const metroId = await seedRoi("27-2021.00", "0644000", {
+      demand_score: 0.9,
+    });
     await db.insert(roiStats).values([
       { key: "total", n: 100 },
       { key: "demand_total", n: 42 },
     ]);
-    await db.insert(swipes).values({
-      career_id: swipedId,
+    const swipe = (career_id: number) => ({
+      career_id,
       user_id: "u1",
       direction: "right",
       feedback: null,
       created_at: stamp,
       updated_at: stamp,
     });
+    // Same career swiped twice counts once; the metro swipe is out of the
+    // feed scope and must not reduce the cell total either.
+    await db.insert(swipes).values([
+      swipe(swipedId),
+      swipe(swipedId),
+      swipe(metroId),
+    ]);
     const res = await body(
       await testApp(db).request("/api/roi?sort=demand&user_id=u1", {}, testEnv),
     );

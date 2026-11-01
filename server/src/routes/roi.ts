@@ -310,8 +310,9 @@ export function roiRoute(db: AppDb) {
       : where;
     // Precomputed total when the filter maps to a summary cell: no area and
     // no salary bounds means the national cells; a bare area means its cell.
-    // Salary ranges and user_id exclusions have too many combinations —
-    // those stay live (and anonymous URLs are edge-cached anyway).
+    // Salary ranges have too many combinations — those stay live (and
+    // anonymous URLs are edge-cached anyway). user_id exclusions are applied
+    // as cell-minus-swiped below, not as a live anti-join count.
     let totalOverride: number | null = null;
     if (salaryWheres.length === 0) {
       totalOverride = await summaryCount(
