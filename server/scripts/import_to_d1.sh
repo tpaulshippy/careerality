@@ -114,6 +114,11 @@ fi
 echo "== refreshing states lookup"
 npx wrangler d1 execute careerality "$TARGET" --file "migrations/0003_states_static.sql" --json | tail -1
 
+# Precomputed feed totals (pagedRoi reads these instead of COUNT(*) scans).
+# Runs on the final range only, like verification.
+echo "== refreshing roi stats"
+npx wrangler d1 execute careerality "$TARGET" --file "migrations/0004_roi_stats.sql" --json | tail -1
+
 echo "== verifying counts"
 python3 - "$EXPORT_DIR/counts.json" "$TARGET" <<'EOF'
 import json, subprocess, sys

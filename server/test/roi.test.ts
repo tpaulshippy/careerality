@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import type { Client } from "@libsql/client";
 import type { AppDb } from "../src/db/client";
-import { careerContents, careerRoi, swipes } from "../src/db/schema";
+import { careerContents, careerRoi, roiStats, swipes } from "../src/db/schema";
 import { body, createTestDb, testApp, testEnv } from "./setup";
 
 let db: AppDb;
@@ -42,6 +42,10 @@ async function seedRoi(
 
 beforeEach(async () => {
   ({ db, client } = await createTestDb());
+  // Migrations seed summary cells from whatever career_roi holds at migrate
+  // time (empty here) — drop them so tests exercise the live-count path,
+  // except the summary test below which seeds its own cells.
+  await db.delete(roiStats);
 });
 
 describe("GET /api/roi", () => {
@@ -163,6 +167,22 @@ describe("GET /api/roi", () => {
     expect(
       res.records.map((r: { occupation_code: string }) => r.occupation_code),
     ).toEqual(["29-1141.00"]);
+  });
+
+  test("uses precomputed totals when summary cells exist", async () => {
+    await seedRoi("15-1252.00", "99", { demand_score: 0.3 });
+    await seedRoi("29-1141.00", "99", { demand_score: 0.4 });
+    await db.insert(roiStats).values([
+      { key: "total", n: 100 },
+      { key: "demand_total", n: 42 },
+      { key: "area:99", n: 43 },
+    ]);
+    const res = await body(
+      await testApp(db).request("/api/roi?sort=demand", {}, testEnv),
+    );
+    // Records come from the 2 live rows; the total comes from the cell.
+    expect(res.records).toHaveLength(2);
+    expect(res.pagy.count).toBe(42);
   });
 
   test("each salary alias applies independently, strictest wins", async () => {

@@ -12,7 +12,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import type { AppDb } from "../db/client";
-import { careerContents, careerRoi, swipes } from "../db/schema";
+import { careerContents, careerRoi, roiStats, swipes } from "../db/schema";
 import type { Env } from "../env";
 import { normalizeOccupationCode } from "../lib/normalize";
 import { offset, pagy, parsePage } from "../lib/pagination";
@@ -160,19 +160,31 @@ const orderSalaryDesc = sql`${careerRoi.annual_median_salary} DESC NULLS FIRST`;
 const orderBreakevenAsc = sql`${careerRoi.years_to_breakeven} ASC NULLS LAST`;
 const orderDemand = sql`${careerRoi.demand_score} DESC NULLS LAST, ${careerRoi.demand_rank} ASC NULLS LAST, ${careerRoi.projected_growth_percent} DESC NULLS LAST, ${careerRoi.occupation_code} ASC`;
 
+// Precomputed feed totals (migrations/0004_roi_stats.sql, refreshed post-seed
+// by import_to_d1.sh). Single-row PK lookup; null when the cell is missing
+// (fresh DB, unknown area) — callers fall back to a live COUNT(*) then.
+async function summaryCount(db: AppDb, key: string): Promise<number | null> {
+  const rows = await db
+    .select({ n: roiStats.n })
+    .from(roiStats)
+    .where(eq(roiStats.key, key))
+    .limit(1);
+  return rows[0]?.n ?? null;
+}
+
 async function pagedRoi(
   db: AppDb,
   where: Where,
   order: SQL,
   page: number,
   perPage: number,
+  totalOverride: number | null = null,
 ) {
   const cond = where ? and(where) : undefined;
-  const totalRows = await db
-    .select({ n: count() })
-    .from(careerRoi)
-    .where(cond);
-  const total = totalRows[0]?.n ?? 0;
+  const total =
+    totalOverride ??
+    (await db.select({ n: count() }).from(careerRoi).where(cond))[0]?.n ??
+    0;
   const rows = await withContent(db)
     .where(cond)
     .orderBy(order)
@@ -205,7 +217,8 @@ export function roiRoute(db: AppDb) {
       }
     }
 
-    const conditions: Where[] = [areaFilter(area), ...salaryFilters(q)];
+    const salaryWheres = salaryFilters(q);
+    const conditions: Where[] = [areaFilter(area), ...salaryWheres];
     // Rails decides the demand-vs-roi sort from the area/salary filters
     // alone, before the per-user swipe exclusion is applied.
     const filterWhere = and(
@@ -265,7 +278,31 @@ export function roiRoute(db: AppDb) {
     const finalWhere = demandOnly
       ? and(where, isNotNull(careerRoi.demand_score))
       : where;
-    const body = await pagedRoi(db, finalWhere, order, page, ROI_PER_PAGE);
+    // Precomputed total when the filter maps to a summary cell: no area and
+    // no salary bounds means the national cells; a bare area means its cell.
+    // Salary ranges and user_id exclusions have too many combinations —
+    // those stay live (and anonymous URLs are edge-cached anyway).
+    let totalOverride: number | null = null;
+    if (!q["user_id"] && salaryWheres.length === 0) {
+      totalOverride = await summaryCount(
+        db,
+        !area
+          ? demandOnly
+            ? "demand_total"
+            : "total"
+          : demandOnly
+            ? `area:${area}:demand`
+            : `area:${area}`,
+      );
+    }
+    const body = await pagedRoi(
+      db,
+      finalWhere,
+      order,
+      page,
+      ROI_PER_PAGE,
+      totalOverride,
+    );
     const response: Record<string, unknown> = { ...body };
     if (area) {
       response["area_code"] = area;
@@ -301,6 +338,7 @@ export function roiRoute(db: AppDb) {
         orderSalaryDesc,
         page,
         ROI_TOP_PER_PAGE,
+        await summaryCount(db, `area:${area}`),
       ),
     );
   });
@@ -315,6 +353,7 @@ export function roiRoute(db: AppDb) {
         orderRoiDesc,
         page,
         ROI_TOP_PER_PAGE,
+        await summaryCount(db, `area:${area}`),
       ),
     );
   });
@@ -329,6 +368,7 @@ export function roiRoute(db: AppDb) {
         orderBreakevenAsc,
         page,
         ROI_TOP_PER_PAGE,
+        await summaryCount(db, `area:${area}`),
       ),
     );
   });

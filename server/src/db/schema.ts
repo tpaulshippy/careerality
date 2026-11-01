@@ -54,6 +54,14 @@ export const states = sqliteTable("states", {
   area_name: text("area_name").notNull(),
 });
 
+// Precomputed feed totals backing pagedRoi (~112 rows: national total,
+// national demand total, per-area totals + per-area demand totals).
+// See migrations/0004_roi_stats.sql; refreshed by import_to_d1.sh.
+export const roiStats = sqliteTable("roi_stats", {
+  key: text("key").primaryKey(),
+  n: integer("n").notNull(),
+});
+
 // Mirror of Postgres `career_contents` (day-in-the-life narratives + video).
 export const careerContents = sqliteTable(
   "career_contents",
