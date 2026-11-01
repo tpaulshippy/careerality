@@ -51,16 +51,16 @@ beforeEach(async () => {
 describe("GET /api/roi", () => {
   test("demand sort is stable across pages (25 rows, 20 per page)", async () => {
     for (let i = 1; i <= 25; i++) {
-      await seedRoi(`11-10${String(i).padStart(2, "0")}.00`, "S1", {
+      await seedRoi(`11-10${String(i).padStart(2, "0")}.00`, "6", {
         demand_score: 26 - i,
       });
     }
     const app = testApp(db);
     const page1 = await body(
-      await app.request("/api/roi?area_code=S1&sort=demand", {}, testEnv),
+      await app.request("/api/roi?area_code=6&sort=demand", {}, testEnv),
     );
     const page2 = await body(
-      await app.request("/api/roi?area_code=S1&sort=demand&page=2", {}, testEnv),
+      await app.request("/api/roi?area_code=6&sort=demand&page=2", {}, testEnv),
     );
     expect(page1.records).toHaveLength(20);
     expect(page2.records).toHaveLength(5);
@@ -77,28 +77,28 @@ describe("GET /api/roi", () => {
   });
 
   test("ties break deterministically by rank, growth, then code", async () => {
-    await seedRoi("11-1111.00", "S1", {
+    await seedRoi("11-1111.00", "6", {
       demand_score: 0.5,
       demand_rank: 2,
       projected_growth_percent: 1,
     });
-    await seedRoi("11-2222.00", "S1", {
+    await seedRoi("11-2222.00", "6", {
       demand_score: 0.5,
       demand_rank: 1,
       projected_growth_percent: 1,
     });
-    await seedRoi("11-3333.00", "S1", {
+    await seedRoi("11-3333.00", "6", {
       demand_score: 0.5,
       demand_rank: 1,
       projected_growth_percent: 9,
     });
-    await seedRoi("11-0000.00", "S1", {
+    await seedRoi("11-0000.00", "6", {
       demand_score: 0.5,
       demand_rank: 1,
       projected_growth_percent: 9,
     });
     const res = await body(
-      await testApp(db).request("/api/roi?area_code=S1&sort=demand", {}, testEnv),
+      await testApp(db).request("/api/roi?area_code=6&sort=demand", {}, testEnv),
     );
     expect(
       res.records.map((r: { occupation_code: string }) => r.occupation_code),
@@ -106,10 +106,10 @@ describe("GET /api/roi", () => {
   });
 
   test("demand sort excludes rows without demand scores", async () => {
-    await seedRoi("15-1252.00", "S9", { demand_score: 0.3 });
-    await seedRoi("29-1141.00", "S9", { demand_score: null, roi_percentage: 99 });
+    await seedRoi("15-1252.00", "36", { demand_score: 0.3 });
+    await seedRoi("29-1141.00", "36", { demand_score: null, roi_percentage: 99 });
     const res = await body(
-      await testApp(db).request("/api/roi?area_code=S9&sort=demand", {}, testEnv),
+      await testApp(db).request("/api/roi?area_code=36&sort=demand", {}, testEnv),
     );
     // Rails orders the demand-filtered relation: the NULL-demand row is
     // excluded even though its roi is higher (no roi fallback either,
@@ -121,16 +121,16 @@ describe("GET /api/roi", () => {
   });
 
   test("falls back to roi sort when no demand scores exist", async () => {
-    await seedRoi("15-1252.00", "S2", {
+    await seedRoi("15-1252.00", "48", {
       roi_percentage: 5,
       demand_score: null,
     });
-    await seedRoi("29-1141.00", "S2", {
+    await seedRoi("29-1141.00", "48", {
       roi_percentage: 20,
       demand_score: null,
     });
     const res = await body(
-      await testApp(db).request("/api/roi?area_code=S2", {}, testEnv),
+      await testApp(db).request("/api/roi?area_code=48", {}, testEnv),
     );
     expect(
       res.records.map((r: { roi_percentage: string }) => r.roi_percentage),
@@ -138,15 +138,15 @@ describe("GET /api/roi", () => {
   });
 
   test("demand ordering excludes swiped and demand-less careers", async () => {
-    const swipedId = await seedRoi("15-1252.00", "S2", {
+    const swipedId = await seedRoi("15-1252.00", "48", {
       demand_score: 0.9,
       roi_percentage: 5,
     });
-    await seedRoi("29-1141.00", "S2", {
+    await seedRoi("29-1141.00", "48", {
       demand_score: 0.5,
       roi_percentage: 50,
     });
-    await seedRoi("11-1111.00", "S2", {
+    await seedRoi("11-1111.00", "48", {
       demand_score: null,
       roi_percentage: 10,
     });
@@ -162,7 +162,7 @@ describe("GET /api/roi", () => {
     // exclusion): the swiped row drops out, the NULL-demand row was never
     // in, and only the remaining demand row is returned.
     const res = await body(
-      await testApp(db).request("/api/roi?area_code=S2&user_id=u1", {}, testEnv),
+      await testApp(db).request("/api/roi?area_code=48&user_id=u1", {}, testEnv),
     );
     expect(
       res.records.map((r: { occupation_code: string }) => r.occupation_code),
@@ -234,8 +234,8 @@ describe("GET /api/roi", () => {
   });
 
   test("user_id excludes swiped careers and area echo works", async () => {
-    const id = await seedRoi("15-1252.00", "06", { area_name: "California" });
-    await seedRoi("29-1141.00", "06", { area_name: "California" });
+    const id = await seedRoi("15-1252.00", "6", { area_name: "California" });
+    await seedRoi("29-1141.00", "6", { area_name: "California" });
     await db.insert(swipes).values({
       career_id: id,
       user_id: "u1",
@@ -245,11 +245,11 @@ describe("GET /api/roi", () => {
       updated_at: stamp,
     });
     const res = await body(
-      await testApp(db).request("/api/roi?area_code=06&user_id=u1", {}, testEnv),
+      await testApp(db).request("/api/roi?area_code=6&user_id=u1", {}, testEnv),
     );
     expect(res.records).toHaveLength(1);
     expect(res.records[0].occupation_code).toBe("29-1141.00");
-    expect(res.area_code).toBe("06");
+    expect(res.area_code).toBe("6");
     expect(res.area_name).toBe("California");
   });
 

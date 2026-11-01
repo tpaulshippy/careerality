@@ -102,6 +102,7 @@ const roiColumns = {
   avg_annual_openings: careerRoi.avg_annual_openings,
   projected_growth_percent: careerRoi.projected_growth_percent,
   demand_score: careerRoi.demand_score,
+  feedArea: careerRoi.feedArea,
   created_at: careerRoi.created_at,
   updated_at: careerRoi.updated_at,
   content_id: careerContents.id,
@@ -218,7 +219,16 @@ export function roiRoute(db: AppDb) {
     }
 
     const salaryWheres = salaryFilters(q);
-    const conditions: Where[] = [areaFilter(area), ...salaryWheres];
+    // Metro rows (84% of the table) are unreachable through the app's
+    // filters yet dominated unscoped feeds: scope every feed to national +
+    // state areas via the feed_area generated column (see 0006). The shape
+    // matches the feed_walk partial index predicate exactly, so the default
+    // sort walks ~20 index rows.
+    const conditions: Where[] = [
+      sql`${careerRoi.feedArea} = 1`,
+      areaFilter(area),
+      ...salaryWheres,
+    ];
     // Rails decides the demand-vs-roi sort from the area/salary filters
     // alone, before the per-user swipe exclusion is applied.
     const filterWhere = and(

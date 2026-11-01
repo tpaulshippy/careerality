@@ -45,6 +45,18 @@ TABLES = [
     "swipes",
 ]
 
+# National + state/territory areas (mirrors server/migrations/0003 and
+# server/src/routes/roi.ts FEED_AREA_CODES). Metro rows are unreachable
+# through the app and excluded from seeds by default (--include-metros
+# restores the full export).
+FEED_AREA_CODES = [
+    "1", "2", "4", "5", "6", "8", "9", "10", "11", "12", "13", "66", "15",
+    "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27",
+    "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39",
+    "40", "41", "42", "72", "44", "45", "46", "47", "48", "99", "49", "50",
+    "78", "51", "53", "54", "55", "56",
+]
+
 
 def get_connection():
     url = os.environ.get("DATABASE_URL")
@@ -80,9 +92,13 @@ def sql_literal(value):
     return "'" + str(value).replace("'", "''") + "'"
 
 
-def export_table(cursor, table, out_dir, chunk_rows, chunk_bytes, counts, chunk_index):
-    cursor.execute(f"SELECT * FROM {table} ORDER BY 1")
-    columns = [d.name for d in cursor.description]
+def export_table(cursor, table, out_dir, chunk_rows, chunk_bytes, counts, chunk_index, where=None):
+    # feed_area is a GENERATED column (server/migrations/0006): SQLite
+    # computes it, so it must be neither selected nor inserted.
+    skip = {"feed_area"} if table == "career_roi" else set()
+    cursor.execute(f"SELECT * FROM {table}" + (f" WHERE {where}" if where else "") + " ORDER BY 1")
+    columns = [d.name for d in cursor.description if d.name not in skip]
+    idx = [i for i, d in enumerate(cursor.description) if d.name not in skip]
     col_list = ", ".join(f'"{c}"' for c in columns)
     rows_exported = 0
     batch = []
@@ -106,7 +122,7 @@ def export_table(cursor, table, out_dir, chunk_rows, chunk_bytes, counts, chunk_
         for row in rows:
             if len(batch) >= chunk_rows:
                 flush()
-            text = "(" + ", ".join(sql_literal(v) for v in row) + ")"
+            text = "(" + ", ".join(sql_literal(row[i]) for i in idx) + ")"
             # Split text-heavy tables (e.g. career_contents) by statement size
             # so no single INSERT exceeds D1's per-statement limit.
             if batch and batch_bytes + len(text.encode("utf-8")) > chunk_bytes:
@@ -181,6 +197,8 @@ def main():
     parser.add_argument("--out", default="export")
     parser.add_argument("--chunk-rows", type=int, default=300)
     parser.add_argument("--chunk-bytes", type=int, default=96_000)
+    parser.add_argument("--include-metros", action="store_true",
+                        help="include metro-area career_roi rows (excluded by default)")
     args = parser.parse_args()
 
     out_dir = Path(args.out)
@@ -199,10 +217,15 @@ def main():
     counts = {}
     chunk_index = 0
     print("Exporting minimal serving set:")
+    in_list = "(" + ",".join(f"'{c}'" for c in FEED_AREA_CODES) + ")"
     for table in TABLES:
+        where = None
+        if table == "career_roi" and not args.include_metros:
+            where = f"area_code IN {in_list}"
+            print(f"  (excluding metro-area career_roi rows)")
         chunk_index = export_table(
             cursor, table, out_dir, args.chunk_rows, args.chunk_bytes,
-            counts, chunk_index,
+            counts, chunk_index, where,
         )
     export_map_summary(cursor, out_dir)
     (out_dir / "counts.json").write_text(json.dumps(counts, indent=2) + "\n")

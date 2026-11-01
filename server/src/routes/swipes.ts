@@ -54,6 +54,7 @@ export function swipesRoute(db: AppDb) {
         avg_annual_openings: careerRoi.avg_annual_openings,
         projected_growth_percent: careerRoi.projected_growth_percent,
         demand_score: careerRoi.demand_score,
+        feedArea: careerRoi.feedArea,
         created_at: careerRoi.created_at,
         updated_at: careerRoi.updated_at,
         content_id: careerContents.id,

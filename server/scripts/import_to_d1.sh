@@ -114,10 +114,12 @@ fi
 echo "== refreshing states lookup"
 npx wrangler d1 execute careerality "$TARGET" --file "migrations/0003_states_static.sql" --json | tail -1
 
-# Precomputed feed totals (pagedRoi reads these instead of COUNT(*) scans).
-# Runs on the final range only, like verification.
+# Precomputed feed totals (pagedRoi reads these instead of COUNT(*) scans),
+# then the scoped-feed refresh (metro cells dropped, national cells scoped;
+# see migrations/0006). Both files are idempotent, safe to re-apply.
 echo "== refreshing roi stats"
 npx wrangler d1 execute careerality "$TARGET" --file "migrations/0004_roi_stats.sql" --json | tail -1
+npx wrangler d1 execute careerality "$TARGET" --file "scripts/refresh_roi_stats.sql" --json | tail -1
 
 # Precomputed map aggregates (built by export_pg_to_sqlite.py from Postgres;
 # loading INSERTs only — no D1 reads). Old exports lack the file: skip, the
