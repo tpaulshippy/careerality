@@ -185,6 +185,31 @@ describe("GET /api/roi", () => {
     expect(res.pagy.count).toBe(42);
   });
 
+  test("personalized total is cell minus swiped, no scan", async () => {
+    await seedRoi("15-1252.00", "99", { demand_score: 0.3 });
+    const swipedId = await seedRoi("29-1141.00", "99", { demand_score: 0.4 });
+    await seedRoi("11-1111.00", "99", { demand_score: null });
+    await db.insert(roiStats).values([
+      { key: "total", n: 100 },
+      { key: "demand_total", n: 42 },
+    ]);
+    await db.insert(swipes).values({
+      career_id: swipedId,
+      user_id: "u1",
+      direction: "right",
+      feedback: null,
+      created_at: stamp,
+      updated_at: stamp,
+    });
+    const res = await body(
+      await testApp(db).request("/api/roi?sort=demand&user_id=u1", {}, testEnv),
+    );
+    expect(res.records.map((r: { occupation_code: string }) => r.occupation_code)).toEqual([
+      "15-1252.00",
+    ]);
+    expect(res.pagy.count).toBe(41);
+  });
+
   test("each salary alias applies independently, strictest wins", async () => {
     // Distinct roi values keep the roi-fallback order deterministic.
     await seedRoi("15-1252.00", "99", {

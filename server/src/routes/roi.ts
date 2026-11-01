@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import {
   and,
   count,
+  countDistinct,
   eq,
   gte,
   isNotNull,
@@ -173,6 +174,25 @@ async function summaryCount(db: AppDb, key: string): Promise<number | null> {
   return rows[0]?.n ?? null;
 }
 
+// Personalized totals without scanning: the user's swiped careers matching
+// the feed scope, counted from the tiny swipes side (user-indexed, then PK
+// joins). Callers subtract this from the summary cell.
+async function excludedSwipeCount(
+  db: AppDb,
+  userId: string,
+  extra: Where,
+): Promise<number> {
+  const conds = [eq(swipes.user_id, userId), isNotNull(swipes.career_id), extra].filter(
+    (w): w is SQL => w !== undefined,
+  );
+  const rows = await db
+    .select({ n: countDistinct(swipes.career_id) })
+    .from(swipes)
+    .innerJoin(careerRoi, eq(careerRoi.id, swipes.career_id))
+    .where(and(...conds));
+  return rows[0]?.n ?? 0;
+}
+
 async function pagedRoi(
   db: AppDb,
   where: Where,
@@ -293,7 +313,7 @@ export function roiRoute(db: AppDb) {
     // Salary ranges and user_id exclusions have too many combinations —
     // those stay live (and anonymous URLs are edge-cached anyway).
     let totalOverride: number | null = null;
-    if (!q["user_id"] && salaryWheres.length === 0) {
+    if (salaryWheres.length === 0) {
       totalOverride = await summaryCount(
         db,
         !area
@@ -304,6 +324,19 @@ export function roiRoute(db: AppDb) {
             ? `area:${area}:demand`
             : `area:${area}`,
       );
+      if (q["user_id"] && totalOverride !== null) {
+        // Personalized total without scanning: cell minus the user's swiped
+        // careers under the same scope (driven by the tiny swipes side).
+        // Mirrors finalWhere minus the swipe exclusion itself.
+        const scopeExtra = demandOnly
+          ? and(
+              sql`${careerRoi.feedArea} = 1`,
+              areaFilter(area),
+              isNotNull(careerRoi.demand_score),
+            )
+          : and(sql`${careerRoi.feedArea} = 1`, areaFilter(area));
+        totalOverride -= await excludedSwipeCount(db, q["user_id"], scopeExtra);
+      }
     }
     const body = await pagedRoi(
       db,
