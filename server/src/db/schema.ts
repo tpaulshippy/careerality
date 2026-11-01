@@ -45,6 +45,15 @@ export const careerRoi = sqliteTable(
   ],
 );
 
+// Materialized state lookup backing GET /api/areas/states (~55 rows).
+// Derived from career_roi (see migrations/0002_states.sql); refreshed by
+// scripts/import_to_d1.sh after every seed. The endpoint backfills it when
+// empty so a fresh DB self-heals with a single derivation scan.
+export const states = sqliteTable("states", {
+  area_code: text("area_code").primaryKey(),
+  area_name: text("area_name").notNull(),
+});
+
 // Mirror of Postgres `career_contents` (day-in-the-life narratives + video).
 export const careerContents = sqliteTable(
   "career_contents",

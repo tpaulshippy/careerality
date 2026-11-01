@@ -25,7 +25,7 @@
 # the tables first (child rows before parents) or recreate the database:
 #
 #   npx wrangler d1 execute careerality --remote --command \
-#     "DELETE FROM swipes; DELETE FROM career_images; DELETE FROM career_contents; DELETE FROM salary_occupations; DELETE FROM career_roi;"
+#     "DELETE FROM swipes; DELETE FROM career_images; DELETE FROM career_contents; DELETE FROM salary_occupations; DELETE FROM career_roi; DELETE FROM states;"
 #
 # ...or bypass the guard with FORCE=1.
 #
@@ -107,6 +107,24 @@ if [ "${VERIFY:-1}" = "0" ]; then
   echo "== skipping verification (partial load; verify on the final range)"
   exit 0
 fi
+
+# The states endpoint reads the materialized `states` table, not
+# career_roi (the GLOB derivation is a full-table scan). Refresh it from the
+# freshly imported data — runs on the final range only, like verification.
+echo "== refreshing states lookup"
+cat > "$batch_file" <<'SQL'
+DELETE FROM states;
+INSERT INTO states (area_code, area_name)
+SELECT area_code, area_name FROM career_roi
+WHERE (
+  area_code NOT GLOB '*[^0-9]*'
+  AND area_code GLOB '[0-9]*'
+  AND length(area_code) <= 2
+  AND area_name NOT LIKE '%,%'
+)
+GROUP BY area_code, area_name;
+SQL
+npx wrangler d1 execute careerality "$TARGET" --file "$batch_file" --json | tail -1
 
 echo "== verifying counts"
 python3 - "$EXPORT_DIR/counts.json" "$TARGET" <<'EOF'

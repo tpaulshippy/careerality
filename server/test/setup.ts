@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient, type Client } from "@libsql/client";
@@ -16,11 +16,12 @@ export const testEnv: Env = {
 
 export async function createTestDb(): Promise<{ db: AppDb; client: Client }> {
   const client = createClient({ url: ":memory:" });
-  const sql = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "../migrations/0001_init.sql"),
-    "utf8",
-  );
-  await client.executeMultiple(sql);
+  const dir = join(dirname(fileURLToPath(import.meta.url)), "../migrations");
+  for (const file of readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()) {
+    await client.executeMultiple(readFileSync(join(dir, file), "utf8"));
+  }
   const db = drizzleLibsql(client, { schema }) as unknown as AppDb;
   return { db, client };
 }
