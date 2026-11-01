@@ -62,6 +62,21 @@ export const roiStats = sqliteTable("roi_stats", {
   n: integer("n").notNull(),
 });
 
+// Precomputed map aggregates backing GET /api/roi/map_summary (one row per
+// state area). See migrations/0005_map_and_demand.sql; filled by the export
+// pipeline (map_summary.sql). Empty until seeded — the endpoint falls back
+// to the live computation then.
+export const roiMapSummary = sqliteTable("roi_map_summary", {
+  area_code: text("area_code").primaryKey(),
+  n: integer("n").notNull(),
+  avgSalary: real("avg_salary"),
+  avgAdjusted: real("avg_adjusted"),
+  medianRoi: real("median_roi"),
+  highRoiCount: integer("high_roi_count").notNull(),
+  demandCount: integer("demand_count").notNull(),
+  demandAvgRank: real("demand_avg_rank"),
+});
+
 // Mirror of Postgres `career_contents` (day-in-the-life narratives + video).
 export const careerContents = sqliteTable(
   "career_contents",

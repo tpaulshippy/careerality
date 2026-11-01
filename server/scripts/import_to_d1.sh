@@ -119,6 +119,14 @@ npx wrangler d1 execute careerality "$TARGET" --file "migrations/0003_states_sta
 echo "== refreshing roi stats"
 npx wrangler d1 execute careerality "$TARGET" --file "migrations/0004_roi_stats.sql" --json | tail -1
 
+# Precomputed map aggregates (built by export_pg_to_sqlite.py from Postgres;
+# loading INSERTs only — no D1 reads). Old exports lack the file: skip, the
+# endpoint falls back to the live computation.
+if [ -f "$EXPORT_DIR/map_summary.sql" ]; then
+  echo "== loading map summary"
+  npx wrangler d1 execute careerality "$TARGET" --file "$EXPORT_DIR/map_summary.sql" --json | tail -1
+fi
+
 echo "== verifying counts"
 python3 - "$EXPORT_DIR/counts.json" "$TARGET" <<'EOF'
 import json, subprocess, sys

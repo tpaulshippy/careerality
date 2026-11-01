@@ -121,6 +121,61 @@ def export_table(cursor, table, out_dir, chunk_rows, chunk_bytes, counts, chunk_
     return chunk_index
 
 
+def export_map_summary(cursor, out_dir):
+    """Precomputed GET /api/roi/map_summary rows (see server/migrations/0005).
+
+    One GROUP BY in Postgres (which has percentile_cont) replaces the two
+    full career_roi scans the worker's live fallback needs. Semantics mirror
+    routes/roi.ts exactly: state-style 1-2 digit areas excluding '99', NULL
+    roi excluded from the median, NULL>=15 counting as 0, demand counted when
+    either demand column is set. JS median() (middle / avg-of-two-middles)
+    equals percentile_cont(0.5).
+    """
+    cursor.execute(
+        """
+        SELECT area_code,
+          COUNT(*) AS n,
+          AVG(annual_median_salary) AS avg_salary,
+          AVG(adjusted_salary) AS avg_adjusted,
+          percentile_cont(0.5) WITHIN GROUP (ORDER BY roi_percentage)
+            FILTER (WHERE roi_percentage IS NOT NULL) AS median_roi,
+          SUM(CASE WHEN roi_percentage >= 15 THEN 1 ELSE 0 END) AS high_roi_count,
+          SUM(CASE WHEN demand_score IS NOT NULL OR demand_rank IS NOT NULL
+            THEN 1 ELSE 0 END) AS demand_count,
+          AVG(demand_rank) AS demand_avg_rank
+        FROM career_roi
+        WHERE area_code ~ '^[0-9]{1,2}$' AND area_code <> '99'
+        GROUP BY area_code ORDER BY area_code
+        """
+    )
+    cols = ["area_code", "n", "avg_salary", "avg_adjusted", "median_roi",
+            "high_roi_count", "demand_count", "demand_avg_rank"]
+
+    def lit(v):
+        # AVG/percentile_cont come back as Decimal: store plain floats so the
+        # worker JSON matches the live computation's number shapes.
+        if isinstance(v, float):
+            return repr(v)
+        try:
+            import decimal
+            if isinstance(v, decimal.Decimal):
+                return repr(float(v))
+        except ImportError:
+            pass
+        return sql_literal(v)
+
+    lines = []
+    for row in cursor.fetchall():
+        lines.append("(" + ", ".join(lit(v) for v in row) + ")")
+    path = out_dir / "map_summary.sql"
+    path.write_text(
+        "DELETE FROM roi_map_summary;\n"
+        f"INSERT INTO roi_map_summary ({', '.join(cols)}) VALUES\n"
+        + ",\n".join(lines) + ";\n"
+    )
+    print(f"  roi_map_summary: {len(lines)} rows -> {path.name}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="export")
@@ -134,6 +189,9 @@ def main():
     # importer never executes a mix of old and new exports.
     for stale in sorted(out_dir.glob("chunk_*.sql")):
         stale.unlink()
+    map_sql = out_dir / "map_summary.sql"
+    if map_sql.exists():
+        map_sql.unlink()
 
     conn = get_connection()
     conn.set_session(readonly=True)
@@ -146,6 +204,7 @@ def main():
             cursor, table, out_dir, args.chunk_rows, args.chunk_bytes,
             counts, chunk_index,
         )
+    export_map_summary(cursor, out_dir)
     (out_dir / "counts.json").write_text(json.dumps(counts, indent=2) + "\n")
     print(f"Wrote {(out_dir / 'counts.json')}")
     cursor.close()

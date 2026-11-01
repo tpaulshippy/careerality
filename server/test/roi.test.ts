@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import type { Client } from "@libsql/client";
 import type { AppDb } from "../src/db/client";
-import { careerContents, careerRoi, roiStats, swipes } from "../src/db/schema";
+import { careerContents, careerRoi, roiMapSummary, roiStats, swipes } from "../src/db/schema";
 import { body, createTestDb, testApp, testEnv } from "./setup";
 
 let db: AppDb;
@@ -396,6 +396,40 @@ describe("GET /api/roi/map_summary", () => {
       highRoiCount: 1,
       demandCount: 1,
       demandAvgRank: 3,
+    });
+  });
+
+  test("serves precomputed rows when the map table is seeded", async () => {
+    await seedRoi("15-1252.00", "06", {
+      annual_median_salary: 100000,
+      roi_percentage: 20,
+      demand_score: 0.5,
+      demand_rank: 3,
+    });
+    await db.insert(roiMapSummary).values({
+      area_code: "06",
+      n: 2,
+      avgSalary: 90000,
+      avgAdjusted: 50000,
+      medianRoi: 15,
+      highRoiCount: 1,
+      demandCount: 1,
+      demandAvgRank: 3,
+    });
+    const res = await body(
+      await testApp(db).request("/api/roi/map_summary", {}, testEnv),
+    );
+    // Served from the table, not recomputed (live data would give n=1).
+    expect(res.states).toEqual({
+      "06": {
+        hasRecords: true,
+        avgSalary: 90000,
+        adjustedSalary: 50000,
+        medianRoi: 15,
+        highRoiCount: 1,
+        demandCount: 1,
+        demandAvgRank: 3,
+      },
     });
   });
 });

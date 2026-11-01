@@ -12,7 +12,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import type { AppDb } from "../db/client";
-import { careerContents, careerRoi, roiStats, swipes } from "../db/schema";
+import { careerContents, careerRoi, roiMapSummary, roiStats, swipes } from "../db/schema";
 import type { Env } from "../env";
 import { normalizeOccupationCode } from "../lib/normalize";
 import { offset, pagy, parsePage } from "../lib/pagination";
@@ -397,17 +397,43 @@ export function roiRoute(db: AppDb) {
   });
 
   app.get("/map_summary", async (c) => {
-    // SQLite port of the Postgres aggregate: no PERCENTILE_CONT / FILTER /
-    // regex match, so medians are computed in JS below.
-    const aggregates = await db.all<{
-      area_code: string;
-      n: number;
-      avg_salary: number | null;
-      avg_adjusted: number | null;
-      high_roi: number;
-      demand_count: number;
-      demand_avg_rank: number | null;
-    }>(sql`SELECT area_code,
+    // Identical for everyone: edge-cache by URL (map data changes on re-seed).
+    try {
+      if (typeof caches !== "undefined") {
+        const hit = await caches.default.match(c.req.url);
+        if (hit) return hit;
+      }
+    } catch {
+      // Cache API unavailable — D1 path.
+    }
+    const states: Record<string, unknown> = {};
+    const precomputed = await db.select().from(roiMapSummary);
+    if (precomputed.length > 0) {
+      // Seeded aggregates (~55 rows) — no career_roi scan.
+      for (const a of precomputed) {
+        states[a.area_code] = {
+          hasRecords: a.n > 0,
+          avgSalary: a.avgSalary,
+          adjustedSalary: a.avgAdjusted,
+          medianRoi: a.medianRoi,
+          highRoiCount: a.highRoiCount,
+          demandCount: a.demandCount,
+          demandAvgRank: a.demandAvgRank,
+        };
+      }
+    } else {
+      // Fresh DB (not seeded yet): live computation, two full scans.
+      // SQLite port of the Postgres aggregate: no PERCENTILE_CONT / FILTER /
+      // regex match, so medians are computed in JS below.
+      const aggregates = await db.all<{
+        area_code: string;
+        n: number;
+        avg_salary: number | null;
+        avg_adjusted: number | null;
+        high_roi: number;
+        demand_count: number;
+        demand_avg_rank: number | null;
+      }>(sql`SELECT area_code,
       COUNT(*) AS n,
       AVG(annual_median_salary) AS avg_salary,
       AVG(adjusted_salary) AS avg_adjusted,
@@ -417,32 +443,41 @@ export function roiRoute(db: AppDb) {
       FROM career_roi
       WHERE (area_code GLOB '[0-9]' OR area_code GLOB '[0-9][0-9]') AND area_code <> '99'
       GROUP BY area_code`);
-    const roiValues = await db.all<{ area_code: string; roi: number | null }>(
-      sql`SELECT area_code, roi_percentage AS roi FROM career_roi
+      const roiValues = await db.all<{ area_code: string; roi: number | null }>(
+        sql`SELECT area_code, roi_percentage AS roi FROM career_roi
           WHERE (area_code GLOB '[0-9]' OR area_code GLOB '[0-9][0-9]') AND area_code <> '99'
           AND roi_percentage IS NOT NULL ORDER BY area_code, roi`,
-    );
-    const byArea = new Map<string, number[]>();
-    for (const r of roiValues) {
-      if (r.roi == null) continue;
-      const list = byArea.get(r.area_code) ?? [];
-      list.push(r.roi);
-      byArea.set(r.area_code, list);
+      );
+      const byArea = new Map<string, number[]>();
+      for (const r of roiValues) {
+        if (r.roi == null) continue;
+        const list = byArea.get(r.area_code) ?? [];
+        list.push(r.roi);
+        byArea.set(r.area_code, list);
+      }
+      for (const a of aggregates) {
+        const sorted = byArea.get(a.area_code) ?? [];
+        states[a.area_code] = {
+          hasRecords: a.n > 0,
+          avgSalary: a.avg_salary,
+          adjustedSalary: a.avg_adjusted,
+          medianRoi: median(sorted),
+          highRoiCount: a.high_roi,
+          demandCount: a.demand_count,
+          demandAvgRank: a.demand_avg_rank,
+        };
+      }
     }
-    const states: Record<string, unknown> = {};
-    for (const a of aggregates) {
-      const sorted = byArea.get(a.area_code) ?? [];
-      states[a.area_code] = {
-        hasRecords: a.n > 0,
-        avgSalary: a.avg_salary,
-        adjustedSalary: a.avg_adjusted,
-        medianRoi: median(sorted),
-        highRoiCount: a.high_roi,
-        demandCount: a.demand_count,
-        demandAvgRank: a.demand_avg_rank,
-      };
+    const res = c.json({ states });
+    res.headers.set("Cache-Control", "public, max-age=86400");
+    try {
+      if (typeof caches !== "undefined") {
+        c.executionCtx.waitUntil(caches.default.put(c.req.url, res.clone()));
+      }
+    } catch {
+      // Best-effort edge cache only — the response is already built.
     }
-    return c.json({ states });
+    return res;
   });
 
   app.get("/:id", async (c) => {
