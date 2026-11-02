@@ -30,15 +30,25 @@ const USER_CACHE_MAX_AGE = 60;
 
 // Feed URLs cached per user, for swipe-write purges. Best-effort and
 // per-isolate: entries on other isolates/PoPs expire via the short TTL.
-// Capped so a pathological user_id space can't grow it without bound.
+// Bounded in both dimensions so a pathological user_id space can't grow
+// isolate memory: per-user URL cap plus a total user cap (oldest evicted).
 const userFeedUrls = new Map<string, Set<string>>();
+const userFeedVersion = new Map<string, number>();
 const MAX_TRACKED_URLS_PER_USER = 50;
+const MAX_TRACKED_USERS = 500;
 
 function trackUserFeedUrl(userId: string, url: string): void {
   let set = userFeedUrls.get(userId);
   if (!set) {
     set = new Set();
     userFeedUrls.set(userId, set);
+    if (userFeedUrls.size > MAX_TRACKED_USERS) {
+      const oldest = userFeedUrls.keys().next();
+      if (!oldest.done) {
+        userFeedUrls.delete(oldest.value);
+        userFeedVersion.delete(oldest.value);
+      }
+    }
   }
   set.add(url);
   if (set.size > MAX_TRACKED_URLS_PER_USER) {
@@ -49,8 +59,10 @@ function trackUserFeedUrl(userId: string, url: string): void {
 
 // Delete this user's cached feed responses (exact URLs only — Cache API has
 // no prefix purge). Called after swipe writes; failures leave the 60s TTL
-// as backstop.
+// as backstop. Bumps the per-user version first so a cache write still in
+// flight can't re-register stale data after the purge (see the put path).
 export async function purgeUserFeedCache(userId: string): Promise<void> {
+  userFeedVersion.set(userId, (userFeedVersion.get(userId) ?? 0) + 1);
   const set = userFeedUrls.get(userId);
   if (!set) return;
   userFeedUrls.delete(userId);
@@ -399,7 +411,9 @@ export function roiRoute(db: AppDb) {
     }
     const res = c.json(response);
     // Feed content changes on re-seed (anonymous, long TTL) or the user's
-    // own swipes (per-user short TTL + purge on write).
+    // own swipes (per-user short TTL + purge on write). The client copy
+    // stays private for user_id; the stored copy is rewritten public below
+    // because Cache API put rejects private/no-store with a 413.
     res.headers.set(
       "Cache-Control",
       userId ? `private, max-age=${cacheTtl}` : `public, max-age=${cacheTtl}`,
@@ -407,9 +421,23 @@ export function roiRoute(db: AppDb) {
     try {
       if (typeof caches !== "undefined") {
         const url = c.req.url;
-        const write = caches.default.put(url, res.clone()).then(
-          () => {
-            if (userId) trackUserFeedUrl(userId, url);
+        const version = userId ? (userFeedVersion.get(userId) ?? 0) : 0;
+        const storeable = res.clone();
+        storeable.headers.set("Cache-Control", `public, max-age=${cacheTtl}`);
+        const write = caches.default.put(url, storeable).then(
+          async () => {
+            if (!userId) return;
+            // A swipe purged while this write was in flight: drop the stale
+            // entry instead of re-tracking it.
+            if ((userFeedVersion.get(userId) ?? 0) !== version) {
+              try {
+                await caches.default.delete(url);
+              } catch {
+                // TTL backstop covers it.
+              }
+              return;
+            }
+            trackUserFeedUrl(userId, url);
           },
           () => {},
         );

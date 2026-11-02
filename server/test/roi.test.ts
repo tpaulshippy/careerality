@@ -245,12 +245,17 @@ describe("GET /api/roi", () => {
     try {
       const app = testApp(db);
       const url = "/api/roi?sort=demand&user_id=cache-u1";
-      const first = await body(await app.request(url, {}, testEnv));
+      const miss = await app.request(url, {}, testEnv);
+      const first = await body(miss);
+      // MISS builds fresh: client copy stays private.
+      expect(miss.headers.get("Cache-Control")).toBe("private, max-age=60");
       const second = await body(await app.request(url, {}, testEnv));
       expect(second).toEqual(first);
       expect(calls).toEqual({ match: 2, put: 1 });
+      // HIT serves the stored copy, whose header was rewritten public for
+      // Cache API eligibility — same URL, same user, so still correct.
       const cached = await app.request(url);
-      expect(cached.headers.get("Cache-Control")).toBe("private, max-age=60");
+      expect(cached.headers.get("Cache-Control")).toBe("public, max-age=60");
     } finally {
       if (prev === undefined) delete (globalThis as Record<string, unknown>).caches;
       else (globalThis as Record<string, unknown>).caches = prev;
@@ -263,20 +268,36 @@ describe("GET /api/roi", () => {
     const prev = (globalThis as Record<string, unknown>).caches;
     (globalThis as Record<string, unknown>).caches = {
       default: {
-        match: async (key: string) => store.get(String(key)),
+        match: async (key: string) => {
+          const hit = store.get(String(key));
+          return hit ? hit.clone() : undefined;
+        },
         put: async (key: string, res: Response) => {
           store.set(String(key), res);
         },
         delete: async (key: string) => {
-          store.delete(String(key));
-          return true;
+          return store.delete(String(key));
         },
       },
+    };
+    // Execution context that collects waitUntil work so the test can flush
+    // it deterministically — the POST's purge runs through this path, not a
+    // direct helper call.
+    const pending: Promise<unknown>[] = [];
+    const ctx = {
+      waitUntil: (p: Promise<unknown>) => {
+        pending.push(p);
+      },
+      passThroughOnException: () => {},
+    };
+    const flush = async () => {
+      await Promise.all(pending.splice(0));
     };
     try {
       const app = testApp(db);
       const url = "/api/roi?sort=demand&user_id=purge-u1";
-      await body(await app.request(url, {}, testEnv));
+      await body(await app.request(url, {}, testEnv, ctx as never));
+      await flush();
       expect(store.size).toBe(1);
       const posted = await app.request(
         "/api/swipes",
@@ -286,12 +307,10 @@ describe("GET /api/roi", () => {
           body: JSON.stringify({ career_id: id, user_id: "purge-u1", direction: "right" }),
         },
         testEnv,
+        ctx as never,
       );
       expect(posted.status).toBe(201);
-      // waitUntil callbacks run before the test response resolves in this
-      // runtime; purge directly as well in case they lag.
-      const { purgeUserFeedCache } = await import("../src/routes/roi");
-      await purgeUserFeedCache("purge-u1");
+      await flush();
       expect(store.size).toBe(0);
     } finally {
       if (prev === undefined) delete (globalThis as Record<string, unknown>).caches;
