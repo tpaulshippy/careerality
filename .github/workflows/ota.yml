@@ -1,15 +1,14 @@
 name: OTA Update
 
-# NOTE (staging-test period): auto-run on Deploy success is disabled below.
-# The testflight-channel OTA is built with the PRODUCTION api URL, so it
-# would silently re-point a staging TestFlight build at production on next
-# launch. Restore the workflow_run trigger at cutover.
+# Auto-runs after every successful Deploy on main so the backend and the
+# TestFlight-channel client JS ship together. Manual dispatch remains for
+# hotfixes that don't need a backend deploy.
 on:
   workflow_dispatch:
-  # workflow_run:
-  #   workflows: [Deploy]
-  #   types: [completed]
-  #   branches: [main]
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+    branches: [main]
 
 jobs:
   ota:
