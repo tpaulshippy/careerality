@@ -1,6 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { FilterSheet } from '../FilterSheet';
+import { CatalogBundle, loadCatalog } from '../../data/catalog';
+import { apiClient } from '../../api/client';
 
 jest.mock('react-native', () => ({
   View: 'View',
@@ -45,6 +47,16 @@ jest.mock('../../api/client', () => ({
         ],
       })
     ),
+    // Server-fallback path: only used while the catalog is still empty.
+    getStates: jest.fn(() =>
+      Promise.resolve({
+        states: [
+          { area_code: '48', area_name: 'Texas' },
+          { area_code: '99', area_name: 'U.S.' },
+          { area_code: '49', area_name: 'Utah' },
+        ],
+      })
+    ),
   },
 }));
 
@@ -64,7 +76,47 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
+// Small deterministic bundle: Texas + national + Utah, so the national-first
+// pinning is observable without depending on the 37k-row shipped bundle.
+const fixture: CatalogBundle = {
+  version: 1,
+  generated_at: '2026-01-01T00:00:00Z',
+  source: 'test',
+  counts: { areas: 3, industries: 1, occupations: 1, rows: 1 },
+  areas: [
+    { c: '48', n: 'Texas' },
+    { c: '99', n: 'U.S.' },
+    { c: '49', n: 'Utah' },
+  ],
+  occupations: [{ c: '29-1141.00', n: 'Registered Nurses' }],
+  industries: [{ c: '62', n: 'Healthcare' }],
+  rows: [
+    [0, 1, 1, 80000, 40000, 2, 150, 4, "Bachelor's degree", 0, 1, 0.9, 50000, 9, 1.0, 80000],
+  ],
+  map: {},
+};
+
+const emptyBundle: CatalogBundle = {
+  version: 1,
+  generated_at: null,
+  source: 'test',
+  counts: { areas: 0, industries: 0, occupations: 0, rows: 0 },
+  areas: [],
+  occupations: [],
+  industries: [],
+  rows: [],
+  map: {},
+};
+
+const getMock = apiClient.get as jest.Mock;
+const getStatesMock = apiClient.getStates as jest.Mock;
+
 describe('FilterSheet', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    loadCatalog(fixture);
+  });
+
   it('labels the location section and pins the national option first', async () => {
     await render(
       <FilterSheet visible onClose={() => {}} onApply={() => {}} />
@@ -81,6 +133,9 @@ describe('FilterSheet', () => {
       'Utah',
     ]);
     expect(screen.queryByText('U.S.')).toBeNull();
+    // Local-first: states come from the bundle, no list-endpoint calls.
+    expect(getStatesMock).not.toHaveBeenCalled();
+    expect(getMock).not.toHaveBeenCalled();
   });
 
   it('includes the selected sort option in the onApply payload', async () => {
@@ -104,5 +159,20 @@ describe('FilterSheet', () => {
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({ sortBy: 'roi' })
     );
+  });
+
+  it('falls back to the server states when the catalog is empty', async () => {
+    loadCatalog(emptyBundle);
+    await render(
+      <FilterSheet visible onClose={() => {}} onApply={() => {}} />
+    );
+
+    const items = await screen.findAllByTestId('picker-item');
+    expect(items.map(item => item.props.children)).toEqual([
+      'National (all states)',
+      'Texas',
+      'Utah',
+    ]);
+    expect(getStatesMock).toHaveBeenCalled();
   });
 });

@@ -5,6 +5,7 @@ import * as ExpoClipboard from 'expo-clipboard';
 import { ActionPlansScreen } from '../ActionPlansScreen';
 import { apiClient } from '../../api/client';
 import { CareerROI } from '../../types';
+import { CatalogBundle, loadCatalog } from '../../data/catalog';
 
 beforeAll(() => {
   (Platform as { OS: string }).OS = 'web';
@@ -71,7 +72,12 @@ jest.mock('@react-navigation/native', () => {
 });
 
 jest.mock('../../api/client', () => ({
-  apiClient: { getLikedCareers: jest.fn() },
+  apiClient: {
+    getLikedCareers: jest.fn(),
+    // Swipe metadata always comes from the server; records hydrate locally.
+    getSwipeHistory: jest.fn().mockResolvedValue({ swipes: [] }),
+    getCareerInArea: jest.fn().mockResolvedValue({ skills: [] }),
+  },
 }));
 
 jest.mock('expo-clipboard', () => ({
@@ -95,39 +101,97 @@ jest.mock('../../components', () => {
   };
 });
 
+// Small deterministic bundle so plans hydrate locally by career_id without
+// depending on the 37k-row shipped bundle. Two rows share one occupation in
+// different areas to cover the dedupe test.
+// rows: [occIdx, areaIdx, id, salary, eduCost, breakeven, roi, jobZone,
+//        eduLevel, indIdx, demandRank, demandScore, openings, growth,
+//        colIndex, adjSalary]
+const fixture: CatalogBundle = {
+  version: 1,
+  generated_at: '2026-01-01T00:00:00Z',
+  source: 'test',
+  counts: { areas: 2, industries: 1, occupations: 2, rows: 3 },
+  areas: [
+    { c: '99', n: 'National' },
+    { c: '34', n: 'New Jersey' },
+  ],
+  occupations: [
+    { c: '29-1141.00', n: 'Registered Nurses' },
+    { c: '15-1252.00', n: 'Software Developers' },
+  ],
+  industries: [{ c: '62', n: 'Healthcare' }],
+  rows: [
+    [0, 0, 1, 86070, 40000, 2, 150, 4, "Bachelor's degree", 0, null, null, null, null, 1.0, 86070],
+    [1, 0, 2, 120000, 80000, 4, 200, 4, "Bachelor's degree", 0, null, null, null, null, 1.0, 120000],
+    [0, 1, 3, 88000, 42000, 2, 155, 4, "Bachelor's degree", 0, null, null, null, null, 1.1, 80000],
+  ],
+  map: {},
+};
+
+const emptyBundle: CatalogBundle = {
+  version: 1,
+  generated_at: null,
+  source: 'test',
+  counts: { areas: 0, industries: 0, occupations: 0, rows: 0 },
+  areas: [],
+  occupations: [],
+  industries: [],
+  rows: [],
+  map: {},
+};
+
+const swipe = (id: number, career_id: number) => ({
+  id,
+  career_id,
+  direction: 'right' as const,
+  created_at: new Date().toISOString(),
+});
+
 describe('ActionPlansScreen', () => {
   beforeEach(() => {
     window.localStorage.clear();
     jest.clearAllMocks();
+    loadCatalog(fixture);
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({ swipes: [] });
+    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({ records: [] });
   });
 
   it('shows an empty state with a Discover CTA when nothing is liked', async () => {
-    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({ records: [] });
     const screen = await render(<ActionPlansScreen />);
     expect(await screen.findByText('No action plans yet')).toBeTruthy();
     expect(screen.getByText('Browse careers')).toBeTruthy();
+    expect(apiClient.getLikedCareers).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the server list when the catalog is empty', async () => {
+    loadCatalog(emptyBundle);
+    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
+      records: [{ ...makeCareer({ id: 1 }), swipe_id: 1 }],
+    });
+    const screen = await render(<ActionPlansScreen />);
+    expect(await screen.findByText('Registered Nurses')).toBeTruthy();
+    expect(apiClient.getLikedCareers).toHaveBeenCalled();
+    // Empty placeholder: the server list is used directly, with no
+    // swipe-history fetch serialized in front of it.
+    expect(apiClient.getSwipeHistory).not.toHaveBeenCalled();
   });
 
   it('renders one row per liked career with next-step teasers', async () => {
-    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
-      records: [
-        { ...makeCareer({ id: 1 }), swipe_id: 1 },
-        {
-          ...makeCareer({ id: 2, occupation_code: '15-1252.00', occupation_name: 'Software Developers' }),
-          swipe_id: 2,
-        },
-      ],
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(1, 1), swipe(2, 2)],
     });
     const screen = await render(<ActionPlansScreen />);
     expect(await screen.findByText('Registered Nurses')).toBeTruthy();
     expect(screen.getByText('Software Developers')).toBeTruthy();
     expect(screen.getAllByText('Try: See the work')).toHaveLength(2);
+    expect(apiClient.getLikedCareers).not.toHaveBeenCalled();
   });
 
   it('copies the outreach message via the native clipboard and confirms', async () => {
     (Platform as { OS: string }).OS = 'ios';
-    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
-      records: [{ ...makeCareer({ id: 1 }), swipe_id: 1 }],
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(1, 1)],
     });
     const screen = await render(<ActionPlansScreen />);
     await screen.findByText('Registered Nurses');
@@ -144,8 +208,8 @@ describe('ActionPlansScreen', () => {
   });
 
   it('exposes each step checkbox with its checked state to screen readers', async () => {
-    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
-      records: [{ ...makeCareer({ id: 1 }), swipe_id: 1 }],
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(1, 1)],
     });
     const screen = await render(<ActionPlansScreen />);
     await screen.findByText('Registered Nurses');
@@ -161,12 +225,36 @@ describe('ActionPlansScreen', () => {
     );
   });
 
+  // Regression: local bundle rows omit detail-only columns (skills,
+  // day_in_life_*, video_url); opening career details must merge them from
+  // the server like Liked/Compare do. Kept above the NOTE: this test opens
+  // the detail view, so it must run before the tests that disturb the
+  // shared act() scope for later renders.
+  it('merges server-only detail columns when opening career details local-first', async () => {
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(1, 1)],
+    });
+    (apiClient.getCareerInArea as jest.Mock).mockResolvedValue({
+      skills: ['Monitoring'],
+      day_in_life_summary: 'A day of care',
+    });
+    const screen = await render(<ActionPlansScreen />);
+    await screen.findByText('Registered Nurses');
+
+    fireEvent.press(screen.getByTestId('plan-row-0'));
+    fireEvent.press(await screen.findByTestId('open-career-details'));
+
+    await waitFor(() =>
+      expect(apiClient.getCareerInArea).toHaveBeenCalledWith('29-1141.00', '99')
+    );
+  });
+
   // NOTE: tests below this point interact with the plan detail view, which
   // leaves the shared act() scope in a state that breaks renders of later
   // test instances (React 19 + RNTL beta). Keep new tests above them.
   it('shows a helpful message when a filter has no matches', async () => {
-    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
-      records: [{ ...makeCareer({ id: 1 }), swipe_id: 1 }],
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(1, 1)],
     });
     const screen = await render(<ActionPlansScreen />);
     await screen.findByText('Registered Nurses');
@@ -181,11 +269,8 @@ describe('ActionPlansScreen', () => {
   });
 
   it('dedupes multiple areas of the same occupation into a single plan', async () => {
-    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
-      records: [
-        { ...makeCareer({ id: 1 }), swipe_id: 1 },
-        { ...makeCareer({ id: 2, area_name: 'New Jersey' }), swipe_id: 2 },
-      ],
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(1, 1), swipe(2, 3)],
     });
     const screen = await render(<ActionPlansScreen />);
     await screen.findByText('Registered Nurses');
@@ -193,8 +278,8 @@ describe('ActionPlansScreen', () => {
   });
 
   it('checking steps updates progress text and teaser live', async () => {
-    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
-      records: [{ ...makeCareer({ id: 1 }), swipe_id: 1 }],
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(1, 1)],
     });
     const screen = await render(<ActionPlansScreen />);
     await screen.findByText('Registered Nurses');

@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle, ActivityIndic
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { fetchDetailInBackground, getLikedCareersOrFallback, isCatalogEmpty } from '../data/catalog';
 import { CareerDetailView, OccupationIconBadge, Button } from '../components';
 import { useTheme } from '../hooks/useTheme';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
@@ -37,7 +38,10 @@ export const LikedScreen: React.FC<LikedScreenProps> = ({ plansEnabled }) => {
     setError(null);
 
     try {
-      const json = await apiClient.getLikedCareers() as { records: LikedRecord[] };
+      // Local-first via the shared helper: the empty placeholder bundle
+      // goes straight to getLikedCareers; populated bundles hydrate from
+      // the catalog and fall back only for likes outside it (metros).
+      const json = await getLikedCareersOrFallback();
       if (thisFetch !== fetchKeyRef.current) return;
       const data = json.records || [];
       setRecords(data);
@@ -70,6 +74,13 @@ export const LikedScreen: React.FC<LikedScreenProps> = ({ plansEnabled }) => {
 
   const handleCardPress = useCallback((career: CareerROI) => {
     setDetailCareer(career);
+    // Local records render instantly; merge server-only columns
+    // (skills, day_in_life_*, video_url) when the detail fetch resolves.
+    if (!isCatalogEmpty()) {
+      fetchDetailInBackground(career, merged => {
+        setDetailCareer(prev => (prev && prev.id === merged.id ? merged : prev));
+      });
+    }
   }, []);
 
   const handleCloseDetails = useCallback(() => {
@@ -246,7 +257,9 @@ export const LikedScreen: React.FC<LikedScreenProps> = ({ plansEnabled }) => {
                           {formatPercent(record.roi_percentage)} ROI
                         </Text>
                         <Text style={[styles.stat, { color: theme.colors.text.secondary }]}>
-                          {record.years_to_breakeven}yr break-even
+                          {record.years_to_breakeven != null
+                            ? `${record.years_to_breakeven}yr break-even`
+                            : 'Break-even n/a'}
                         </Text>
                       </View>
 

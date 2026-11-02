@@ -18,7 +18,7 @@ import {
 import * as ExpoClipboard from 'expo-clipboard';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { CareerROI } from '../types';
-import { apiClient } from '../api/client';
+import { fetchDetailInBackground, getLikedCareersOrFallback, isCatalogEmpty } from '../data/catalog';
 import { CareerDetailView, FilterChip, OccupationIconBadge } from '../components';
 import { useTheme } from '../hooks/useTheme';
 import { usePlanProgress } from '../hooks/usePlanProgress';
@@ -198,7 +198,10 @@ export const ActionPlansScreen: React.FC = () => {
     setError(null);
 
     try {
-      const json = await apiClient.getLikedCareers() as { records: LikedRecord[] };
+      // Local-first via the shared helper: the empty placeholder bundle
+      // goes straight to getLikedCareers; populated bundles hydrate from
+      // the catalog and fall back only for likes outside it (metros).
+      const json = await getLikedCareersOrFallback();
       if (thisFetch !== fetchKeyRef.current) return;
       setRecords(json.records || []);
     } catch {
@@ -570,7 +573,7 @@ const PlanDetailView: React.FC<{
   if (showCareerDetails) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <CareerDetailView career={career} onClose={() => setShowCareerDetails(false)} />
+        <PlanCareerDetailView career={career} onClose={() => setShowCareerDetails(false)} />
       </View>
     );
   }
@@ -625,6 +628,27 @@ const PlanDetailView: React.FC<{
       </ScrollView>
     </View>
   );
+};
+
+/* ---------- Plan career detail (local record + server-only columns) ---------- */
+
+// Local bundle rows omit detail-only columns (skills, day_in_life_*,
+// video_url); render instantly, then merge them like Liked/Compare do.
+const PlanCareerDetailView: React.FC<{ career: CareerROI; onClose: () => void }> = ({
+  career,
+  onClose,
+}) => {
+  const [detail, setDetail] = useState(career);
+  useEffect(() => {
+    setDetail(career);
+    // Server records (empty-bundle fallback) already carry detail columns.
+    if (!isCatalogEmpty()) {
+      fetchDetailInBackground(career, merged => {
+        setDetail(prev => (prev.occupation_code === merged.occupation_code ? merged : prev));
+      });
+    }
+  }, [career]);
+  return <CareerDetailView career={detail} onClose={onClose} />;
 };
 
 const styles = StyleSheet.create({

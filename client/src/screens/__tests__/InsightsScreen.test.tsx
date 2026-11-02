@@ -3,6 +3,7 @@ import { render, waitFor } from '@testing-library/react-native';
 import { InsightsScreen } from '../InsightsScreen';
 import { apiClient } from '../../api/client';
 import { CareerROI, RoiResponse, SwipeApiRecord } from '../../types';
+import { CatalogBundle, loadCatalog } from '../../data/catalog';
 
 jest.mock('../../api/client', () => ({
   apiClient: {
@@ -63,9 +64,45 @@ const roiPage = (ids: number[]): RoiResponse => ({
   pagy: { page: 1, items: 20, count: ids.length, pages: 1 },
 });
 
+// Small deterministic bundle so liked records hydrate locally by career_id
+// without depending on the 37k-row shipped bundle.
+// rows: [occIdx, areaIdx, id, salary, eduCost, breakeven, roi, jobZone,
+//        eduLevel, indIdx, demandRank, demandScore, openings, growth,
+//        colIndex, adjSalary]
+const fixture: CatalogBundle = {
+  version: 1,
+  generated_at: '2026-01-01T00:00:00Z',
+  source: 'test',
+  counts: { areas: 1, industries: 1, occupations: 2, rows: 2 },
+  areas: [{ c: '99', n: 'National' }],
+  occupations: [
+    { c: '29-1141', n: 'Registered Nurses' },
+    { c: '15-1252', n: 'Software Developers' },
+  ],
+  industries: [{ c: '62', n: 'Healthcare' }],
+  rows: [
+    [0, 0, 100, 80000, 40000, 2, 150, 3, "Bachelor's degree", 0, null, null, null, null, 1.0, 80000],
+    [1, 0, 101, 90000, 50000, 3, 200, 4, "Bachelor's degree", 0, null, null, null, null, 1.0, 90000],
+  ],
+  map: {},
+};
+
+const emptyBundle: CatalogBundle = {
+  version: 1,
+  generated_at: null,
+  source: 'test',
+  counts: { areas: 0, industries: 0, occupations: 0, rows: 0 },
+  areas: [],
+  occupations: [],
+  industries: [],
+  rows: [],
+  map: {},
+};
+
 describe('InsightsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    loadCatalog(fixture);
     get.mockResolvedValue(roiPage([1, 2, 3]));
   });
 
@@ -77,14 +114,17 @@ describe('InsightsScreen', () => {
 
     await waitFor(() => expect(getByText('No insights yet')).toBeTruthy());
     expect(getByText('Start Exploring')).toBeTruthy();
+    // Local-first: nothing hydrates, and no list-endpoint is consulted.
+    expect(getLikedCareers).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
   });
 
   it('renders activity stats and feedback bars from history', async () => {
     getSwipeHistory.mockResolvedValue({
       swipes: [
-        swipe({ id: 1, direction: 'right', feedback: 'very_interested' }),
-        swipe({ id: 2, direction: 'right', feedback: 'mild_interest' }),
-        swipe({ id: 3, direction: 'left' }),
+        swipe({ id: 1, career_id: 100, direction: 'right', feedback: 'very_interested' }),
+        swipe({ id: 2, career_id: 101, direction: 'right', feedback: 'mild_interest' }),
+        swipe({ id: 3, career_id: 100, direction: 'left' }),
       ],
     });
     getLikedCareers.mockResolvedValue({
@@ -99,13 +139,16 @@ describe('InsightsScreen', () => {
     expect(getByText('Healthcare')).toBeTruthy();
     expect(getByText('Standout picks')).toBeTruthy();
     expect(getByText('Highest ROI')).toBeTruthy();
+    // Local-first: liked records hydrate from the bundle, no list calls.
+    expect(getLikedCareers).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
   });
 
   it('shows the feedback hint when no right swipes carry feedback', async () => {
     getSwipeHistory.mockResolvedValue({
       swipes: [
-        swipe({ id: 1, direction: 'right', feedback: undefined }),
-        swipe({ id: 2, direction: 'left' }),
+        swipe({ id: 1, career_id: 100, direction: 'right', feedback: undefined }),
+        swipe({ id: 2, career_id: 101, direction: 'left' }),
       ],
     });
     getLikedCareers.mockResolvedValue({ records: [] });
@@ -114,6 +157,48 @@ describe('InsightsScreen', () => {
 
     await waitFor(() => expect(getByText('Want deeper insights?')).toBeTruthy());
     expect(queryByText('What you value')).toBeNull();
+    expect(getLikedCareers).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the server list when the catalog is empty', async () => {
+    loadCatalog(emptyBundle);
+    getSwipeHistory.mockResolvedValue({
+      swipes: [
+        swipe({ id: 1, direction: 'right', feedback: 'very_interested' }),
+        swipe({ id: 2, direction: 'right', feedback: 'mild_interest' }),
+        swipe({ id: 3, direction: 'left' }),
+      ],
+    });
+    getLikedCareers.mockResolvedValue({
+      records: [likedCareer(), likedCareer({ id: 2, occupation_code: '15-1252' })],
+    });
+
+    const { getByText } = await render(<InsightsScreen />);
+
+    await waitFor(() => expect(getByText('What you value')).toBeTruthy());
+    expect(getByText('Your taste profile')).toBeTruthy();
+    expect(getLikedCareers).toHaveBeenCalled();
+    expect(get).toHaveBeenCalled();
+  });
+
+  it('falls back to the server liked list when a like is outside the bundle', async () => {
+    getSwipeHistory.mockResolvedValue({
+      swipes: [
+        swipe({ id: 1, career_id: 100, direction: 'right', feedback: 'very_interested' }),
+        swipe({ id: 2, career_id: 999, direction: 'right', feedback: 'mild_interest' }),
+      ],
+    });
+    getLikedCareers.mockResolvedValue({
+      records: [likedCareer(), likedCareer({ id: 2, occupation_code: '15-1252' })],
+    });
+
+    const { getByText } = await render(<InsightsScreen />);
+
+    await waitFor(() => expect(getByText('What you value')).toBeTruthy());
+    // Metro like (999) is absent from the feed-only bundle: the complete
+    // server list is used instead of a silently partial hydrate.
+    expect(getLikedCareers).toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
   });
 
   it('shows an error state when the API fails', async () => {

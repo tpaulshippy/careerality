@@ -359,11 +359,12 @@ const applyLikeAggregates = (state: GamificationState, career: CareerROI): void 
       state.likedMaxRoiPercent === null ? roi : Math.max(state.likedMaxRoiPercent, roi);
   }
 
-  if (Number.isFinite(career.years_to_breakeven)) {
+  const breakeven = career.years_to_breakeven;
+  if (breakeven != null && Number.isFinite(breakeven)) {
     state.likedMinBreakevenYears =
       state.likedMinBreakevenYears === null
-        ? career.years_to_breakeven
-        : Math.min(state.likedMinBreakevenYears, career.years_to_breakeven);
+        ? breakeven
+        : Math.min(state.likedMinBreakevenYears, breakeven);
   }
 };
 

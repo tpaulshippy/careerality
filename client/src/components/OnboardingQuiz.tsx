@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { apiClient } from '../api/client';
+import { listStatesOrFallback } from '../data/catalog';
 import { Button } from './Button';
 import { FilterChip } from './FilterChip';
 import {
@@ -53,7 +53,8 @@ export const OnboardingQuiz: React.FC<OnboardingQuizProps> = ({ onFinish }) => {
     setStatesLoading(true);
     setStatesError(null);
     try {
-      const data = await apiClient.get<{ states: StateOption[] }>('/api/areas/states');
+      // Local-first states: bundle when populated, server fallback otherwise.
+      const data = await listStatesOrFallback();
       setStates(buildStateOptions(data.states || []));
     } catch (err) {
       setStatesError(err instanceof Error ? err.message : 'Could not load locations');

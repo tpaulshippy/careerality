@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { queryCareers } from '../data/catalog';
 import { useTheme } from '../hooks/useTheme';
 import { formatCurrency } from '../hooks/useFormatters';
 
@@ -45,9 +46,26 @@ export const CareerPickerModal: React.FC<CareerPickerModalProps> = ({
     setLoading(true);
     setError(null);
     try {
+      // One source choice via queryCareers (bundled catalog when populated,
+      // server fallback otherwise). Browse (demand top-50, national scope)
+      // excludes already-swiped careers via swipe-history ids — restoring
+      // the user_id filtering the server path applies. Search stays
+      // area-"99"-scoped, like /api/roi/search's default.
+      const excludeIds = searching
+        ? undefined
+        : await apiClient
+            .getSwipeHistory()
+            .catch(() => ({ swipes: [] as { career_id?: number }[] }))
+            .then(history => {
+              const swipes = (history as { swipes?: Array<{ career_id?: number }> }).swipes ?? [];
+              return swipes
+                .map(s => s.career_id)
+                .filter((id): id is number => typeof id === 'number');
+            });
+      if (thisFetch !== fetchKeyRef.current) return;
       const json = searching
-        ? await apiClient.searchCareers(q)
-        : await apiClient.getCareers({ page: 1, sort: 'demand', area_code: '99' });
+        ? await queryCareers({ q, area_code: '99', per_page: 50 })
+        : await queryCareers({ page: 1, sort: 'demand', area_code: '99', per_page: 50, excludeIds });
       if (thisFetch !== fetchKeyRef.current) return;
       setResults(json.records || []);
     } catch {
@@ -163,7 +181,9 @@ export const CareerPickerModal: React.FC<CareerPickerModalProps> = ({
                         </Text>
                         <Text style={[styles.resultMeta, { color: theme.colors.text.secondary }]}>
                           {formatCurrency(item.annual_median_salary)} median ·{' '}
-                          {item.years_to_breakeven}yr break-even
+                          {item.years_to_breakeven != null
+                            ? `${item.years_to_breakeven}yr break-even`
+                            : 'break-even n/a'}
                         </Text>
                       </View>
                       <Text style={[styles.resultChevron, { color: theme.colors.primary }]}>›</Text>

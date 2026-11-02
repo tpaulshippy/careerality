@@ -15,6 +15,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Svg, Path } from 'react-native-svg';
 import { apiClient } from '../api/client';
+import { getMapSummary, isCatalogEmpty, queryCatalog } from '../data/catalog';
 import { RoiResponse, CareerROI } from '../types';
 import { useTheme } from '../hooks/useTheme';
 import { useFilters } from '../hooks/useFilters';
@@ -55,6 +56,14 @@ const toApiFips = (fips: string): string => fips.replace(/^0+/, '') || fips;
 
 const fetchStateRecords = async (fips: string): Promise<CareerROI[]> => {
   const apiCode = toApiFips(fips);
+  // Local-first: per-state top-ROI queries run against the bundled catalog;
+  // server calls only while the bundle is still the empty placeholder.
+  // Fetch the WHOLE state: roi-desc sorts null-ROI rows first (Postgres
+  // NULLS FIRST), so a paged cut would hide the highest-ROI rows behind
+  // 15+ null-ROI rows before the top-5 slice below.
+  if (!isCatalogEmpty()) {
+    return queryCatalog({ area_code: apiCode, sort: 'roi', per_page: Number.MAX_SAFE_INTEGER }).records;
+  }
   const first = await apiClient.get<RoiResponse>(
     `/api/roi?area_code=${encodeURIComponent(apiCode)}&sort=roi&page=1`,
   );
@@ -73,9 +82,13 @@ const buildMapData = async (
   fipsList: string[],
   onProgress: (done: number, total: number) => void,
 ): Promise<{ data: MapData; failures: number }> => {
-  const summary = await apiClient.get<{ states: Record<string, StateMetrics> }>(
-    '/api/roi/map_summary',
-  );
+  // Local-first: map summary comes from the bundled catalog; server
+  // /api/roi/map_summary only while the bundle is still the empty placeholder.
+  const summary = !isCatalogEmpty()
+    ? getMapSummary()
+    : await apiClient.get<{ states: Record<string, StateMetrics> }>(
+        '/api/roi/map_summary',
+      );
   const metrics: Record<string, StateMetrics> = {};
   for (const fips of fipsList) {
     const stateMetrics = summary.states[toApiFips(fips)];
