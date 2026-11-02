@@ -25,10 +25,24 @@ export function careerJson(row: CareerRow) {
 
 const CAREERS_PER_PAGE = 10;
 
+// Career list changes only on re-seed, so edge-cache each page URL for a day
+// (Cache API, per-PoP — free, no binding). This keeps the count + page
+// queries (~1000 row reads for the count) off D1 on repeat hits.
+const CACHE_MAX_AGE_SECONDS = 86_400;
+
 export function careersRoute(db: AppDb) {
   const app = new Hono<{ Bindings: Env }>();
 
   app.get("/", async (c) => {
+    try {
+      if (typeof caches !== "undefined") {
+        const hit = await caches.default.match(c.req.url);
+        if (hit) return hit;
+      }
+    } catch {
+      // Cache API unavailable (tests, wrangler dev without cache) — D1 path.
+    }
+
     const page = parsePage(c.req.query("page"));
     const whereSelectable = eq(salaryOccupations.selectable, "T");
     const totalRows = await db
@@ -49,10 +63,19 @@ export function careersRoute(db: AppDb) {
       .orderBy(sql`${salaryOccupations.sort_sequence} ASC NULLS LAST`)
       .limit(CAREERS_PER_PAGE)
       .offset(offset(page, CAREERS_PER_PAGE));
-    return c.json({
+    const res = c.json({
       careers: rows.map(careerJson),
       pagy: pagy(total, page, CAREERS_PER_PAGE),
     });
+    res.headers.set("Cache-Control", `public, max-age=${CACHE_MAX_AGE_SECONDS}`);
+    try {
+      if (typeof caches !== "undefined") {
+        c.executionCtx.waitUntil(caches.default.put(c.req.url, res.clone()));
+      }
+    } catch {
+      // Best-effort edge cache only — the response is already built.
+    }
+    return res;
   });
 
   app.get("/:id", async (c) => {
