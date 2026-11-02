@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { CareerDetailView } from '../CareerDetailView';
+import { render, fireEvent, act } from '@testing-library/react-native';
+import { CareerDetailView, SLIDE_INTERVAL_MS } from '../CareerDetailView';
 import { CareerROI } from '../../types';
 
 jest.mock('../OccupationIconBadge', () => ({
@@ -113,16 +113,173 @@ describe('CareerDetailView', () => {
     expect(getByText('93.1')).toBeTruthy();
   });
 
-  it('shows the career image and hides it when it fails to load', async () => {
+  it('shows the first slideshow slot and hides the image when every candidate fails', async () => {
     const { getByTestId, queryByTestId } = await render(<CareerDetailView career={mockCareer} />);
 
     const image = getByTestId('career-detail-image');
     expect(image.props.source.uri).toBe(
-      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/1512.webp'
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-1.webp'
     );
 
-    await fireEvent(image, 'error');
+    // Slot 1, 2, 3 and the legacy bare filename all 404.
+    for (let i = 0; i < 4; i += 1) {
+      const current = queryByTestId('career-detail-image');
+      if (!current) break;
+      await fireEvent(current, 'error');
+    }
 
     expect(queryByTestId('career-detail-image')).toBeNull();
+  });
+
+  it('falls through to the next slot when one fails to load', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-2.webp'
+    );
+  });
+
+  it('falls back to the legacy single image when all slideshow slots are missing', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    for (let i = 0; i < 3; i += 1) {
+      await fireEvent(getByTestId('career-detail-image'), 'error');
+    }
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234.webp'
+    );
+  });
+
+  it('renders one dot per slideshow slot and advances on tap', async () => {
+    const { getByTestId, queryByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    expect(getByTestId('career-detail-dot-0')).toBeTruthy();
+    expect(getByTestId('career-detail-dot-1')).toBeTruthy();
+    expect(getByTestId('career-detail-dot-2')).toBeTruthy();
+    expect(queryByTestId('career-detail-dot-3')).toBeNull();
+
+    await fireEvent(getByTestId('career-detail-image'), 'press');
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-2.webp'
+    );
+  });
+
+  it('jumps to the tapped dot', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    await fireEvent(getByTestId('career-detail-dot-2'), 'press');
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-3.webp'
+    );
+  });
+
+  it('drops the dot for a slot that failed to load', async () => {
+    const { getByTestId, queryByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+
+    expect(queryByTestId('career-detail-dot-0')).toBeNull();
+    expect(getByTestId('career-detail-dot-1')).toBeTruthy();
+  });
+
+  it('hides the dots when only one slideshow slot is left', async () => {
+    const { getByTestId, queryByTestId } = await render(
+      <CareerDetailView career={mockCareer} />
+    );
+
+    // Fail slot 1, then slot 2. That leaves slot 3 as the only frame, so there is
+    // nothing to page through and the dots go away.
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+
+    expect(getByTestId('career-detail-image').props.source.uri).toBe(
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-3.webp'
+    );
+    expect(queryByTestId('career-detail-dots')).toBeNull();
+  });
+
+  it('never rotates into the legacy image while a slot still works', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    // Three taps walk 1 -> 2 -> 3 -> back to 1. The legacy object is a duplicate of
+    // slot 1, so it must never appear as its own step.
+    const seen = [getByTestId('career-detail-image').props.source.uri];
+    for (let i = 0; i < 3; i += 1) {
+      await fireEvent(getByTestId('career-detail-image'), 'press');
+      seen.push(getByTestId('career-detail-image').props.source.uri);
+    }
+
+    expect(seen).toEqual([
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-1.webp',
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-2.webp',
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-3.webp',
+      'https://pub-ad3ca2271334487ba26f4bca3ceafebd.r2.dev/151234-1.webp',
+    ]);
+  });
+
+  it('keeps auto-advancing on schedule across unrelated re-renders', async () => {
+    jest.useFakeTimers();
+    try {
+      const { getByTestId, rerender } = await render(<CareerDetailView career={mockCareer} />);
+      const first = getByTestId('career-detail-image').props.source.uri;
+
+      // Burn most of one interval, then re-render, then burn the remainder.
+      // Total elapsed time exceeds SLIDE_INTERVAL_MS, but if the effect restarted the
+      // interval on re-render neither stub would ever reach the full duration and the
+      // slideshow would stall. `urls` and `rotation` are memoised so it does not.
+      await act(async () => {
+        jest.advanceTimersByTime(SLIDE_INTERVAL_MS - 1000);
+      });
+      expect(getByTestId('career-detail-image').props.source.uri).toBe(first);
+
+      await rerender(<CareerDetailView career={{ ...mockCareer }} />);
+
+      await act(async () => {
+        jest.advanceTimersByTime(1500);
+      });
+
+      expect(getByTestId('career-detail-image').props.source.uri).not.toBe(first);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('makes the image inert, not a dead button, when only one photo is available', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    // Fail slots 1 and 2, leaving only slot 3: a single frame, so there is nothing
+    // to advance to. The legacy fallback only appears once all three slots fail.
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+    await fireEvent(getByTestId('career-detail-image'), 'error');
+
+    const wrapper = getByTestId('career-detail-image').parent;
+    expect(wrapper).toBeTruthy();
+    expect(wrapper?.props.accessibilityRole).toBe('image');
+    expect(wrapper?.props.disabled).toBe(true);
+    expect(wrapper?.props.onPress).toBeUndefined();
+  });
+
+  it('keeps the image tappable when there is more than one photo', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    const wrapper = getByTestId('career-detail-image').parent;
+    expect(wrapper?.props.accessibilityRole).toBe('button');
+    expect(wrapper?.props.disabled).toBe(false);
+  });
+
+  it('marks the current dot as selected for screen readers', async () => {
+    const { getByTestId } = await render(<CareerDetailView career={mockCareer} />);
+
+    expect(getByTestId('career-detail-dot-0').props.accessibilityState).toEqual({
+      selected: true,
+    });
+    expect(getByTestId('career-detail-dot-1').props.accessibilityState).toEqual({
+      selected: false,
+    });
   });
 });

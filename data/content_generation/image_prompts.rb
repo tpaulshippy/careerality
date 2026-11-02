@@ -1,10 +1,16 @@
 # frozen_string_literal: true
 
-require 'active_record'
-require 'active_support/inflector'
 require 'json'
+require_relative 'pipeline'
 
+# ActiveRecord and ActiveSupport are loaded lazily, inside the methods that need
+# them. Prompt construction is pure string logic over the narrative index, so
+# keeping this file loadable without a database lets it be unit tested
+# (see image_prompts_test.rb).
 module ImagePrompts
+  # Number of images generated per career, for the in-app slideshow.
+  IMAGE_COUNT = Pipeline::IMAGE_COUNT
+
   DB_CONFIG = {
     adapter: ENV.fetch('DB_ADAPTER', 'postgresql'),
     database: ENV['DB_NAME'] || ENV['PGDATABASE'] || 'careerality',
@@ -14,12 +20,15 @@ module ImagePrompts
   }.freeze
 
   def self.establish_connection
+    require 'active_record'
     ActiveRecord::Base.establish_connection(DB_CONFIG)
   end
 
   def self.load_occupation_data(occupation_code)
+    require 'active_record'
+
     profile = ActiveRecord::Base.connection.exec_query(
-      "SELECT occupation_code, occupation_name, occupation_description, onet_data, skills, tasks, work_activities FROM career_profiles WHERE occupation_code = $1",
+      "SELECT occupation_code, occupation_name, occupation_description, skills, tasks FROM career_profiles WHERE occupation_code = $1",
       nil,
       [occupation_code]
     ).first
@@ -47,33 +56,84 @@ module ImagePrompts
     skills = profile['skills']
     skills = JSON.parse(skills) if skills.is_a?(String)
 
-    work_activities = profile['work_activities']
-    work_activities = JSON.parse(work_activities) if work_activities.is_a?(String)
-
-    onet_data = profile['onet_data']
-    onet_data = JSON.parse(onet_data) if onet_data.is_a?(String)
-
     {
       'OnetTitle' => profile['occupation_name'],
       'OnetCode' => profile['occupation_code'],
       'OnetDescription' => profile['occupation_description'],
       'Tasks' => tasks_data || [],
-      'Skills' => skills || [],
-      'WorkEnvironment' => [{ 'WorkEnvironment' => profile['occupation_description'] || '' }],
-      'InterestDataList' => onet_data&.dig('interests') || []
+      'Skills' => skills || []
     }
   end
 
-  def self.load_all_occupation_codes
-    ActiveRecord::Base.connection.exec_query(
-      "SELECT occupation_code FROM career_profiles"
-    ).map { |row| row['occupation_code'] }
+  # Narratives are the primary prompt source: they describe the actual work in
+  # sensory detail, which is what makes the generated photos specific rather
+  # than a generic "person at a laptop". Falls back to nil when absent so the
+  # caller can drop to O*NET tasks/skills.
+  #
+  # Keys are compact 6-digit SOC codes ("11-1011.00" -> "111011"), matching the
+  # occupation_code format the generation and upload scripts expect.
+  def self.narrative_index(dir = File.expand_path('generated_narratives', __dir__))
+    @narrative_indexes ||= {}
+    @narrative_indexes[dir] ||= Dir.glob(File.join(dir, '*.json')).each_with_object({}) do |path, index|
+      data = begin
+        JSON.parse(File.read(path))
+      rescue JSON::ParserError
+        next
+      end
+
+      # A stray file holding a valid non-object document (null, [], a string)
+      # must not abort the whole index.
+      next unless data.is_a?(Hash)
+
+      code = data['occupation_code']
+      index[compact_code(code)] = data if code
+    end
   end
 
+  # Delegates to Pipeline so the mapping has a single definition.
+  def self.compact_code(code)
+    Pipeline.compact(code)
+  end
+
+  def self.reset_narrative_index!
+    @narrative_indexes = {}
+  end
+
+  # Returns a singular form suitable for prompt prose ("a Chief Executive at work").
+  # ActiveSupport is used when available; otherwise a small rule-based fallback keeps
+  # this module usable without the Rails gems, which matters because prompt
+  # construction is pure string logic and is unit tested without a bundle.
   def self.singularize_occupation(occupation_name)
     return occupation_name unless occupation_name
 
-    occupation_name.singularize
+    # SOC titles are often compounds ("Accountants and Auditors", "First-Line
+    # Supervisors of Office and Administrative Support Workers"). Singularizing the
+    # whole string leaves the other nouns plural, so each conjunct is handled
+    # separately and the separators kept as-is.
+    occupation_name.split(/(\s+and\s+|\s+of\s+|,\s*)/).map do |part|
+      part.match?(/\A\s*(and|of|,)\s*\z/) ? part : singularize_word(part)
+    end.join
+  end
+
+  def self.singularize_word(word)
+    begin
+      require 'active_support/inflector'
+      word.singularize
+    rescue LoadError
+      simple_singularize(word)
+    end
+  end
+
+  def self.simple_singularize(word)
+    # Invariant plurals: the rules below would turn these into "sery"/"specy".
+    return word if word.match?(/\A\w*(?:series|species|news|physics|mathematics)\z/i)
+
+    case word
+    when /ies\z/i then word.sub(/ies\z/i, 'y')
+    when /(ss|sh|ch|x|z)es\z/i then word.sub(/es\z/i, '')
+    when /[^s]s\z/i then word.sub(/s\z/i, '')
+    else word
+    end
   end
 
   def self.primary_task(occupation_data)
@@ -81,17 +141,78 @@ module ImagePrompts
     return nil if tasks.empty?
 
     task = tasks.first
-    if task.is_a?(Hash)
-      task['task_description']
-    else
-      task
+    task.is_a?(Hash) ? task['task_description'] : task
+  end
+
+  # The three shots cycle through framing styles so a career's images read as a
+  # sequence rather than three near-identical portraits. Defined in Pipeline so the
+  # count is testable without ActiveRecord.
+  SHOT_STYLES = Pipeline::SHOT_STYLES
+
+  STYLE_SUFFIX = 'Photorealistic editorial documentary photograph. Natural available light, ' \
+                 'true-to-life colors, shallow depth of field, 35mm. The subject is the clear ' \
+                 'focus of the frame, absorbed in the work and unaware of the camera. Other people ' \
+                 'may be present only where the work itself calls for them. No text, no captions, ' \
+                 'no logos, no watermarks.'
+
+  # Builds IMAGE_COUNT prompts that share a subject but differ in framing, so the
+  # slideshow shows variety instead of three near-duplicates.
+  def self.article_for(phrase)
+    phrase.to_s.match?(/\A[aeiou]/i) ? 'an' : 'a'
+  end
+
+  def self.build_prompts(occupation_data, occupation_name, narrative = nil)
+    singular_name = singularize_occupation(occupation_name)
+
+    moment = narrative_moment(narrative, occupation_data)
+    setting = narrative_setting(narrative, occupation_data)
+
+    SHOT_STYLES.map do |style|
+      [
+        # Capitalised because it opens the sentence.
+        "#{article_for(style[:framing]).capitalize} #{style[:framing]} of " \
+          "#{article_for(singular_name)} #{singular_name} at work.",
+        "",
+        "This specific moment: #{moment}",
+        "The setting: #{setting}",
+        style[:direction],
+        STYLE_SUFFIX
+      ].join("\n")
     end
   end
 
-  def self.work_context(occupation_data)
-    work_env = occupation_data.dig('WorkEnvironment', 0)
-    return '' unless work_env
+  # The narrative summary is one sentence written about a real Tuesday morning, so
+  # it already carries time of day, place and activity. Falls back to O*NET.
+  def self.narrative_moment(narrative, occupation_data)
+    # `to_h` so a nil narrative yields {} rather than a NoMethodError on nil.empty?.
+    summary = narrative.to_h['day_in_life_summary'].to_s.strip
+    return summary unless summary.empty?
 
-    work_env['WorkEnvironment'] || ''
+    task = primary_task(occupation_data)
+    return task.to_s.strip unless task.to_s.strip.empty?
+
+    'going about the core duties of the job'
+  end
+
+  # Prefers the opening of the full narrative, which describes the actual room and
+  # time of day. The O*NET description is a generic job definition, so it is only a
+  # last resort.
+  def self.narrative_setting(narrative, occupation_data)
+    opening = narrative.to_h['full_narrative'].to_s.strip
+    unless opening.empty?
+      sentences = opening.split(/(?<=[.!?])\s+/).first(2).join(' ')
+      return truncate(sentences, 320)
+    end
+
+    description = occupation_data['OnetDescription'].to_s.strip
+    return description unless description.empty?
+
+    "the usual workplace of a #{singularize_occupation(occupation_data['OnetTitle'])}"
+  end
+
+  def self.truncate(text, limit)
+    return text if text.length <= limit
+
+    "#{text[0, limit].rstrip.sub(/[.,;:]?\s*\S*\z/, '')}..."
   end
 end
