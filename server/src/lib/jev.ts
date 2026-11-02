@@ -24,6 +24,38 @@ export function chunk<T>(values: T[], size: number): T[][] {
   return out;
 }
 
+// Optional client-supplied enrichment from the app's local bundle. When the
+// lookup covers every id/code needing enrichment, the corresponding D1 query
+// is skipped entirely; anything less falls back to the D1 path untouched.
+export interface RankLookup {
+  careerLookup?: Record<string, unknown>;
+  candidateNames?: Record<string, unknown>;
+}
+
+function lookupCareerHit(
+  careerLookup: RankLookup["careerLookup"],
+  id: number,
+): { code: string; name: string } | undefined {
+  if (careerLookup == null || typeof careerLookup !== "object") return undefined;
+  const hit = (careerLookup as Record<string, unknown>)[String(id)];
+  if (typeof hit !== "object" || hit === null) return undefined;
+  const code = (hit as Record<string, unknown>)["occupation_code"];
+  if (typeof code !== "string" || code.length === 0) return undefined;
+  const name = (hit as Record<string, unknown>)["occupation_name"];
+  if (typeof name !== "string" || name.length === 0) return undefined;
+  return { code, name };
+}
+
+function lookupCandidateName(
+  candidateNames: RankLookup["candidateNames"],
+  code: string,
+): string | undefined {
+  if (candidateNames == null || typeof candidateNames !== "object")
+    return undefined;
+  const name = (candidateNames as Record<string, unknown>)[code];
+  return typeof name === "string" && name.length > 0 ? name : undefined;
+}
+
 const NEXT_CARD_INSTRUCTIONS =
   "Which career should be shown next given the user's swipe history?";
 
@@ -62,9 +94,11 @@ function fallbackResult(code: string): RankResult {
 
 // Resolve raw swipe career_ids to occupation codes + names so history matches
 // candidates and Jev sees human-readable labels, not opaque SOC codes.
+// Complete client coverage (careerLookup) skips the D1 lookup entirely.
 async function withCodes(
   db: AppDb,
   swipes: LooseRecord[],
+  careerLookup?: RankLookup["careerLookup"],
 ): Promise<LooseRecord[]> {
   const careerIds = [
     ...new Set(
@@ -73,6 +107,64 @@ async function withCodes(
         .filter((v): v is number => typeof v === "number"),
     ),
   ];
+  // Partial client coverage falls back to the D1 path untouched.
+  if (!hasCompleteCareerCoverage(careerLookup, careerIds)) {
+    const byId = await fetchCodesById(db, careerIds);
+    return swipes.map((s) => {
+      const cid = s["career_id"];
+      return applyCodeHit(
+        s,
+        typeof cid === "number" ? byId.get(cid) : undefined,
+      );
+    });
+  }
+  const localById = new Map<number, { code: string; name: string }>();
+  for (const id of careerIds) {
+    localById.set(id, lookupCareerHit(careerLookup, id) as {
+      code: string;
+      name: string;
+    });
+  }
+  return swipes.map((s) => {
+    const cid = s["career_id"];
+    return applyCodeHit(
+      s,
+      typeof cid === "number" ? localById.get(cid) : undefined,
+    );
+  });
+}
+
+function hasCompleteCareerCoverage(
+  careerLookup: RankLookup["careerLookup"],
+  careerIds: number[],
+): boolean {
+  return careerIds.every(
+    (id) => lookupCareerHit(careerLookup, id) !== undefined,
+  );
+}
+
+function applyCodeHit(
+  s: LooseRecord,
+  hit: { code: string; name: string } | undefined,
+): LooseRecord {
+  const reason =
+    field(s, "reason") ?? field(s, "feedback") ?? undefined;
+  return {
+    ...s,
+    ...(hit && !field(s, "occupation_code")
+      ? { occupation_code: hit.code }
+      : {}),
+    ...(hit && !field(s, "occupation_name") && hit.name
+      ? { occupation_name: hit.name }
+      : {}),
+    ...(reason !== undefined ? { reason } : {}),
+  };
+}
+
+async function fetchCodesById(
+  db: AppDb,
+  careerIds: number[],
+): Promise<Map<number, { code: string; name: string }>> {
   const byId = new Map<number, { code: string; name: string }>();
   for (const ids of chunk(careerIds, LOOKUP_CHUNK_SIZE)) {
     if (ids.length === 0) continue;
@@ -92,29 +184,16 @@ async function withCodes(
         });
     }
   }
-  return swipes.map((s) => {
-    const cid = s["career_id"];
-    const hit = typeof cid === "number" ? byId.get(cid) : undefined;
-    const reason =
-      field(s, "reason") ?? field(s, "feedback") ?? undefined;
-    return {
-      ...s,
-      ...(hit && !field(s, "occupation_code")
-        ? { occupation_code: hit.code }
-        : {}),
-      ...(hit && !field(s, "occupation_name") && hit.name
-        ? { occupation_name: hit.name }
-        : {}),
-      ...(reason !== undefined ? { reason } : {}),
-    };
-  });
+  return byId;
 }
 
 // Fill candidate names missing from the request from the DB so Jev always
 // sees e.g. { occupation_code: "15-1252.00", occupation_name: "Software Developers" }.
+// Complete client coverage (candidateNames) skips the D1 lookup entirely.
 async function withCandidateNames(
   db: AppDb,
   candidates: LooseRecord[],
+  candidateNames?: RankLookup["candidateNames"],
 ): Promise<LooseRecord[]> {
   const missing = [
     ...new Set(
@@ -125,6 +204,44 @@ async function withCandidateNames(
     ),
   ];
   if (missing.length === 0) return candidates;
+  // Partial client coverage falls back to the D1 path untouched: D1 is the
+  // source of truth and fills every missing name it knows.
+  if (!hasCompleteCandidateCoverage(candidateNames, missing)) {
+    return applyCandidateNames(candidates, await fetchNamesByCode(db, missing));
+  }
+  const local = new Map<string, string>();
+  for (const code of missing) {
+    local.set(code, lookupCandidateName(candidateNames, code) as string);
+  }
+  return applyCandidateNames(candidates, local);
+}
+
+function hasCompleteCandidateCoverage(
+  candidateNames: RankLookup["candidateNames"],
+  missing: string[],
+): boolean {
+  return missing.every(
+    (code) => lookupCandidateName(candidateNames, code) !== undefined,
+  );
+}
+
+function applyCandidateNames(
+  candidates: LooseRecord[],
+  names: Map<string, string>,
+): LooseRecord[] {
+  return candidates.map((c) => {
+    const code = field(c, "occupation_code");
+    const name = code !== undefined ? names.get(code) : undefined;
+    return name !== undefined && field(c, "occupation_name") === undefined
+      ? { ...c, occupation_name: name }
+      : c;
+  });
+}
+
+async function fetchNamesByCode(
+  db: AppDb,
+  missing: string[],
+): Promise<Map<string, string>> {
   const names = new Map<string, string>();
   for (const codes of chunk(missing, LOOKUP_CHUNK_SIZE)) {
     const rows = await db
@@ -138,13 +255,7 @@ async function withCandidateNames(
       if (r.occupation_name != null) names.set(r.occupation_code, r.occupation_name);
     }
   }
-  return candidates.map((c) => {
-    const code = field(c, "occupation_code");
-    const name = code !== undefined ? names.get(code) : undefined;
-    return name !== undefined && field(c, "occupation_name") === undefined
-      ? { ...c, occupation_name: name }
-      : c;
-  });
+  return names;
 }
 
 interface TypesafeAnswer {
@@ -172,6 +283,7 @@ export async function rank(
   },
   swipes: unknown[],
   candidates: unknown[],
+  lookup: RankLookup = {},
 ): Promise<RankResult[]> {
   const swipeRows = swipes.map(toRecord);
   const candidateRows = candidates.map(toRecord);
@@ -183,8 +295,12 @@ export async function rank(
   // Enrichment runs inside the protected path so a D1 failure degrades to
   // the input-order fallback instead of 500ing (mirrors the Rails rescue).
   try {
-    const enrichedSwipes = await withCodes(db, swipeRows);
-    const enrichedCandidates = await withCandidateNames(db, candidateRows);
+    const enrichedSwipes = await withCodes(db, swipeRows, lookup.careerLookup);
+    const enrichedCandidates = await withCandidateNames(
+      db,
+      candidateRows,
+      lookup.candidateNames,
+    );
     const orderedCodes = enrichedCandidates
       .map((c) => field(c, "occupation_code"))
       .filter((v): v is string => typeof v === "string");

@@ -120,6 +120,7 @@ const str = (v: number | null): string =>
 let rows: ParsedRow[] = [];
 let byId = new Map<number, ParsedRow>();
 let byCodeArea = new Map<string, ParsedRow>();
+let byOccCode = new Map<string, string>();
 let areaList: Array<{ area_code: string; area_name: string }> = [];
 let mapSummary: MapSummary = { states: {} };
 let meta: CatalogMeta = { version: 1, generated_at: null, rowCount: 0, isEmpty: true };
@@ -171,6 +172,7 @@ export function loadCatalog(bundleData: CatalogBundle = bundledCatalog as unknow
   rows = parsed;
   byId = new Map(parsed.map(r => [r.id, r]));
   byCodeArea = new Map(parsed.map(r => [`${r.occ}|${r.area}`, r]));
+  byOccCode = new Map((bundleData.occupations ?? []).map(o => [o.c, o.n]));
   const areas = bundleData.areas ?? [];
   const national = areas.filter(a => a.c === '99');
   const rest = areas.filter(a => a.c !== '99');
@@ -355,6 +357,13 @@ export function findLocalCareer(occupation_code: string, area_code: string): Car
 export function findLocalById(id: number): CareerROI | undefined {
   const r = byId.get(id);
   return r ? toCareerROI(r) : undefined;
+}
+
+/** Area-independent occupation code → name from the bundle's occupation
+ * table. Used to enrich jev rank requests so the server can skip its D1
+ * code→name lookup. Undefined when the bundle is empty or lacks the code. */
+export function findOccupationName(occupation_code: string): string | undefined {
+  return byOccCode.get(occupation_code);
 }
 
 // ---------- Server-fallback helpers ----------
