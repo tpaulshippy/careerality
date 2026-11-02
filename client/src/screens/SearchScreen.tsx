@@ -15,6 +15,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { fetchDetailInBackground, isCatalogEmpty, listStatesOrFallback, queryCareers } from '../data/catalog';
 import { CareerDetailView, Button, FeedbackModal } from '../components';
 import { InterestLevel } from '../components/FeedbackModal';
 import { useTheme, Theme } from '../hooks/useTheme';
@@ -108,7 +109,8 @@ export const SearchScreen: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    apiClient.get<{ states: { area_code: string; area_name: string }[] }>('/api/areas/states')
+    // Local-first states: bundle when populated, server fallback otherwise.
+    listStatesOrFallback()
       .then(json => {
         if (!cancelled) setStates(json.states || []);
       })
@@ -136,7 +138,9 @@ export const SearchScreen: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
     setPopularLoading(true);
-    apiClient.getCareers({ page: 1, sort: 'demand', area_code: filters.stateCode })
+    // Local-first popular list (demand sort, 50 per page); server fallback
+    // only while the bundle is still the empty placeholder.
+    queryCareers({ page: 1, sort: 'demand', area_code: filters.stateCode, per_page: 50 })
       .then(json => {
         if (!cancelled) setPopular(json.records || []);
       })
@@ -149,7 +153,9 @@ export const SearchScreen: React.FC = () => {
 
   const runSearch = useCallback(async (q: string, area: string, signal: AbortSignal) => {
     try {
-      const json = await apiClient.searchCareers(q, area, signal);
+      // Local-first search (case-insensitive substring, 50 per page);
+      // server fallback only while the bundle is still the empty placeholder.
+      const json = await queryCareers({ q, area_code: area, per_page: 50, signal });
       if (signal.aborted) return;
       setResults(json.records || []);
       setError(null);
@@ -210,6 +216,17 @@ export const SearchScreen: React.FC = () => {
     inputRef.current?.focus();
   }, []);
 
+  const openDetail = useCallback((career: CareerROI) => {
+    setDetailCareer(career);
+    // Local records render instantly; merge server-only columns
+    // (skills, day_in_life_*, video_url) when the detail fetch resolves.
+    if (!isCatalogEmpty()) {
+      fetchDetailInBackground(career, merged => {
+        setDetailCareer(prev => (prev && prev.id === merged.id ? merged : prev));
+      });
+    }
+  }, []);
+
   const handleResultPress = useCallback((career: CareerROI) => {
     const q = sanitizeQuery(query);
     if (q.length >= MIN_QUERY_LENGTH) {
@@ -219,8 +236,8 @@ export const SearchScreen: React.FC = () => {
         return next;
       });
     }
-    setDetailCareer(career);
-  }, [query]);
+    openDetail(career);
+  }, [query, openDetail]);
 
   const handleInterestPress = useCallback((career: CareerROI) => {
     setFeedbackCareer(career);
@@ -416,7 +433,7 @@ export const SearchScreen: React.FC = () => {
               </>
             ) : (
               popular.map(career => (
-                <CareerResultRow key={career.id} career={career} onPress={setDetailCareer} />
+                <CareerResultRow key={career.id} career={career} onPress={openDetail} />
               ))
             )}
           </View>

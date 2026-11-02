@@ -71,7 +71,11 @@ jest.mock('@react-navigation/native', () => {
 });
 
 jest.mock('../../api/client', () => ({
-  apiClient: { getLikedCareers: jest.fn() },
+  apiClient: {
+    getLikedCareers: jest.fn(),
+    // Local-first fallback: catalog bundle is the empty placeholder in tests.
+    getSwipeHistory: jest.fn().mockResolvedValue({ swipes: [] }),
+  },
 }));
 
 jest.mock('expo-clipboard', () => ({

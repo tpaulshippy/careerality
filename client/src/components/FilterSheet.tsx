@@ -14,7 +14,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useTheme } from '../hooks/useTheme';
-import { apiClient } from '../api/client';
+import { listStatesOrFallback } from '../data/catalog';
 import { FilterState, SortOption } from '../types';
 
 export type { FilterState };
@@ -57,7 +57,8 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
       setStatesLoading(true);
       setStatesError(null);
       try {
-        const data = await apiClient.get<{ states: { area_code: string; area_name: string }[] }>('/api/areas/states');
+        // Local-first states: bundle when populated, server fallback otherwise.
+        const data = await listStatesOrFallback();
         setStates(data.states || []);
       } catch (err) {
         setStatesError(err instanceof Error ? err.message : 'Unknown error');

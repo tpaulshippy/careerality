@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, ViewStyle, TextStyle, ActivityIndic
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { fetchDetailInBackground, hydrateLikedFromCatalog, isCatalogEmpty } from '../data/catalog';
 import { CareerDetailView, OccupationIconBadge, Button } from '../components';
 import { useTheme } from '../hooks/useTheme';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
@@ -37,7 +38,14 @@ export const LikedScreen: React.FC<LikedScreenProps> = ({ plansEnabled }) => {
     setError(null);
 
     try {
-      const json = await apiClient.getLikedCareers() as { records: LikedRecord[] };
+      // Local-first: hydrate records from the bundled catalog via
+      // swipe-history career_ids; swipe metadata still comes from the server.
+      // getLikedCareers only while the bundle is still the empty placeholder.
+      const history = await apiClient.getSwipeHistory();
+      const local = hydrateLikedFromCatalog(history.swipes || []);
+      const json = local
+        ? { records: local }
+        : await apiClient.getLikedCareers() as { records: LikedRecord[] };
       if (thisFetch !== fetchKeyRef.current) return;
       const data = json.records || [];
       setRecords(data);
@@ -70,6 +78,13 @@ export const LikedScreen: React.FC<LikedScreenProps> = ({ plansEnabled }) => {
 
   const handleCardPress = useCallback((career: CareerROI) => {
     setDetailCareer(career);
+    // Local records render instantly; merge server-only columns
+    // (skills, day_in_life_*, video_url) when the detail fetch resolves.
+    if (!isCatalogEmpty()) {
+      fetchDetailInBackground(career, merged => {
+        setDetailCareer(prev => (prev && prev.id === merged.id ? merged : prev));
+      });
+    }
   }, []);
 
   const handleCloseDetails = useCallback(() => {

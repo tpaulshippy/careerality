@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { isCatalogEmpty, queryCatalog } from '../data/catalog';
 import { useTheme } from '../hooks/useTheme';
 import { formatCurrency } from '../hooks/useFormatters';
 
@@ -45,11 +46,21 @@ export const CareerPickerModal: React.FC<CareerPickerModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const json = searching
-        ? await apiClient.searchCareers(q)
-        : await apiClient.getCareers({ page: 1, sort: 'demand', area_code: '99' });
-      if (thisFetch !== fetchKeyRef.current) return;
-      setResults(json.records || []);
+      // Local-first: list/search the bundled catalog (demand top-50 for the
+      // browse case); server calls only while the bundle is the placeholder.
+      if (!isCatalogEmpty()) {
+        const json = searching
+          ? queryCatalog({ q, per_page: 50 })
+          : queryCatalog({ page: 1, sort: 'demand', area_code: '99', per_page: 50 });
+        if (thisFetch !== fetchKeyRef.current) return;
+        setResults(json.records || []);
+      } else {
+        const json = searching
+          ? await apiClient.searchCareers(q)
+          : await apiClient.getCareers({ page: 1, sort: 'demand', area_code: '99' });
+        if (thisFetch !== fetchKeyRef.current) return;
+        setResults(json.records || []);
+      }
     } catch {
       if (thisFetch === fetchKeyRef.current) {
         setError('Failed to load careers. Tap to retry.');

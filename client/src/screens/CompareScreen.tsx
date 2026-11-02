@@ -16,6 +16,7 @@ import {
 import { useFocusEffect, useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { fetchDetailInBackground, hydrateLikedFromCatalog, isCatalogEmpty } from '../data/catalog';
 import { CareerDetailView } from '../components/CareerDetailView';
 import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
@@ -85,7 +86,14 @@ export const CompareScreen: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const json = await apiClient.getLikedCareers() as { records: LikedRecord[] };
+      // Local-first: hydrate records from the bundled catalog via
+      // swipe-history career_ids; swipe metadata still comes from the server.
+      // getLikedCareers only while the bundle is still the empty placeholder.
+      const history = await apiClient.getSwipeHistory();
+      const local = hydrateLikedFromCatalog(history.swipes || []);
+      const json = local
+        ? { records: local }
+        : await apiClient.getLikedCareers() as { records: LikedRecord[] };
       setLikedRecords(json.records || []);
     } catch {
       setError('Failed to load comparison');
@@ -102,6 +110,17 @@ export const CompareScreen: React.FC = () => {
 
   const careers = useMemo(() => orderCareersByIds(likedRecords, ids), [likedRecords, ids]);
   const rows = useMemo(() => buildCompareRows(careers), [careers]);
+
+  const openDetail = useCallback((career: CareerROI) => {
+    setDetailCareer(career);
+    // Local records render instantly; merge server-only columns
+    // (skills, day_in_life_*, video_url) when the detail fetch resolves.
+    if (!isCatalogEmpty()) {
+      fetchDetailInBackground(career, merged => {
+        setDetailCareer(prev => (prev && prev.id === merged.id ? merged : prev));
+      });
+    }
+  }, []);
 
   const handleRemove = useCallback((id: number) => {
     setIds(prev => prev.filter(selected => selected !== id));
@@ -187,7 +206,7 @@ export const CompareScreen: React.FC = () => {
                   <View key={career.id} style={{ width: columnWidth }}>
                     <TouchableOpacity
                       style={[styles.headerCard, { backgroundColor: theme.colors.surface }, theme.shadows.subtle]}
-                      onPress={() => setDetailCareer(career)}
+                      onPress={() => openDetail(career)}
                       activeOpacity={0.7}
                       testID={`compare-header-${index}`}
                     >

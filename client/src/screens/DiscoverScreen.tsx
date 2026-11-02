@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, Toucha
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { fetchDetailInBackground, isCatalogEmpty, queryCareers } from '../data/catalog';
 import { rankCareers } from '../api/jevRank';
 import { useSwipe } from '../hooks/useSwipe';
 import { useFilters } from '../hooks/useFilters';
@@ -85,13 +86,26 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
     }
 
     try {
-      const params: Record<string, string | number> = { page };
-      if (filters.stateCode) params.area_code = filters.stateCode;
-      if (filters.salaryMin > 0) params.min_salary = filters.salaryMin;
-      if (filters.salaryMax < 1000000) params.max_salary = filters.salaryMax;
-      if (filters.sortBy) params.sort = filters.sortBy;
+      // Local-first feed: the bundled catalog is the primary source (server
+      // fallback only while the bundle is still the empty placeholder).
+      // Swipe exclusion is client-side via swipe-history ids — the jev rerank
+      // below reuses the same history fetch.
+      const history = await apiClient.getSwipeHistory().catch(() => ({ swipes: [] as { career_id?: number }[] }));
+      const swipes = (history as { swipes?: Array<{ career_id?: number }> }).swipes ?? [];
+      historyRef.current = swipes;
+      sessionSwipesRef.current = [];
+      const excludeIds = swipes
+        .map(s => s.career_id)
+        .filter((id): id is number => typeof id === 'number');
 
-      const json = await apiClient.getCareers(params) as { records: CareerROI[]; pagy?: { pages: number } };
+      const json = await queryCareers({
+        page,
+        ...(filters.stateCode ? { area_code: filters.stateCode } : {}),
+        ...(filters.salaryMin > 0 ? { min_salary: filters.salaryMin } : {}),
+        ...(filters.salaryMax < 1000000 ? { max_salary: filters.salaryMax } : {}),
+        ...(filters.sortBy ? { sort: filters.sortBy } : {}),
+        excludeIds,
+      });
 
       if (thisFetch !== fetchKeyRef.current) return;
 
@@ -108,10 +122,6 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
         // POST /api/jev/rank (one listwise call); any failure keeps order.
         let ordered = data;
         try {
-          const history = await apiClient.getSwipeHistory().catch(() => ({ swipes: [] as never[] }));
-          const swipes = (history as { swipes?: unknown[] }).swipes ?? [];
-          historyRef.current = swipes;
-          sessionSwipesRef.current = [];
           rankSeqRef.current++;
           const ranked = await rankCareers(swipes, data.map(c => ({ occupation_code: c.occupation_code, occupation_name: c.occupation_name })));
           if (thisFetch !== fetchKeyRef.current) return;
@@ -122,7 +132,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
             );
           }
         } catch {
-          // Keep server order when ranking is unavailable.
+          // Keep catalog order when ranking is unavailable.
         }
         if (thisFetch !== fetchKeyRef.current) return;
         setCareers(ordered);
@@ -279,6 +289,13 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
 
   const handleViewDetails = useCallback((career: CareerROI) => {
     setDetailCareer(career);
+    // Local records render instantly; merge server-only columns
+    // (skills, day_in_life_*, video_url) when the detail fetch resolves.
+    if (!isCatalogEmpty()) {
+      fetchDetailInBackground(career, merged => {
+        setDetailCareer(prev => (prev && prev.id === merged.id ? merged : prev));
+      });
+    }
     const result = gamification.trackEvent({ type: 'detail_view', career });
     if (result?.leveledUp) setCelebrateLevel(result.newLevel);
   }, [gamification]);

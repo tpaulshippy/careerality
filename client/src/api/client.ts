@@ -90,6 +90,10 @@ class ApiClient {
     await this.post('/api/swipes', payload);
   }
 
+  /**
+   * @deprecated Local catalog is the primary source (see src/data/catalog.ts
+   * queryCareers); kept for fallback + old clients (server frozen).
+   */
   async searchCareers(query: string, areaOrSignal?: string | AbortSignal, signal?: AbortSignal): Promise<RoiResponse> {
     const areaCode = typeof areaOrSignal === 'string' ? areaOrSignal : undefined;
     const resolvedSignal = signal ?? (areaOrSignal instanceof AbortSignal ? areaOrSignal : undefined);
@@ -99,6 +103,10 @@ class ApiClient {
     return this.request<RoiResponse>(`/api/roi/search${queryString}`, { method: 'GET', signal: resolvedSignal });
   }
 
+  /**
+   * @deprecated Local catalog is the primary source (see src/data/catalog.ts
+   * queryCareers); kept for fallback + old clients (server frozen).
+   */
   async getCareers(params?: Record<string, string | number>): Promise<RoiResponse> {
     const userId = await getUserId();
     const allParams = { ...params, user_id: userId };
@@ -108,6 +116,10 @@ class ApiClient {
     return this.get<RoiResponse>(`/api/roi${queryString}`);
   }
 
+  /**
+   * @deprecated Local catalog is the primary source (see src/data/catalog.ts
+   * listStatesOrFallback); kept for fallback + old clients (server frozen).
+   */
   async getStates(): Promise<{ states: { area_code: string; area_name: string }[] }> {
     return this.get<{ states: { area_code: string; area_name: string }[] }>('/api/areas/states');
   }

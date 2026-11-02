@@ -48,6 +48,8 @@ jest.mock('../../api/client', () => ({
     searchCareers: jest.fn().mockResolvedValue({ records: [] }),
     submitSwipe: jest.fn().mockResolvedValue(undefined),
     get: jest.fn().mockResolvedValue({ states: [{ area_code: '06', area_name: 'California' }] }),
+    // Local-first fallback: catalog bundle is the empty placeholder in tests.
+    getStates: jest.fn().mockResolvedValue({ states: [{ area_code: '06', area_name: 'California' }] }),
   },
 }));
 

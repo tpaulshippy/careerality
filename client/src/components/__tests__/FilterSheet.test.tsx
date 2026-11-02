@@ -45,6 +45,16 @@ jest.mock('../../api/client', () => ({
         ],
       })
     ),
+    // Local-first fallback: catalog bundle is the empty placeholder in tests.
+    getStates: jest.fn(() =>
+      Promise.resolve({
+        states: [
+          { area_code: '48', area_name: 'Texas' },
+          { area_code: '99', area_name: 'U.S.' },
+          { area_code: '49', area_name: 'Utah' },
+        ],
+      })
+    ),
   },
 }));
 

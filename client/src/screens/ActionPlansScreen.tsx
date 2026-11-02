@@ -19,6 +19,7 @@ import * as ExpoClipboard from 'expo-clipboard';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { hydrateLikedFromCatalog } from '../data/catalog';
 import { CareerDetailView, FilterChip, OccupationIconBadge } from '../components';
 import { useTheme } from '../hooks/useTheme';
 import { usePlanProgress } from '../hooks/usePlanProgress';
@@ -198,7 +199,14 @@ export const ActionPlansScreen: React.FC = () => {
     setError(null);
 
     try {
-      const json = await apiClient.getLikedCareers() as { records: LikedRecord[] };
+      // Local-first: hydrate records from the bundled catalog via
+      // swipe-history career_ids; swipe metadata still comes from the server.
+      // getLikedCareers only while the bundle is still the empty placeholder.
+      const history = await apiClient.getSwipeHistory();
+      const local = hydrateLikedFromCatalog(history.swipes || []);
+      const json = local
+        ? { records: local }
+        : await apiClient.getLikedCareers() as { records: LikedRecord[] };
       if (thisFetch !== fetchKeyRef.current) return;
       setRecords(json.records || []);
     } catch {

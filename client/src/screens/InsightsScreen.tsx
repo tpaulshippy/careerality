@@ -13,6 +13,7 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { CareerROI, RoiResponse } from '../types';
 import { apiClient } from '../api/client';
+import { fetchDetailInBackground, hydrateLikedFromCatalog, isCatalogEmpty, queryCatalog } from '../data/catalog';
 import { CareerDetailView, OccupationIconBadge } from '../components';
 import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
@@ -93,30 +94,59 @@ export const InsightsScreen: React.FC = () => {
   const [detailCareer, setDetailCareer] = useState<CareerROI | null>(null);
   const fetchKeyRef = useRef(0);
 
+  const openDetail = useCallback((career: CareerROI) => {
+    setDetailCareer(career);
+    // Local records render instantly; merge server-only columns
+    // (skills, day_in_life_*, video_url) when the detail fetch resolves.
+    if (!isCatalogEmpty()) {
+      fetchDetailInBackground(career, merged => {
+        setDetailCareer(prev => (prev && prev.id === merged.id ? merged : prev));
+      });
+    }
+  }, []);
+
   const fetchInsights = useCallback(async () => {
     const thisFetch = ++fetchKeyRef.current;
     setLoading(true);
     setError(null);
 
     try {
-      // Plain get() rather than getCareers() for the catalog: getCareers injects
-      // user_id, which would exclude the user's own swiped careers from the
-      // baseline sample.
-      const [historyJson, likedJson, firstPage] = await Promise.all([
-        apiClient.getSwipeHistory(),
-        apiClient.getLikedCareers(),
-        apiClient.get<RoiResponse>('/api/roi?page=1&sort=roi'),
-      ]);
-      let catalogRecords: CareerROI[] = firstPage.records || [];
-      const totalPages = Math.min(firstPage.pagy?.pages ?? 1, CATALOG_PAGES);
-      for (let page = 2; page <= totalPages; page++) {
-        const next = await apiClient.get<RoiResponse>(`/api/roi?page=${page}&sort=roi`);
-        catalogRecords = catalogRecords.concat(next.records || []);
+      // Local-first: liked records hydrate from the bundle via swipe-history
+      // career_ids, and the baseline sample is local top-ROI queries.
+      // Server calls only while the bundle is still the empty placeholder.
+      const historyJson = await apiClient.getSwipeHistory();
+      const localLiked = hydrateLikedFromCatalog(historyJson.swipes || []);
+      let likedRecords: LikedCareer[];
+      let catalogRecords: CareerROI[];
+      if (localLiked) {
+        likedRecords = localLiked;
+        catalogRecords = [];
+        for (let page = 1; page <= CATALOG_PAGES; page++) {
+          if (thisFetch !== fetchKeyRef.current) return;
+          catalogRecords = catalogRecords.concat(
+            queryCatalog({ sort: 'roi', page, per_page: 20 }).records,
+          );
+        }
+      } else {
+        // Plain get() rather than getCareers() for the catalog: getCareers injects
+        // user_id, which would exclude the user's own swiped careers from the
+        // baseline sample.
+        const [likedJson, firstPage] = await Promise.all([
+          apiClient.getLikedCareers(),
+          apiClient.get<RoiResponse>('/api/roi?page=1&sort=roi'),
+        ]);
+        likedRecords = likedJson.records || [];
+        catalogRecords = firstPage.records || [];
+        const totalPages = Math.min(firstPage.pagy?.pages ?? 1, CATALOG_PAGES);
+        for (let page = 2; page <= totalPages; page++) {
+          const next = await apiClient.get<RoiResponse>(`/api/roi?page=${page}&sort=roi`);
+          catalogRecords = catalogRecords.concat(next.records || []);
+        }
       }
 
       if (thisFetch !== fetchKeyRef.current) return;
       setSwipes(historyJson.swipes || []);
-      setLiked(likedJson.records || []);
+      setLiked(likedRecords);
       setCatalog(catalogRecords);
     } catch {
       if (thisFetch === fetchKeyRef.current) {
@@ -212,7 +242,7 @@ export const InsightsScreen: React.FC = () => {
     return (
       <TouchableOpacity
         style={[styles.pickCard, { backgroundColor: theme.colors.surface }]}
-        onPress={() => setDetailCareer(career)}
+        onPress={() => openDetail(career)}
         activeOpacity={0.7}
       >
         <Text style={[styles.pickLabel, { color: theme.colors.primary }]}>{label}</Text>

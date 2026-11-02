@@ -1,0 +1,1 @@
+{"_note": "Run server/scripts/export_pg_to_catalog.py against local postgres, then commit the regenerated file.", "areas": [{"c": "99", "n": "National"}], "counts": {"areas": 0, "industries": 0, "occupations": 0, "rows": 0}, "generated_at": null, "industries": [], "map": {}, "occupations": [], "rows": [], "source": "postgres", "version": 1}

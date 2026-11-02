@@ -12,6 +12,7 @@ import { Picker } from '@react-native-picker/picker';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { CareerROI } from '../types';
 import { apiClient } from '../api/client';
+import { listStatesOrFallback, queryCareers } from '../data/catalog';
 import { useTheme } from '../hooks/useTheme';
 import { useFilters } from '../hooks/useFilters';
 import { formatCurrency, formatPercent } from '../hooks/useFormatters';
@@ -71,8 +72,8 @@ export const RealityCheckScreen: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    apiClient
-      .getStates()
+    // Local-first states: bundle when populated, server fallback otherwise.
+    listStatesOrFallback()
       .then((data) => {
         if (!cancelled) setStates(data.states || []);
       })
@@ -98,11 +99,12 @@ export const RealityCheckScreen: React.FC = () => {
       try {
         // State records may use a more detailed occupation code than the
         // national one, so fall back to a name search within the state.
+        // Local-first (bundle when populated, server fallback otherwise).
         let record: CareerROI | null = null;
         try {
           record = await apiClient.getCareerInArea(target.occupation_code, code);
         } catch {
-          const res = await apiClient.searchCareers(target.occupation_name.trim(), code);
+          const res = await queryCareers({ q: target.occupation_name.trim(), area_code: code, per_page: 50 });
           const name = target.occupation_name.trim().toLowerCase();
           record =
             (res.records || []).find((r) => r.occupation_code === target.occupation_code) ??
