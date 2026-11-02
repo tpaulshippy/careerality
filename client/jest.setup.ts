@@ -1,3 +1,8 @@
+// React 19 / react-test-renderer requires this flag for act() support.
+// Without it every act() call logs "The current testing environment is
+// not configured to support act(...)".
+(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+
 jest.mock('react-native-worklets', () => ({}));
 
 // eslint-disable-next-line no-console
