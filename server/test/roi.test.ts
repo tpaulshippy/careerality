@@ -220,6 +220,104 @@ describe("GET /api/roi", () => {
     expect(res.pagy.count).toBe(41);
   });
 
+  test("user_id feeds are edge-cached per URL with a short TTL", async () => {
+    await seedRoi("15-1252.00", "99", { demand_score: 0.3 });
+    const calls = { match: 0, put: 0 };
+    const store = new Map<string, Response>();
+    const prev = (globalThis as Record<string, unknown>).caches;
+    (globalThis as Record<string, unknown>).caches = {
+      default: {
+        match: async (key: string) => {
+          calls.match += 1;
+          // Like the real Cache API, every match yields a usable copy.
+          const hit = store.get(String(key));
+          return hit ? hit.clone() : undefined;
+        },
+        put: async (key: string, res: Response) => {
+          calls.put += 1;
+          store.set(String(key), res);
+        },
+        delete: async (key: string) => {
+          store.delete(String(key));
+        },
+      },
+    };
+    try {
+      const app = testApp(db);
+      const url = "/api/roi?sort=demand&user_id=cache-u1";
+      const miss = await app.request(url, {}, testEnv);
+      const first = await body(miss);
+      // MISS builds fresh: client copy stays private.
+      expect(miss.headers.get("Cache-Control")).toBe("private, max-age=60");
+      const second = await body(await app.request(url, {}, testEnv));
+      expect(second).toEqual(first);
+      expect(calls).toEqual({ match: 2, put: 1 });
+      // HIT serves the stored copy, whose header was rewritten public for
+      // Cache API eligibility — same URL, same user, so still correct.
+      const cached = await app.request(url);
+      expect(cached.headers.get("Cache-Control")).toBe("public, max-age=60");
+    } finally {
+      if (prev === undefined) delete (globalThis as Record<string, unknown>).caches;
+      else (globalThis as Record<string, unknown>).caches = prev;
+    }
+  });
+
+  test("a swipe write purges that user's cached feeds", async () => {
+    const id = await seedRoi("15-1252.00", "99", { demand_score: 0.3 });
+    const store = new Map<string, Response>();
+    const prev = (globalThis as Record<string, unknown>).caches;
+    (globalThis as Record<string, unknown>).caches = {
+      default: {
+        match: async (key: string) => {
+          const hit = store.get(String(key));
+          return hit ? hit.clone() : undefined;
+        },
+        put: async (key: string, res: Response) => {
+          store.set(String(key), res);
+        },
+        delete: async (key: string) => {
+          return store.delete(String(key));
+        },
+      },
+    };
+    // Execution context that collects waitUntil work so the test can flush
+    // it deterministically — the POST's purge runs through this path, not a
+    // direct helper call.
+    const pending: Promise<unknown>[] = [];
+    const ctx = {
+      waitUntil: (p: Promise<unknown>) => {
+        pending.push(p);
+      },
+      passThroughOnException: () => {},
+    };
+    const flush = async () => {
+      await Promise.all(pending.splice(0));
+    };
+    try {
+      const app = testApp(db);
+      const url = "/api/roi?sort=demand&user_id=purge-u1";
+      await body(await app.request(url, {}, testEnv, ctx as never));
+      await flush();
+      expect(store.size).toBe(1);
+      const posted = await app.request(
+        "/api/swipes",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ career_id: id, user_id: "purge-u1", direction: "right" }),
+        },
+        testEnv,
+        ctx as never,
+      );
+      expect(posted.status).toBe(201);
+      await flush();
+      expect(store.size).toBe(0);
+    } finally {
+      if (prev === undefined) delete (globalThis as Record<string, unknown>).caches;
+      else (globalThis as Record<string, unknown>).caches = prev;
+    }
+  });
+
   test("each salary alias applies independently, strictest wins", async () => {
     // Distinct roi values keep the roi-fallback order deterministic.
     await seedRoi("15-1252.00", "99", {

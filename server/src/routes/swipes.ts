@@ -1,12 +1,22 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { and, desc, eq, isNull, type SQL } from "drizzle-orm";
 import type { AppDb } from "../db/client";
 import { careerContents, careerRoi, swipes } from "../db/schema";
 import type { Env } from "../env";
-import { roiJson, type RoiRow } from "./roi";
+import { purgeUserFeedCache, roiJson, type RoiRow } from "./roi";
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+// Drop the user's cached feed responses after a swipe write. Best-effort:
+// executionCtx is absent outside the Workers runtime (tests, dev).
+function purgeAfterWrite(c: Context, userId: string): void {
+  try {
+    c.executionCtx.waitUntil(purgeUserFeedCache(userId));
+  } catch {
+    // Non-worker runtime — the short edge TTL is the backstop.
+  }
 }
 
 // Mirrors Rails `where(user_id: ...)` exactly: a missing user_id matches
@@ -142,6 +152,9 @@ export function swipesRoute(db: AppDb) {
         updated_at: timestamp,
       })
       .returning();
+    // The user's cached feeds exclude this swipe — drop them (60s TTL backs
+    // up other isolates/PoPs).
+    purgeAfterWrite(c, userId);
     return c.json(inserted[0], 201);
   });
 
@@ -154,6 +167,7 @@ export function swipesRoute(db: AppDb) {
       .delete(swipes)
       .where(eq(swipes.user_id, userId))
       .returning({ id: swipes.id });
+    purgeAfterWrite(c, userId);
     return c.json({ deleted: deleted.length });
   });
 
@@ -170,6 +184,7 @@ export function swipesRoute(db: AppDb) {
       .limit(1);
     if (!found[0]) return c.json({ error: "Swipe not found" }, 404);
     await db.delete(swipes).where(eq(swipes.id, id));
+    if (userId) purgeAfterWrite(c, userId);
     return c.json({ success: true });
   });
 
