@@ -1,0 +1,18 @@
+server/src/lib/jev.ts
+  h_6bbd00fe0a456a 45-46
+server/src/routes/jev.ts
+  h_6bbd00fe0a456a 29-33,38-39
+server/test/jev-local-lookup.test.ts
+  h_6bbd00fe0a456a 242-277
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b852d09f16affb3012cabe91000b72b4a92a816f",
+  "prompts": {},
+  "humans": {
+    "h_6bbd00fe0a456a": {
+      "author": "Paul Shippy <pshippy@gmail.com>"
+    }
+  }
+}
