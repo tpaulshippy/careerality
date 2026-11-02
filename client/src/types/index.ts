@@ -6,7 +6,7 @@ export interface CareerROI {
   area_name: string;
   annual_median_salary: string;
   education_cost: string;
-  years_to_breakeven: number;
+  years_to_breakeven: number | null;
   roi_percentage: string;
   job_zone: number;
   education_level: string;

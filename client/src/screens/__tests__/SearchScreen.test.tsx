@@ -49,6 +49,7 @@ jest.mock('../../api/client', () => ({
     searchCareers: jest.fn().mockResolvedValue({ records: [] }),
     submitSwipe: jest.fn().mockResolvedValue(undefined),
     getCareerInArea: jest.fn().mockResolvedValue({ skills: [] }),
+    getSwipeHistory: jest.fn().mockResolvedValue({ swipes: [] }),
     get: jest.fn().mockResolvedValue({ states: [{ area_code: '06', area_name: 'California' }] }),
     // Server-fallback path: only used while the catalog is still empty.
     getStates: jest.fn().mockResolvedValue({ states: [{ area_code: '06', area_name: 'California' }] }),
@@ -135,6 +136,17 @@ describe('SearchScreen', () => {
       expect(apiClient.submitSwipe).toHaveBeenCalledWith(42, 'right', 'very_interested');
     });
     expect(apiClient.getCareers).not.toHaveBeenCalled();
+  });
+
+  it('excludes swiped careers from the popular list local-first', async () => {
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [{ id: 1, career_id: 42, direction: 'right', created_at: new Date().toISOString() }],
+    });
+    const screen = await render(<SearchScreen />);
+
+    // Only the unswiped career (43) shows; the swiped one (42) is excluded.
+    await waitFor(() => expect(screen.getByTestId('search-result-43')).toBeTruthy());
+    expect(screen.queryByTestId('search-result-42')).toBeNull();
   });
 
   it('falls back to the server list when the catalog is empty', async () => {

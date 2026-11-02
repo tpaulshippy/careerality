@@ -93,7 +93,9 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ searchEnabled })
       const history = await apiClient.getSwipeHistory().catch(() => ({ swipes: [] as { career_id?: number }[] }));
       const swipes = (history as { swipes?: Array<{ career_id?: number }> }).swipes ?? [];
       historyRef.current = swipes;
-      sessionSwipesRef.current = [];
+      // Appends keep the current stack: only a fresh (non-append) load
+      // resets the session swipes used by rerank and undo.
+      if (!append) sessionSwipesRef.current = [];
       const excludeIds = swipes
         .map(s => s.career_id)
         .filter((id): id is number => typeof id === 'number');

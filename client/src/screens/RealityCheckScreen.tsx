@@ -240,7 +240,7 @@ export const RealityCheckScreen: React.FC = () => {
               />
               <SummaryRow
                 label="Years to break-even"
-                value={`${effectiveCareer.years_to_breakeven} yrs`}
+                value={effectiveCareer.years_to_breakeven != null ? `${effectiveCareer.years_to_breakeven} yrs` : 'n/a'}
                 color={theme.colors.text.primary}
                 labelColor={theme.colors.text.secondary}
               />

@@ -112,7 +112,10 @@ export interface MapSummary {
 const num = (v: unknown): number | null =>
   typeof v === 'number' && Number.isFinite(v) ? v : null;
 
-const str = (v: number | null): string => (v == null ? '' : String(v));
+const str = (v: number | null): string =>
+  // Matches server dec() (server/src/routes/roi.ts): PG numerics serialize
+  // as JSON strings with integer decimals keeping ".0" (e.g. "120000.0").
+  v == null ? '' : Number.isInteger(v) ? `${v}.0` : String(v);
 
 let rows: ParsedRow[] = [];
 let byId = new Map<number, ParsedRow>();
@@ -217,7 +220,9 @@ export function toCareerROI(r: ParsedRow): CareerROI {
     area_name: r.areaName,
     annual_median_salary: str(r.salary),
     education_cost: str(r.eduCost),
-    years_to_breakeven: r.breakeven ?? 0,
+    // Preserve missing break-even as null (never 0): null must not win
+    // fastest-break-even comparisons or render as "0yr".
+    years_to_breakeven: r.breakeven,
     roi_percentage: str(r.roi),
     job_zone: r.jobZone ?? 0,
     education_level: r.eduLevel,
@@ -247,18 +252,22 @@ function descNullsFirst(get: (r: ParsedRow) => number | null) {
 
 /**
  * Mirrors server/src/routes/roi.ts feed semantics against the local bundle:
- * area scope (defaults "99"), inclusive salary bounds, the four sort
- * branches (demand falls back to roi desc when no rows carry demand data),
- * case-insensitive substring q within the area, and pagy-shaped pagination.
+ * area scope (omitted area_code means all bundled areas, matching the
+ * unscoped server feed — never silently national-only), inclusive salary
+ * bounds, the four sort branches (demand falls back to roi desc when no
+ * rows carry demand data), case-insensitive substring q within the area,
+ * and pagy-shaped pagination.
  */
 export function queryCatalog(opts: CatalogQuery = {}): RoiResponse {
-  const area = opts.area_code ?? '99';
+  const area = opts.area_code;
   const perPage = opts.per_page ?? 20;
   const page = opts.page != null && opts.page >= 1 ? Math.floor(opts.page) : 1;
   const q = (opts.q ?? '').trim().toLowerCase();
   const excluded = opts.excludeIds && opts.excludeIds.length > 0 ? new Set(opts.excludeIds) : null;
 
-  let filtered = rows.filter(r => r.area === area);
+  // No area filter: query every bundled area, exactly like the server's
+  // unscoped feed (which scopes to feed areas, the bundle's population).
+  let filtered = area == null ? [...rows] : rows.filter(r => r.area === area);
   const minSalary = opts.min_salary;
   const maxSalary = opts.max_salary;
   if (minSalary != null) filtered = filtered.filter(r => r.salary != null && (r.salary as number) >= minSalary);
@@ -323,9 +332,15 @@ export function queryCatalog(opts: CatalogQuery = {}): RoiResponse {
   };
 }
 
-/** States from the bundle, national "99" first. */
+/** States from the bundle: national "99" first, then alphabetical by name
+ * (mirrors GET /api/areas/states ASC ordering, so bundle and server
+ * pickers list states identically). */
 export function listStates(): { states: Array<{ area_code: string; area_name: string }> } {
-  return { states: areaList };
+  const national = areaList.find(a => a.area_code === '99');
+  const rest = areaList
+    .filter(a => a.area_code !== '99')
+    .sort((a, b) => a.area_name.localeCompare(b.area_name));
+  return { states: national ? [national, ...rest] : rest };
 }
 
 export function getMapSummary(): MapSummary {
@@ -362,8 +377,12 @@ export interface QueryCareersParams {
 
 /** Local-first list/search: bundle when populated, apiClient otherwise. */
 export async function queryCareers(params: QueryCareersParams = {}): Promise<RoiResponse> {
+  // Explicit default sort on BOTH paths: the local engine sorts roi-desc
+  // by default while the server feed sorts demand-desc, so an unsorted
+  // request must not order differently depending on the bundle state.
+  const sort = params.sort ?? 'roi';
   if (!isCatalogEmpty()) {
-    return queryCatalog(params);
+    return queryCatalog({ ...params, sort });
   }
   if (params.q != null && params.q.trim() !== '') {
     return apiClient.searchCareers(params.q.trim(), params.area_code ?? '99', params.signal);
@@ -375,7 +394,7 @@ export async function queryCareers(params: QueryCareersParams = {}): Promise<Roi
   if (params.area_code !== undefined) clean.area_code = params.area_code;
   if (params.min_salary !== undefined) clean.min_salary = params.min_salary;
   if (params.max_salary !== undefined) clean.max_salary = params.max_salary;
-  if (params.sort !== undefined) clean.sort = params.sort;
+  clean.sort = sort;
   return apiClient.getCareers(clean);
 }
 
@@ -392,7 +411,9 @@ export type LikedRecord = CareerROI & { swipe_id: number; swiped_at: string };
 /**
  * Hydrates liked/compare/action-plan records from the local bundle using
  * career_ids from swipe history (right swipes). Returns null when the bundle
- * is empty so callers can fall back to getLikedCareers. Swipe metadata
+ * is empty so callers can fall back to getLikedCareers — and also when any
+ * right swipe cannot hydrate (the feed-only bundle omits metros, so a
+ * populated bundle must never silently hide those likes). Swipe metadata
  * (swipe_id, swiped_at) still comes from the server.
  */
 export function hydrateLikedFromCatalog(swipes: SwipeApiRecord[]): LikedRecord[] | null {
@@ -401,10 +422,28 @@ export function hydrateLikedFromCatalog(swipes: SwipeApiRecord[]): LikedRecord[]
   for (const s of swipes) {
     if (s.direction !== 'right' || s.career_id == null) continue;
     const local = findLocalById(s.career_id);
-    if (!local) continue;
+    if (!local) return null;
     out.push({ ...local, swipe_id: s.id, swiped_at: s.created_at });
   }
   return out;
+}
+
+/**
+ * Liked-records source choice, centralized so screens don't serialize a
+ * swipe-history fetch in front of the server fallback: the empty
+ * placeholder bundle goes straight to getLikedCareers (no wasted history
+ * round trip, and a history failure can't block the list that would have
+ * worked); populated bundles hydrate locally and fall back only when a
+ * like isn't in the bundle.
+ */
+export async function getLikedCareersOrFallback(): Promise<{ records: LikedRecord[] }> {
+  if (isCatalogEmpty()) {
+    return (await apiClient.getLikedCareers()) as { records: LikedRecord[] };
+  }
+  const history = await apiClient.getSwipeHistory();
+  const local = hydrateLikedFromCatalog(history.swipes || []);
+  if (local) return { records: local };
+  return (await apiClient.getLikedCareers()) as { records: LikedRecord[] };
 }
 
 /**

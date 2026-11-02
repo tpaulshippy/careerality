@@ -151,8 +151,23 @@ describe('LikedScreen', () => {
     await screen.findByText('Registered Nurses');
 
     expect(apiClient.getLikedCareers).toHaveBeenCalled();
+    // Empty placeholder: no wasted swipe-history round trip in front.
+    expect(apiClient.getSwipeHistory).not.toHaveBeenCalled();
     expect(screen.getByTestId('plan-button-8').props.accessibilityLabel).toBe(
       'Open action plan for Software Developers'
     );
+  });
+
+  it('falls back to the server list when a like is outside the feed-only bundle', async () => {
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(9, 999)],
+    });
+    (apiClient.getLikedCareers as jest.Mock).mockResolvedValue({
+      records: [{ ...makeCareer({ id: 999, occupation_name: 'Metro-Only Career' }), swipe_id: 9 }],
+    });
+    const screen = await render(<LikedScreen plansEnabled />);
+    await screen.findByText('Metro-Only Career');
+
+    expect(apiClient.getLikedCareers).toHaveBeenCalled();
   });
 });

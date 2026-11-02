@@ -1,8 +1,8 @@
 # Local-first catalog bundle (offline faceted search)
 
 The Expo app ships a slim, fully offline career catalog:
-`client/assets/data/catalog.v1.json`. It powers faceted search (by area,
-occupation, industry, salary/ROI/demand ranges) with zero network calls.
+`client/assets/data/catalog.v1.json`. It powers offline lookup and search
+(by area, occupation name, and salary bounds) with zero network calls.
 The bundle is generated from **local Postgres** by
 `server/scripts/export_pg_to_catalog.py` and committed to the repo.
 

@@ -136,24 +136,25 @@ def _code(value):
     return text if text else None
 
 
-def fetch_rows(cursor, where):
+def fetch_rows(cursor, where_sql, params):
     cursor.execute(
         "SELECT " + ", ".join(ROW_COLUMNS) + " FROM career_roi"
-        + (f" WHERE {where}" if where else "")
-        + " ORDER BY area_code, occupation_code"
+        + (f" WHERE {where_sql}" if where_sql else "")
+        + " ORDER BY area_code, occupation_code",
+        params or (),
     )
     names = [d.name for d in cursor.description]
     return [dict(zip(names, row)) for row in cursor.fetchall()]
 
 
-def fetch_map(cursor, where):
+def fetch_map(cursor, where_sql, params):
     """Per-area aggregates mirroring GET /api/roi/map_summary semantics.
 
     Same definitions as export_pg_to_sqlite.export_map_summary (COUNT,
     AVG salaries, percentile_cont median over non-null roi, high-roi count at
-    >= 15, demand counted when either demand column is set, AVG demand_rank
-    over non-nulls) -- but grouped over the exported area set, which includes
-    national "99" so every bundled area has a map entry.
+    HIGH_ROI_THRESHOLD, demand counted when either demand column is set, AVG
+    demand_rank over non-nulls) -- but grouped over the exported area set,
+    which includes national "99" so every bundled area has a map entry.
     """
     cursor.execute(
         """
@@ -163,15 +164,16 @@ def fetch_map(cursor, where):
           AVG(adjusted_salary) AS avg_adjusted,
           percentile_cont(0.5) WITHIN GROUP (ORDER BY roi_percentage)
             FILTER (WHERE roi_percentage IS NOT NULL) AS median_roi,
-          SUM(CASE WHEN roi_percentage >= 15 THEN 1 ELSE 0 END)
+          SUM(CASE WHEN roi_percentage >= %(high_roi)s THEN 1 ELSE 0 END)
             AS high_roi_count,
           SUM(CASE WHEN demand_score IS NOT NULL OR demand_rank IS NOT NULL
             THEN 1 ELSE 0 END) AS demand_count,
           AVG(demand_rank) AS demand_avg_rank
         FROM career_roi
         """
-        + (f" WHERE {where}" if where else "")
-        + " GROUP BY area_code"
+        + (f" WHERE {where_sql}" if where_sql else "")
+        + " GROUP BY area_code",
+        {"high_roi": HIGH_ROI_THRESHOLD, **(params or {})},
     )
     names = [d.name for d in cursor.description]
     return {row[0]: dict(zip(names, row)) for row in cursor.fetchall()}
@@ -277,16 +279,19 @@ def main():
         print("  (excluding metro-area career_roi rows; "
               "--include-metros restores the full export)")
 
-    where = None
+    # Bound as a single ANY(%s) array parameter: area codes are never
+    # interpolated into SQL text.
+    where_sql = None
+    params: dict = {}
     if wanted is not None:
-        in_list = "(" + ",".join(f"'{c}'" for c in wanted) + ")"
-        where = f"area_code IN {in_list}"
+        where_sql = "area_code = ANY(%(areas)s)"
+        params = {"areas": wanted}
 
     conn = get_connection()
     conn.set_session(readonly=True)
     cursor = conn.cursor()
-    rows = fetch_rows(cursor, where)
-    aggregates = fetch_map(cursor, where)
+    rows = fetch_rows(cursor, where_sql, params)
+    aggregates = fetch_map(cursor, where_sql, params)
     cursor.close()
     conn.close()
 
@@ -294,7 +299,11 @@ def main():
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(catalog, separators=(",", ":"))
-    out_path.write_text(text + "\n", encoding="utf-8")
+    # Atomic write: a crash mid-export must never leave a truncated
+    # catalog.v1.json behind for the next app build to inline.
+    tmp_path = out_path.with_name(out_path.name + ".tmp")
+    tmp_path.write_text(text + "\n", encoding="utf-8")
+    os.replace(tmp_path, out_path)
 
     size = len(text.encode("utf-8"))
     n = catalog["counts"]["rows"]

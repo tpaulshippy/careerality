@@ -58,8 +58,11 @@ const fetchStateRecords = async (fips: string): Promise<CareerROI[]> => {
   const apiCode = toApiFips(fips);
   // Local-first: per-state top-ROI queries run against the bundled catalog;
   // server calls only while the bundle is still the empty placeholder.
+  // Fetch the WHOLE state: roi-desc sorts null-ROI rows first (Postgres
+  // NULLS FIRST), so a paged cut would hide the highest-ROI rows behind
+  // 15+ null-ROI rows before the top-5 slice below.
   if (!isCatalogEmpty()) {
-    return queryCatalog({ area_code: apiCode, sort: 'roi', per_page: 15 }).records;
+    return queryCatalog({ area_code: apiCode, sort: 'roi', per_page: Number.MAX_SAFE_INTEGER }).records;
   }
   const first = await apiClient.get<RoiResponse>(
     `/api/roi?area_code=${encodeURIComponent(apiCode)}&sort=roi&page=1`,

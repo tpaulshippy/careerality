@@ -15,8 +15,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { CareerROI } from '../types';
-import { apiClient } from '../api/client';
-import { fetchDetailInBackground, hydrateLikedFromCatalog, isCatalogEmpty } from '../data/catalog';
+import { fetchDetailInBackground, getLikedCareersOrFallback, isCatalogEmpty } from '../data/catalog';
 import { CareerDetailView } from '../components/CareerDetailView';
 import { Button } from '../components/Button';
 import { useTheme } from '../hooks/useTheme';
@@ -86,14 +85,10 @@ export const CompareScreen: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // Local-first: hydrate records from the bundled catalog via
-      // swipe-history career_ids; swipe metadata still comes from the server.
-      // getLikedCareers only while the bundle is still the empty placeholder.
-      const history = await apiClient.getSwipeHistory();
-      const local = hydrateLikedFromCatalog(history.swipes || []);
-      const json = local
-        ? { records: local }
-        : await apiClient.getLikedCareers() as { records: LikedRecord[] };
+      // Local-first via the shared helper: the empty placeholder bundle
+      // goes straight to getLikedCareers; populated bundles hydrate from
+      // the catalog and fall back only for likes outside it (metros).
+      const json = await getLikedCareersOrFallback();
       setLikedRecords(json.records || []);
     } catch {
       setError('Failed to load comparison');

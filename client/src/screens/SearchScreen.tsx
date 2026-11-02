@@ -139,10 +139,22 @@ export const SearchScreen: React.FC = () => {
     let cancelled = false;
     setPopularLoading(true);
     // Local-first popular list (demand sort, 50 per page); server fallback
-    // only while the bundle is still the empty placeholder.
-    queryCareers({ page: 1, sort: 'demand', area_code: filters.stateCode, per_page: 50 })
+    // only while the bundle is still the empty placeholder. Exclude
+    // already-swiped careers like the server path does via user_id
+    // (best-effort: a history failure still shows the unfiltered list).
+    apiClient
+      .getSwipeHistory()
+      .catch(() => ({ swipes: [] as { career_id?: number }[] }))
+      .then(history => {
+        if (cancelled) return;
+        const swipes = (history as { swipes?: Array<{ career_id?: number }> }).swipes ?? [];
+        const excludeIds = swipes
+          .map(s => s.career_id)
+          .filter((id): id is number => typeof id === 'number');
+        return queryCareers({ page: 1, sort: 'demand', area_code: filters.stateCode, per_page: 50, excludeIds });
+      })
       .then(json => {
-        if (!cancelled) setPopular(json.records || []);
+        if (!cancelled && json) setPopular(json.records || []);
       })
       .catch(() => {})
       .finally(() => {

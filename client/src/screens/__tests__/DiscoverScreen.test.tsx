@@ -310,6 +310,47 @@ describe('DiscoverScreen', () => {
     expect(queryByText(/Jev-ranked/)).toBeNull();
   });
 
+  it('retains session swipes across appended pages for rerank', async () => {
+    queryCareersMock.mockResolvedValue({
+      records: rankedRecords,
+      pagy: { page: 1, items: 20, count: 6, pages: 3 },
+    });
+    getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }] });
+    rankCareersMock.mockResolvedValue(null);
+
+    mockSwipedCareer = career;
+    await render(<DiscoverScreen />);
+    await waitFor(() => expect(rankCareersMock).toHaveBeenCalled());
+    await act(async () => {});
+
+    // First swipe: feedback submit records the session swipe and reranks,
+    // while the near-end check appends page 2 underneath.
+    await act(async () => {
+      mockSwipeControlsProps?.onLike();
+    });
+    await act(async () => {
+      mockFeedbackModalProps?.onSubmit('very_interested');
+    });
+    await waitFor(() => expect(queryCareersMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(rankCareersMock).toHaveBeenCalledTimes(2));
+
+    // Second swipe appends page 3; the earlier session swipe must survive
+    // the append for the next rerank (and a later undo).
+    await act(async () => {
+      mockSwipeControlsProps?.onLike();
+    });
+    await waitFor(() => expect(queryCareersMock).toHaveBeenCalledTimes(3));
+    await act(async () => {
+      mockFeedbackModalProps?.onSubmit('mild_interest');
+    });
+    await waitFor(() => expect(rankCareersMock).toHaveBeenCalledTimes(3));
+
+    const lastSwipes = rankCareersMock.mock.calls[2]?.[0] as
+      | Array<{ career_id?: number }>
+      | undefined;
+    expect(lastSwipes?.filter(s => s.career_id === 42)).toHaveLength(2);
+  });
+
   it('falls back to the server list when the catalog is empty', async () => {
     const actualCatalog = jest.requireActual('../../data/catalog') as typeof import('../../data/catalog');
     loadCatalog({

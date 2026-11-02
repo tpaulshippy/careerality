@@ -181,6 +181,26 @@ describe('InsightsScreen', () => {
     expect(get).toHaveBeenCalled();
   });
 
+  it('falls back to the server liked list when a like is outside the bundle', async () => {
+    getSwipeHistory.mockResolvedValue({
+      swipes: [
+        swipe({ id: 1, career_id: 100, direction: 'right', feedback: 'very_interested' }),
+        swipe({ id: 2, career_id: 999, direction: 'right', feedback: 'mild_interest' }),
+      ],
+    });
+    getLikedCareers.mockResolvedValue({
+      records: [likedCareer(), likedCareer({ id: 2, occupation_code: '15-1252' })],
+    });
+
+    const { getByText } = await render(<InsightsScreen />);
+
+    await waitFor(() => expect(getByText('What you value')).toBeTruthy());
+    // Metro like (999) is absent from the feed-only bundle: the complete
+    // server list is used instead of a silently partial hydrate.
+    expect(getLikedCareers).toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
+  });
+
   it('shows an error state when the API fails', async () => {
     getSwipeHistory.mockRejectedValue(new Error('boom'));
 

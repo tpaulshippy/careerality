@@ -179,7 +179,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ career, onSwipeLeft, onSwi
             <View style={styles.statItem}>
               <Text style={[styles.statLabel, { color: theme.colors.text.secondary }]}>Break-even</Text>
               <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
-                {career.years_to_breakeven} years
+                {career.years_to_breakeven != null ? `${career.years_to_breakeven} years` : 'n/a'}
               </Text>
             </View>
             <View style={styles.statItem}>

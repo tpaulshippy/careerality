@@ -76,6 +76,7 @@ jest.mock('../../api/client', () => ({
     getLikedCareers: jest.fn(),
     // Swipe metadata always comes from the server; records hydrate locally.
     getSwipeHistory: jest.fn().mockResolvedValue({ swipes: [] }),
+    getCareerInArea: jest.fn().mockResolvedValue({ skills: [] }),
   },
 }));
 
@@ -171,6 +172,9 @@ describe('ActionPlansScreen', () => {
     const screen = await render(<ActionPlansScreen />);
     expect(await screen.findByText('Registered Nurses')).toBeTruthy();
     expect(apiClient.getLikedCareers).toHaveBeenCalled();
+    // Empty placeholder: the server list is used directly, with no
+    // swipe-history fetch serialized in front of it.
+    expect(apiClient.getSwipeHistory).not.toHaveBeenCalled();
   });
 
   it('renders one row per liked career with next-step teasers', async () => {
@@ -218,6 +222,30 @@ describe('ActionPlansScreen', () => {
     fireEvent.press(checkbox);
     await waitFor(() =>
       expect(screen.getByTestId('step-checkbox-0').props.accessibilityState).toEqual({ checked: true })
+    );
+  });
+
+  // Regression: local bundle rows omit detail-only columns (skills,
+  // day_in_life_*, video_url); opening career details must merge them from
+  // the server like Liked/Compare do. Kept above the NOTE: this test opens
+  // the detail view, so it must run before the tests that disturb the
+  // shared act() scope for later renders.
+  it('merges server-only detail columns when opening career details local-first', async () => {
+    (apiClient.getSwipeHistory as jest.Mock).mockResolvedValue({
+      swipes: [swipe(1, 1)],
+    });
+    (apiClient.getCareerInArea as jest.Mock).mockResolvedValue({
+      skills: ['Monitoring'],
+      day_in_life_summary: 'A day of care',
+    });
+    const screen = await render(<ActionPlansScreen />);
+    await screen.findByText('Registered Nurses');
+
+    fireEvent.press(screen.getByTestId('plan-row-0'));
+    fireEvent.press(await screen.findByTestId('open-career-details'));
+
+    await waitFor(() =>
+      expect(apiClient.getCareerInArea).toHaveBeenCalledWith('29-1141.00', '99')
     );
   });
 

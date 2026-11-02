@@ -111,15 +111,39 @@ export const InsightsScreen: React.FC = () => {
     setError(null);
 
     try {
-      // Local-first: liked records hydrate from the bundle via swipe-history
-      // career_ids, and the baseline sample is local top-ROI queries.
-      // Server calls only while the bundle is still the empty placeholder.
-      const historyJson = await apiClient.getSwipeHistory();
-      const localLiked = hydrateLikedFromCatalog(historyJson.swipes || []);
+      // Branch on the bundle FIRST so the server fallback keeps its
+      // parallel fetch (getLikedCareers + page-1 /api/roi) instead of
+      // serializing behind swipe history. Local-first: liked records
+      // hydrate from the bundle via swipe-history career_ids, and the
+      // baseline sample is local top-ROI queries.
       let likedRecords: LikedCareer[];
       let catalogRecords: CareerROI[];
-      if (localLiked) {
-        likedRecords = localLiked;
+      let swipes: SwipeApiRecord[];
+      if (isCatalogEmpty()) {
+        // Plain get() rather than getCareers() for the catalog: getCareers injects
+        // user_id, which would exclude the user's own swiped careers from the
+        // baseline sample.
+        const [likedJson, historyJson, firstPage] = await Promise.all([
+          apiClient.getLikedCareers(),
+          apiClient.getSwipeHistory(),
+          apiClient.get<RoiResponse>('/api/roi?page=1&sort=roi'),
+        ]);
+        likedRecords = likedJson.records || [];
+        swipes = historyJson.swipes || [];
+        catalogRecords = firstPage.records || [];
+        const totalPages = Math.min(firstPage.pagy?.pages ?? 1, CATALOG_PAGES);
+        for (let page = 2; page <= totalPages; page++) {
+          if (thisFetch !== fetchKeyRef.current) return;
+          const next = await apiClient.get<RoiResponse>(`/api/roi?page=${page}&sort=roi`);
+          catalogRecords = catalogRecords.concat(next.records || []);
+        }
+      } else {
+        const historyJson = await apiClient.getSwipeHistory();
+        swipes = historyJson.swipes || [];
+        const localLiked = hydrateLikedFromCatalog(swipes);
+        // A null hydrate means a right-swiped career isn't in the feed-only
+        // bundle (e.g. a metro like): keep the complete server list.
+        likedRecords = localLiked ?? (await apiClient.getLikedCareers()).records ?? [];
         catalogRecords = [];
         for (let page = 1; page <= CATALOG_PAGES; page++) {
           if (thisFetch !== fetchKeyRef.current) return;
@@ -127,25 +151,10 @@ export const InsightsScreen: React.FC = () => {
             queryCatalog({ sort: 'roi', page, per_page: 20 }).records,
           );
         }
-      } else {
-        // Plain get() rather than getCareers() for the catalog: getCareers injects
-        // user_id, which would exclude the user's own swiped careers from the
-        // baseline sample.
-        const [likedJson, firstPage] = await Promise.all([
-          apiClient.getLikedCareers(),
-          apiClient.get<RoiResponse>('/api/roi?page=1&sort=roi'),
-        ]);
-        likedRecords = likedJson.records || [];
-        catalogRecords = firstPage.records || [];
-        const totalPages = Math.min(firstPage.pagy?.pages ?? 1, CATALOG_PAGES);
-        for (let page = 2; page <= totalPages; page++) {
-          const next = await apiClient.get<RoiResponse>(`/api/roi?page=${page}&sort=roi`);
-          catalogRecords = catalogRecords.concat(next.records || []);
-        }
       }
 
       if (thisFetch !== fetchKeyRef.current) return;
-      setSwipes(historyJson.swipes || []);
+      setSwipes(swipes);
       setLiked(likedRecords);
       setCatalog(catalogRecords);
     } catch {
@@ -427,7 +436,9 @@ export const InsightsScreen: React.FC = () => {
             {renderPick(
               'Fastest break-even',
               picks.fastestBreakeven,
-              `${picks.fastestBreakeven!.years_to_breakeven}yr`
+              picks.fastestBreakeven!.years_to_breakeven != null
+                ? `${picks.fastestBreakeven!.years_to_breakeven}yr`
+                : 'n/a'
             )}
           </ScrollView>
         </View>
