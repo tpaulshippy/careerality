@@ -1,0 +1,26 @@
+client/src/api/__tests__/jevRank.test.ts
+  h_6bbd00fe0a456a 2-13,18-24,56-124
+client/src/api/jevRank.ts
+  h_6bbd00fe0a456a 2,18-22,29-66,70
+client/src/data/__tests__/catalog.test.ts
+  h_6bbd00fe0a456a 5,367-374
+client/src/data/catalog.ts
+  h_6bbd00fe0a456a 123,175,362-368
+server/src/lib/jev.ts
+  h_6bbd00fe0a456a 27-57,96,100,109-166,186,191,195,206-243,257,285,297-302
+server/src/routes/jev.ts
+  h_6bbd00fe0a456a 4,26-38
+server/test/jev-local-lookup.test.ts
+  h_6bbd00fe0a456a 1-242
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "081c3eb4c76df03f58252a4d2e04e965bd0fba3f",
+  "prompts": {},
+  "humans": {
+    "h_6bbd00fe0a456a": {
+      "author": "Paul Shippy <pshippy@gmail.com>"
+    }
+  }
+}
