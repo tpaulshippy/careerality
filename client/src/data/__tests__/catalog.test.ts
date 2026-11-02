@@ -2,6 +2,7 @@ import {
   CatalogBundle,
   findLocalById,
   findLocalCareer,
+  findOccupationName,
   getCatalogMeta,
   getLikedCareersOrFallback,
   getMapSummary,
@@ -361,6 +362,14 @@ describe('catalog', () => {
     it('forwards no area when none is given, matching the unscoped server feed', async () => {
       await queryCareers({});
       expect(apiClient.getCareers).toHaveBeenCalledWith({ sort: 'roi' });
+    });
+  });
+
+  describe('findOccupationName', () => {
+    it('resolves occupation names by code from the bundle table', () => {
+      expect(findOccupationName('15-1252.00')).toBe('Software Engineers');
+      expect(findOccupationName('29-1141.00')).toBe('Registered Nurses');
+      expect(findOccupationName('99-9999.00')).toBeUndefined();
     });
   });
 });

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { AppDb } from "../db/client";
 import type { Env } from "../env";
-import { MAX_CANDIDATES, rank } from "../lib/jev";
+import { MAX_CANDIDATES, rank, type RankLookup } from "../lib/jev";
 
 export function jevRoute(db: AppDb) {
   const app = new Hono<{ Bindings: Env }>();
@@ -23,7 +23,19 @@ export function jevRoute(db: AppDb) {
         422,
       );
     }
-    const results = await rank(db, c.env, swipes, candidates);
+    // Optional local-bundle enrichment from newer app clients. Absent or
+    // malformed values behave exactly like the legacy shape (D1 enrichment).
+    const lookup: RankLookup = {};
+    if (body?.careerLookup != null && typeof body.careerLookup === "object") {
+      lookup.careerLookup = body.careerLookup as Record<string, unknown>;
+    }
+    if (
+      body?.candidateNames != null &&
+      typeof body.candidateNames === "object"
+    ) {
+      lookup.candidateNames = body.candidateNames as Record<string, unknown>;
+    }
+    const results = await rank(db, c.env, swipes, candidates, lookup);
     return c.json({ results });
   });
 
