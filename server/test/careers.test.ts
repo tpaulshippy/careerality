@@ -62,6 +62,80 @@ describe("GET /api/careers", () => {
     });
     expect(json.pagy).toEqual({ page: 1, items: 10, count: 2, pages: 1 });
   });
+
+  test("caches the list at the edge with a day-long public TTL", async () => {
+    const calls = { match: 0, put: 0 };
+    const store = new Map<string, Response>();
+    const prev = (globalThis as Record<string, unknown>).caches;
+    (globalThis as Record<string, unknown>).caches = {
+      default: {
+        match: async (key: string) => {
+          calls.match += 1;
+          // Like the real Cache API, every match yields a usable copy.
+          const hit = store.get(String(key));
+          return hit ? hit.clone() : undefined;
+        },
+        put: async (key: string, res: Response) => {
+          calls.put += 1;
+          store.set(String(key), res);
+        },
+        delete: async (key: string) => {
+          store.delete(String(key));
+        },
+      },
+    };
+    try {
+      const app = testApp(db);
+      const miss = await app.request("/api/careers", {}, testEnv);
+      expect(miss.headers.get("Cache-Control")).toBe("public, max-age=86400");
+      const first = await body(miss);
+      expect(first.pagy.count).toBe(2);
+      // Prove the second request is served from the edge, not D1: wipe the
+      // table and the cached copy must still come back intact.
+      await db.delete(salaryOccupations);
+      const hit = await app.request("/api/careers", {}, testEnv);
+      expect(await body(hit)).toEqual(first);
+      expect(calls).toEqual({ match: 2, put: 1 });
+    } finally {
+      if (prev === undefined) delete (globalThis as Record<string, unknown>).caches;
+      else (globalThis as Record<string, unknown>).caches = prev;
+    }
+  });
+
+  test("does not cache empty results", async () => {
+    await db.delete(salaryOccupations);
+    const calls = { match: 0, put: 0 };
+    const store = new Map<string, Response>();
+    const prev = (globalThis as Record<string, unknown>).caches;
+    (globalThis as Record<string, unknown>).caches = {
+      default: {
+        match: async (key: string) => {
+          calls.match += 1;
+          const hit = store.get(String(key));
+          return hit ? hit.clone() : undefined;
+        },
+        put: async (key: string, res: Response) => {
+          calls.put += 1;
+          store.set(String(key), res);
+        },
+        delete: async (key: string) => {
+          store.delete(String(key));
+        },
+      },
+    };
+    try {
+      const app = testApp(db);
+      const first = await app.request("/api/careers", {}, testEnv);
+      expect((await body(first)).careers).toEqual([]);
+      const second = await app.request("/api/careers", {}, testEnv);
+      expect((await body(second)).careers).toEqual([]);
+      // Both requests missed; the empty page was never stored.
+      expect(calls).toEqual({ match: 2, put: 0 });
+    } finally {
+      if (prev === undefined) delete (globalThis as Record<string, unknown>).caches;
+      else (globalThis as Record<string, unknown>).caches = prev;
+    }
+  });
 });
 
 describe("GET /api/careers/:id", () => {

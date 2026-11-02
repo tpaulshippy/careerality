@@ -69,8 +69,22 @@ export function careersRoute(db: AppDb) {
     });
     res.headers.set("Cache-Control", `public, max-age=${CACHE_MAX_AGE_SECONDS}`);
     try {
-      if (typeof caches !== "undefined") {
-        c.executionCtx.waitUntil(caches.default.put(c.req.url, res.clone()));
+      // Never cache an empty list: a request that lands mid-seed (or on an
+      // empty table) would otherwise pin the empty page at the edge for a day.
+      if (typeof caches !== "undefined" && total > 0) {
+        const write = caches.default
+          .put(c.req.url, res.clone())
+          .then(
+            () => {},
+            () => {},
+          );
+        try {
+          c.executionCtx.waitUntil(write);
+        } catch {
+          // No executionCtx (tests, some dev servers): finish inline so
+          // behavior stays deterministic; prod stays fire-and-forget.
+          await write;
+        }
       }
     } catch {
       // Best-effort edge cache only — the response is already built.
