@@ -1,0 +1,50 @@
+client/assets/data/catalog.v1.json
+  h_6bbd00fe0a456a 1
+client/src/api/client.ts
+  h_6bbd00fe0a456a 93-96,106-109,119-122
+client/src/components/CareerPickerModal.tsx
+  h_6bbd00fe0a456a 19,49-63
+client/src/components/FilterSheet.tsx
+  h_6bbd00fe0a456a 17,60-61
+client/src/components/OnboardingQuiz.tsx
+  h_6bbd00fe0a456a 14,56-57
+client/src/components/__tests__/FilterSheet.test.tsx
+  h_6bbd00fe0a456a 41-50
+client/src/data/__tests__/catalog.test.ts
+  h_6bbd00fe0a456a 1-174
+client/src/data/catalog.ts
+  h_6bbd00fe0a456a 1-421
+client/src/screens/ActionPlansScreen.tsx
+  h_6bbd00fe0a456a 22,202-209
+client/src/screens/CompareScreen.tsx
+  h_6bbd00fe0a456a 19,89-96,114-124,209
+client/src/screens/DiscoverScreen.tsx
+  h_6bbd00fe0a456a 6,89-99,101-108,135,292-298
+client/src/screens/InsightsScreen.tsx
+  h_6bbd00fe0a456a 16,97-107,114-144,149,245
+client/src/screens/LikedScreen.tsx
+  h_6bbd00fe0a456a 6,41-48,81-87
+client/src/screens/MapScreen.tsx
+  h_6bbd00fe0a456a 18,59-63,82-88
+client/src/screens/RealityCheckScreen.tsx
+  h_6bbd00fe0a456a 15,75-76,102,107
+client/src/screens/SearchScreen.tsx
+  h_6bbd00fe0a456a 18,112-113,141-143,156-158,219-229,239-240,436
+client/src/screens/__tests__/ActionPlansScreen.test.tsx
+  h_6bbd00fe0a456a 74-78
+client/src/screens/__tests__/LikedScreen.test.tsx
+  h_6bbd00fe0a456a 22-27
+client/src/screens/__tests__/SearchScreen.test.tsx
+  h_6bbd00fe0a456a 51-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8252d9c52a0a02f8cb191502f15375c1de68c9e9",
+  "prompts": {},
+  "humans": {
+    "h_6bbd00fe0a456a": {
+      "author": "Paul Shippy <pshippy@gmail.com>"
+    }
+  }
+}
