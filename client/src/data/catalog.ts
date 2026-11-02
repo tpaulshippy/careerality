@@ -33,7 +33,9 @@ export interface CatalogBundle {
   version: number;
   generated_at: string | null;
   source: string;
-  counts: { areas: number; industries: number; occupations: number; rows: number };
+  // counts.industries is optional: older bundles predate it, so loadCatalog
+  // normalizes a missing value from industries.length at runtime.
+  counts: { areas: number; industries?: number; occupations: number; rows: number };
   areas: Array<{ c: string; n: string }>;
   occupations: Array<{ c: string; n: string }>;
   industries: Array<{ c: string; n: string }>;
@@ -152,7 +154,12 @@ function parseRow(t: CatalogRowTuple, bundle: CatalogBundle): ParsedRow | null {
  * catalog.v1.json so callers get the shipped data with zero setup.
  * Tests pass an inline fixture to avoid depending on real bundle data.
  */
-export function loadCatalog(bundleData: CatalogBundle = bundledCatalog as CatalogBundle): CatalogMeta {
+export function loadCatalog(bundleData: CatalogBundle = bundledCatalog as unknown as CatalogBundle): CatalogMeta {
+  // Normalize bundles that predate counts.industries (safe-cast above lets
+  // such JSON satisfy the type; the real value is industries.length).
+  if (bundleData.counts && bundleData.counts.industries == null) {
+    bundleData.counts = { ...bundleData.counts, industries: bundleData.industries.length };
+  }
   const parsed: ParsedRow[] = [];
   for (const t of bundleData.rows ?? []) {
     const r = parseRow(t, bundleData);

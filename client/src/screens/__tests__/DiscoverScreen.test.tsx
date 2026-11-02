@@ -2,6 +2,7 @@ import React from 'react';
 import { render, act, waitFor } from '@testing-library/react-native';
 import { DiscoverScreen } from '../DiscoverScreen';
 import { apiClient } from '../../api/client';
+import { loadCatalog, queryCareers } from '../../data/catalog';
 import { rankCareers } from '../../api/jevRank';
 import { CareerROI } from '../../types';
 import { InterestLevel } from '../../components/FeedbackModal';
@@ -131,8 +132,21 @@ jest.mock('../../api/client', () => ({
     getCareers: jest.fn(() => Promise.resolve({ records: [] })),
     getSwipeHistory: jest.fn(() => Promise.resolve({ swipes: [] })),
     submitSwipe: jest.fn().mockResolvedValue(undefined),
+    getCareerInArea: jest.fn(() => Promise.resolve({ skills: [] })),
   },
 }));
+
+jest.mock('../../data/catalog', () => {
+  const actual = jest.requireActual('../../data/catalog');
+  return {
+    ...actual,
+    // Local-first feed under test control: screens must render these
+    // records without touching the server list endpoints.
+    queryCareers: jest.fn(() =>
+      Promise.resolve({ records: [], pagy: { page: 1, items: 20, count: 0, pages: 1 } })
+    ),
+  };
+});
 
 jest.mock('../../api/jevRank', () => ({
   rankCareers: jest.fn(() => Promise.resolve(null)),
@@ -150,6 +164,7 @@ jest.mock('@react-navigation/native', () => ({
 const submitSwipeMock = apiClient.submitSwipe as jest.Mock;
 const getCareersMock = apiClient.getCareers as jest.Mock;
 const getSwipeHistoryMock = apiClient.getSwipeHistory as jest.Mock;
+const queryCareersMock = queryCareers as jest.Mock;
 const rankCareersMock = rankCareers as jest.Mock;
 
 const career = { id: 42, occupation_name: 'Software Developers' } as CareerROI;
@@ -176,6 +191,8 @@ describe('DiscoverScreen', () => {
     getCareersMock.mockResolvedValue({ records: [] });
     getSwipeHistoryMock.mockReset();
     getSwipeHistoryMock.mockResolvedValue({ swipes: [] });
+    queryCareersMock.mockReset();
+    queryCareersMock.mockResolvedValue({ records: [], pagy: { page: 1, items: 20, count: 0, pages: 1 } });
     rankCareersMock.mockReset();
     rankCareersMock.mockResolvedValue(null);
   });
@@ -238,31 +255,44 @@ describe('DiscoverScreen', () => {
   });
 
   it('ranks silently with no Jev badge for fully Jev-ranked results', async () => {
-    getCareersMock.mockResolvedValue({ records: rankedRecords });
+    queryCareersMock.mockResolvedValue({
+      records: rankedRecords,
+      pagy: { page: 1, items: 20, count: 2, pages: 1 },
+    });
     getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }, { career_id: 2 }] });
     rankCareersMock.mockResolvedValue({ results: jevResults, provider: 'jev' });
 
     const { queryByText } = await render(<DiscoverScreen />);
+    await waitFor(() => expect(queryCareersMock).toHaveBeenCalled());
     await waitFor(() => expect(rankCareersMock).toHaveBeenCalled());
     await act(async () => {});
     expect(queryByText(/Jev-ranked/)).toBeNull();
+    // Local-first: the feed comes from the bundle, never the server list.
+    expect(getCareersMock).not.toHaveBeenCalled();
   });
 
   it('keeps server order with no badge for fallback results', async () => {
-    getCareersMock.mockResolvedValue({ records: rankedRecords });
+    queryCareersMock.mockResolvedValue({
+      records: rankedRecords,
+      pagy: { page: 1, items: 20, count: 2, pages: 1 },
+    });
     getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }] });
     rankCareersMock.mockResolvedValue({ results: fallbackResults, provider: 'fallback' });
 
     const { queryByText } = await render(<DiscoverScreen />);
-    await waitFor(() => expect(getCareersMock).toHaveBeenCalled());
+    await waitFor(() => expect(queryCareersMock).toHaveBeenCalled());
     // Let the rank promise settle, then assert no badge was set.
     await waitFor(() => expect(rankCareersMock).toHaveBeenCalled());
     await act(async () => {});
     expect(queryByText(/Jev-ranked/)).toBeNull();
+    expect(getCareersMock).not.toHaveBeenCalled();
   });
 
-  it('appends unranked pages with no badge', async () => {
-    getCareersMock.mockResolvedValue({ records: rankedRecords, pagy: { pages: 2 } });
+  it('appends unranked pages locally with no badge', async () => {
+    queryCareersMock.mockResolvedValue({
+      records: rankedRecords,
+      pagy: { page: 1, items: 20, count: 2, pages: 2 },
+    });
     getSwipeHistoryMock.mockResolvedValue({ swipes: [{ career_id: 1 }] });
     rankCareersMock.mockResolvedValue({ results: jevResults, provider: 'jev' });
 
@@ -275,7 +305,30 @@ describe('DiscoverScreen', () => {
     await act(async () => {
       mockSwipeControlsProps?.onLike();
     });
-    await waitFor(() => expect(getCareersMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(queryCareersMock).toHaveBeenCalledTimes(2));
+    expect(getCareersMock).not.toHaveBeenCalled();
     expect(queryByText(/Jev-ranked/)).toBeNull();
+  });
+
+  it('falls back to the server list when the catalog is empty', async () => {
+    const actualCatalog = jest.requireActual('../../data/catalog') as typeof import('../../data/catalog');
+    loadCatalog({
+      version: 1,
+      generated_at: null,
+      source: 'test',
+      counts: { areas: 0, industries: 0, occupations: 0, rows: 0 },
+      areas: [],
+      occupations: [],
+      industries: [],
+      rows: [],
+      map: {},
+    });
+    queryCareersMock.mockImplementationOnce(
+      (params: Parameters<typeof queryCareers>[0]) => actualCatalog.queryCareers(params)
+    );
+    getCareersMock.mockResolvedValue({ records: rankedRecords });
+
+    await render(<DiscoverScreen />);
+    await waitFor(() => expect(getCareersMock).toHaveBeenCalled());
   });
 });

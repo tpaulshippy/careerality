@@ -22,7 +22,7 @@ Usage:
 
 Output (default: <repo>/client/assets/data/catalog.v1.json):
     {"version":1,"generated_at":"<UTC ISO>","source":"postgres",
-     "counts":{"rows":N,"occupations":M,"areas":K},
+     "counts":{"rows":N,"occupations":M,"areas":K,"industries":J},
      "areas":[{"c":"99","n":"National"}, ...],   # "99" first, then by code
      "occupations":[{"c":"...","n":"..."}],       # sorted by code
      "industries":[{"c":"...","n":"..."}],        # sorted by code, no empties
@@ -241,6 +241,7 @@ def build_catalog(rows, aggregates):
             "rows": len(out_rows),
             "occupations": len(occ_codes),
             "areas": len(area_codes),
+            "industries": len(ind_codes),
         },
         "areas": [{"c": c, "n": areas[c]} for c in area_codes],
         "occupations": [{"c": c, "n": occupations[c]} for c in occ_codes],
