@@ -1,0 +1,16 @@
+docs/LOCAL_CATALOG.md
+  h_6bbd00fe0a456a 1-82
+server/scripts/export_pg_to_catalog.py
+  h_6bbd00fe0a456a 1-306
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7072a0d4b3b897d895924761713d7d166ca66661",
+  "prompts": {},
+  "humans": {
+    "h_6bbd00fe0a456a": {
+      "author": "Paul Shippy <pshippy@gmail.com>"
+    }
+  }
+}
