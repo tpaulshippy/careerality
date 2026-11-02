@@ -26,12 +26,17 @@ export function jevRoute(db: AppDb) {
     // Optional local-bundle enrichment from newer app clients. Absent or
     // malformed values behave exactly like the legacy shape (D1 enrichment).
     const lookup: RankLookup = {};
-    if (body?.careerLookup != null && typeof body.careerLookup === "object") {
+    if (
+      body?.careerLookup != null &&
+      typeof body.careerLookup === "object" &&
+      !Array.isArray(body.careerLookup)
+    ) {
       lookup.careerLookup = body.careerLookup as Record<string, unknown>;
     }
     if (
       body?.candidateNames != null &&
-      typeof body.candidateNames === "object"
+      typeof body.candidateNames === "object" &&
+      !Array.isArray(body.candidateNames)
     ) {
       lookup.candidateNames = body.candidateNames as Record<string, unknown>;
     }

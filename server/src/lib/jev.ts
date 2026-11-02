@@ -42,7 +42,8 @@ function lookupCareerHit(
   const code = (hit as Record<string, unknown>)["occupation_code"];
   if (typeof code !== "string" || code.length === 0) return undefined;
   const name = (hit as Record<string, unknown>)["occupation_name"];
-  return { code, name: typeof name === "string" ? name : "" };
+  if (typeof name !== "string" || name.length === 0) return undefined;
+  return { code, name };
 }
 
 function lookupCandidateName(

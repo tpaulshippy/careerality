@@ -239,4 +239,40 @@ describe("POST /api/jev/rank local-bundle lookups", () => {
     // One swipe chunk + one candidate chunk through D1.
     expect(selects()).toBe(2);
   });
+
+  test("rejects array lookups and uses D1 (cubic P2)", async () => {
+    const { db: cdb, selects } = countingDb(db);
+    const res = await postRankWithDb(cdb, {
+      swipes: [{ career_id: 9001, direction: "right" }],
+      candidates: [{ occupation_code: "15-1252.00" }],
+      careerLookup: [],
+      candidateNames: [],
+    });
+    expect(res.status).toBe(200);
+    const json = await body(res);
+    expect(json.results).toHaveLength(1);
+    expect(json.results[0].provider).toBe("fallback");
+    // Arrays are not valid maps: one swipe chunk + one candidate chunk D1.
+    expect(selects()).toBe(2);
+  });
+
+  test("falls back to D1 when a lookup hit has an empty name (cubic P2)", async () => {
+    const { db: cdb, selects } = countingDb(db);
+    const res = await postRankWithDb(cdb, {
+      swipes: [{ career_id: 9001, direction: "right" }],
+      candidates: [
+        { occupation_code: "15-1252.00", occupation_name: "Software Developers" },
+      ],
+      careerLookup: {
+        "9001": { occupation_code: "15-1252.00", occupation_name: "" },
+      },
+    });
+    expect(res.status).toBe(200);
+    const json = await body(res);
+    expect(json.results).toHaveLength(1);
+    expect(json.results[0].provider).toBe("fallback");
+    // Nameless hit is incomplete: swipe chunk goes through D1, candidates
+    // already carry names so no candidate query.
+    expect(selects()).toBe(1);
+  });
 });
