@@ -220,6 +220,85 @@ describe("GET /api/roi", () => {
     expect(res.pagy.count).toBe(41);
   });
 
+  test("user_id feeds are edge-cached per URL with a short TTL", async () => {
+    await seedRoi("15-1252.00", "99", { demand_score: 0.3 });
+    const calls = { match: 0, put: 0 };
+    const store = new Map<string, Response>();
+    const prev = (globalThis as Record<string, unknown>).caches;
+    (globalThis as Record<string, unknown>).caches = {
+      default: {
+        match: async (key: string) => {
+          calls.match += 1;
+          // Like the real Cache API, every match yields a usable copy.
+          const hit = store.get(String(key));
+          return hit ? hit.clone() : undefined;
+        },
+        put: async (key: string, res: Response) => {
+          calls.put += 1;
+          store.set(String(key), res);
+        },
+        delete: async (key: string) => {
+          store.delete(String(key));
+        },
+      },
+    };
+    try {
+      const app = testApp(db);
+      const url = "/api/roi?sort=demand&user_id=cache-u1";
+      const first = await body(await app.request(url, {}, testEnv));
+      const second = await body(await app.request(url, {}, testEnv));
+      expect(second).toEqual(first);
+      expect(calls).toEqual({ match: 2, put: 1 });
+      const cached = await app.request(url);
+      expect(cached.headers.get("Cache-Control")).toBe("private, max-age=60");
+    } finally {
+      if (prev === undefined) delete (globalThis as Record<string, unknown>).caches;
+      else (globalThis as Record<string, unknown>).caches = prev;
+    }
+  });
+
+  test("a swipe write purges that user's cached feeds", async () => {
+    const id = await seedRoi("15-1252.00", "99", { demand_score: 0.3 });
+    const store = new Map<string, Response>();
+    const prev = (globalThis as Record<string, unknown>).caches;
+    (globalThis as Record<string, unknown>).caches = {
+      default: {
+        match: async (key: string) => store.get(String(key)),
+        put: async (key: string, res: Response) => {
+          store.set(String(key), res);
+        },
+        delete: async (key: string) => {
+          store.delete(String(key));
+          return true;
+        },
+      },
+    };
+    try {
+      const app = testApp(db);
+      const url = "/api/roi?sort=demand&user_id=purge-u1";
+      await body(await app.request(url, {}, testEnv));
+      expect(store.size).toBe(1);
+      const posted = await app.request(
+        "/api/swipes",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ career_id: id, user_id: "purge-u1", direction: "right" }),
+        },
+        testEnv,
+      );
+      expect(posted.status).toBe(201);
+      // waitUntil callbacks run before the test response resolves in this
+      // runtime; purge directly as well in case they lag.
+      const { purgeUserFeedCache } = await import("../src/routes/roi");
+      await purgeUserFeedCache("purge-u1");
+      expect(store.size).toBe(0);
+    } finally {
+      if (prev === undefined) delete (globalThis as Record<string, unknown>).caches;
+      else (globalThis as Record<string, unknown>).caches = prev;
+    }
+  });
+
   test("each salary alias applies independently, strictest wins", async () => {
     // Distinct roi values keep the roi-fallback order deterministic.
     await seedRoi("15-1252.00", "99", {

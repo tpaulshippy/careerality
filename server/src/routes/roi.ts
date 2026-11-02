@@ -22,6 +22,47 @@ export const HIGH_ROI_THRESHOLD = 15;
 const ROI_PER_PAGE = 20;
 const ROI_TOP_PER_PAGE = 50;
 
+// Anonymous feeds change only on re-seed: long edge TTL. user_id feeds go
+// stale on the user's own swipes: 60s TTL plus best-effort purge on swipe
+// writes (see purgeUserFeedCache). Per-URL keying keeps users isolated.
+const ANON_CACHE_MAX_AGE = 86_400;
+const USER_CACHE_MAX_AGE = 60;
+
+// Feed URLs cached per user, for swipe-write purges. Best-effort and
+// per-isolate: entries on other isolates/PoPs expire via the short TTL.
+// Capped so a pathological user_id space can't grow it without bound.
+const userFeedUrls = new Map<string, Set<string>>();
+const MAX_TRACKED_URLS_PER_USER = 50;
+
+function trackUserFeedUrl(userId: string, url: string): void {
+  let set = userFeedUrls.get(userId);
+  if (!set) {
+    set = new Set();
+    userFeedUrls.set(userId, set);
+  }
+  set.add(url);
+  if (set.size > MAX_TRACKED_URLS_PER_USER) {
+    const oldest = set.values().next();
+    if (!oldest.done) set.delete(oldest.value);
+  }
+}
+
+// Delete this user's cached feed responses (exact URLs only — Cache API has
+// no prefix purge). Called after swipe writes; failures leave the 60s TTL
+// as backstop.
+export async function purgeUserFeedCache(userId: string): Promise<void> {
+  const set = userFeedUrls.get(userId);
+  if (!set) return;
+  userFeedUrls.delete(userId);
+  try {
+    if (typeof caches !== "undefined") {
+      await Promise.all([...set].map((url) => caches.default.delete(url)));
+    }
+  } catch {
+    // Best-effort only.
+  }
+}
+
 // Rails serializes PG NUMERIC/BigDecimal columns as JSON strings
 // (e.g. "50000.0"), while integers stay numbers. Reproduce that formatting
 // so the client contracts (which type these fields as string) keep working.
@@ -223,19 +264,18 @@ export function roiRoute(db: AppDb) {
     const area = q["area_code"] ?? q["area"] ?? q["location"] ?? undefined;
     const page = parsePage(q["page"]);
 
-    // Anonymous feeds are shared and hot (crawlers, cold boots, CI smoke):
-    // serve them from the edge cache keyed by full URL. user_id responses
-    // are per-user — always fresh from D1.
-    const cacheable = !q["user_id"];
-    if (cacheable) {
-      try {
-        if (typeof caches !== "undefined") {
-          const hit = await caches.default.match(c.req.url);
-          if (hit) return hit;
-        }
-      } catch {
-        // Cache API unavailable (tests, dev) — D1 path.
+    // Feeds are shared (anonymous) or per-user (user_id) but always
+    // URL-keyed, so the edge cache is correct for both: crawlers, cold
+    // boots, CI smoke, pagination, and refetches all hit it.
+    const userId = q["user_id"] ?? null;
+    const cacheTtl = userId ? USER_CACHE_MAX_AGE : ANON_CACHE_MAX_AGE;
+    try {
+      if (typeof caches !== "undefined") {
+        const hit = await caches.default.match(c.req.url);
+        if (hit) return hit;
       }
+    } catch {
+      // Cache API unavailable (tests, dev) — D1 path.
     }
 
     const salaryWheres = salaryFilters(q);
@@ -358,16 +398,31 @@ export function roiRoute(db: AppDb) {
       response["area_name"] = areaRows[0]?.area_name ?? `State ${area}`;
     }
     const res = c.json(response);
-    if (cacheable) {
-      // Feed content changes only on re-seed.
-      res.headers.set("Cache-Control", "public, max-age=86400");
-      try {
-        if (typeof caches !== "undefined") {
-          c.executionCtx.waitUntil(caches.default.put(c.req.url, res.clone()));
+    // Feed content changes on re-seed (anonymous, long TTL) or the user's
+    // own swipes (per-user short TTL + purge on write).
+    res.headers.set(
+      "Cache-Control",
+      userId ? `private, max-age=${cacheTtl}` : `public, max-age=${cacheTtl}`,
+    );
+    try {
+      if (typeof caches !== "undefined") {
+        const url = c.req.url;
+        const write = caches.default.put(url, res.clone()).then(
+          () => {
+            if (userId) trackUserFeedUrl(userId, url);
+          },
+          () => {},
+        );
+        try {
+          c.executionCtx.waitUntil(write);
+        } catch {
+          // No executionCtx (tests, some dev servers): finish inline so
+          // behavior stays deterministic; prod stays fire-and-forget.
+          await write;
         }
-      } catch {
-        // Best-effort edge cache only — the response is already built.
       }
+    } catch {
+      // Best-effort edge cache only — the response is already built.
     }
     return res;
   });
