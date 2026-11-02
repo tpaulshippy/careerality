@@ -57,12 +57,26 @@ function trackUserFeedUrl(userId: string, url: string): void {
   }
 }
 
+// Version entries are safe to evict at any time: eviction resets a user to
+// generation 0, so an in-flight put either still matches (no purge happened
+// — storing fresh data is correct) or mismatches (purge or eviction
+// happened — the entry is dropped). Either way no stale data is registered.
+function enforceVersionCap(): void {
+  while (userFeedVersion.size > MAX_TRACKED_USERS) {
+    const oldest = userFeedVersion.keys().next();
+    if (oldest.done) break;
+    userFeedVersion.delete(oldest.value);
+    userFeedUrls.delete(oldest.value);
+  }
+}
+
 // Delete this user's cached feed responses (exact URLs only — Cache API has
 // no prefix purge). Called after swipe writes; failures leave the 60s TTL
 // as backstop. Bumps the per-user version first so a cache write still in
 // flight can't re-register stale data after the purge (see the put path).
 export async function purgeUserFeedCache(userId: string): Promise<void> {
   userFeedVersion.set(userId, (userFeedVersion.get(userId) ?? 0) + 1);
+  enforceVersionCap();
   const set = userFeedUrls.get(userId);
   if (!set) return;
   userFeedUrls.delete(userId);
