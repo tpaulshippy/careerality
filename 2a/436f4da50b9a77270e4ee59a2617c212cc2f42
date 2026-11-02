@@ -1,0 +1,58 @@
+client/src/components/CareerDetailView.tsx
+  h_6bbd00fe0a456a 123-126
+client/src/components/CareerPickerModal.tsx
+  h_6bbd00fe0a456a 19,49-70,184-186
+client/src/components/SwipeCard.tsx
+  h_6bbd00fe0a456a 182
+client/src/components/__tests__/CareerPickerModal.test.tsx
+  h_6bbd00fe0a456a 1-143
+client/src/data/__tests__/catalog.test.ts
+  h_6bbd00fe0a456a 6,8,12,16-28,82-85,90-93,97,102,107,112-114,122-126,133-134,136-137,140,147-148,161,163-165,179-205,221-365
+client/src/data/catalog.ts
+  h_6bbd00fe0a456a 115-118,223-225,255-259,262,268-270,335-337,339-343,380-383,385,397,414-416,425,431-448
+client/src/screens/ActionPlansScreen.tsx
+  h_6bbd00fe0a456a 21,201-204,576,633-653
+client/src/screens/CompareScreen.tsx
+  h_6bbd00fe0a456a 18,88-91
+client/src/screens/DiscoverScreen.tsx
+  h_6bbd00fe0a456a 96-98
+client/src/screens/InsightsScreen.tsx
+  h_6bbd00fe0a456a 114-118,121-122,126,128,132,136,140-153,157,439-441
+client/src/screens/LikedScreen.tsx
+  h_6bbd00fe0a456a 6,41-44,260-262
+client/src/screens/MapScreen.tsx
+  h_6bbd00fe0a456a 61-63,65
+client/src/screens/RealityCheckScreen.tsx
+  h_6bbd00fe0a456a 243
+client/src/screens/SearchScreen.tsx
+  h_6bbd00fe0a456a 142-155,157
+client/src/screens/__tests__/ActionPlansScreen.test.tsx
+  h_6bbd00fe0a456a 79,175-177,228-251
+client/src/screens/__tests__/DiscoverScreen.test.tsx
+  h_6bbd00fe0a456a 313-353
+client/src/screens/__tests__/InsightsScreen.test.tsx
+  h_6bbd00fe0a456a 184-203
+client/src/screens/__tests__/LikedScreen.test.tsx
+  h_6bbd00fe0a456a 154-155,160-172
+client/src/screens/__tests__/SearchScreen.test.tsx
+  h_6bbd00fe0a456a 52,141-151
+client/src/types/index.ts
+  h_6bbd00fe0a456a 9
+client/src/utils/gamification.ts
+  h_6bbd00fe0a456a 362-363,366-367
+docs/LOCAL_CATALOG.md
+  h_6bbd00fe0a456a 4-5
+server/scripts/export_pg_to_catalog.py
+  h_6bbd00fe0a456a 139,142-144,150,155-157,167,174-176,282-285,287-288,293-294,302-306
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2a436f4da50b9a77270e4ee59a2617c212cc2f42",
+  "prompts": {},
+  "humans": {
+    "h_6bbd00fe0a456a": {
+      "author": "Paul Shippy <pshippy@gmail.com>"
+    }
+  }
+}
