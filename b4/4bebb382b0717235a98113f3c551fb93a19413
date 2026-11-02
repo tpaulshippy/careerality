@@ -1,0 +1,30 @@
+client/assets/data/catalog.v1.json
+  h_6bbd00fe0a456a 1
+client/src/components/__tests__/FilterSheet.test.tsx
+  h_6bbd00fe0a456a 4-5,50,79-113,115-119,136-138,163-177
+client/src/data/catalog.ts
+  h_6bbd00fe0a456a 36-38,157-162
+client/src/screens/__tests__/ActionPlansScreen.test.tsx
+  h_6bbd00fe0a456a 8,77,103-149,154-156,163,166-167,169-178,184,189-190,207-208,228-229,244-245,253-254
+client/src/screens/__tests__/DiscoverScreen.test.tsx
+  h_6bbd00fe0a456a 5,135,139-150,167,194-195,258-261,266,270-271,275-278,283,288,291-295,308-309,312-333
+client/src/screens/__tests__/InsightsScreen.test.tsx
+  h_6bbd00fe0a456a 6,67-101,105,117-119,125-127,142-144,150-151,160-181
+client/src/screens/__tests__/LikedScreen.test.tsx
+  h_6bbd00fe0a456a 6,25,61-102,105-107,111-112,123-124,128-129,136-156
+client/src/screens/__tests__/SearchScreen.test.tsx
+  h_6bbd00fe0a456a 5,51,53,58-97,99-102,104,107-111,115-119,137-170
+server/scripts/export_pg_to_catalog.py
+  h_6bbd00fe0a456a 25,244
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b44bebb382b0717235a98113f3c551fb93a19413",
+  "prompts": {},
+  "humans": {
+    "h_6bbd00fe0a456a": {
+      "author": "Paul Shippy <pshippy@gmail.com>"
+    }
+  }
+}
